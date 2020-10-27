@@ -34,7 +34,8 @@ struct SwiftParticleHost_t: public Particle_t
 
 class SwiftSimReader_t
 {
-  const int NullGroupId=1<<30; //1073741824
+  // TODO: read null group ID from snapshot in case user changed it in Swift config
+  const int NullGroupId=(((long long) 1)<<31)-1;
   string SnapshotName;
     
   vector <HBTInt> np_file;

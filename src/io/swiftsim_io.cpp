@@ -34,7 +34,6 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype& dtype)
   RegisterAttr(NumberOfFiles, MPI_INT, 1)
   RegisterAttr(BoxSize, MPI_DOUBLE, 1)
   RegisterAttr(ScaleFactor, MPI_DOUBLE, 1)
-  RegisterAttr(BoxSize, MPI_DOUBLE, 1)
   RegisterAttr(OmegaM0, MPI_DOUBLE, 1)
   RegisterAttr(OmegaLambda0, MPI_DOUBLE, 1)
   RegisterAttr(mass, MPI_DOUBLE, TypeMax)
@@ -54,7 +53,7 @@ void SwiftSimReader_t::SetSnapshot(int snapshotId)
   if(HBTConfig.SnapshotNameList.empty())
   {
 	stringstream formatter;
-	formatter<<"snapshot_"<<setw(3)<<setfill('0')<<snapshotId;
+	formatter<<HBTConfig.SnapshotFileBase<<"_"<<setw(4)<<setfill('0')<<snapshotId;
 	SnapshotName=formatter.str();
   }
   else
@@ -63,28 +62,30 @@ void SwiftSimReader_t::SetSnapshot(int snapshotId)
 
 void SwiftSimReader_t::GetFileName(int ifile, string &filename)
 {
-  string subname=SnapshotName;
-  subname.erase(4, 4);//i.e., remove "shot" from "snapshot" or "snipshot"
   stringstream formatter;
-  formatter<<HBTConfig.SnapshotPath<<"/"<<SnapshotName<<"/"<<subname<<"."<<ifile<<".hdf5";
+  //formatter<<HBTConfig.SnapshotPath<<"/"<<SnapshotName<<"."<<ifile<<".hdf5";
+  formatter<<HBTConfig.SnapshotPath<<"/"<<SnapshotName<<".hdf5";
   filename=formatter.str();
 }
 
 void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
 {
   string filename;
+  double BoxSize_3D[3];
   GetFileName(ifile, filename);
   hid_t file=H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
   ReadAttribute(file, "Header", "NumFilesPerSnapshot", H5T_NATIVE_INT, &Header.NumberOfFiles);
-  ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, &Header.BoxSize);
+  ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, BoxSize_3D);
+  assert(BoxSize_3D[0]==BoxSize_3D[1]);
+  assert(BoxSize_3D[0]==BoxSize_3D[2]);
+  Header.BoxSize = BoxSize_3D[0]; // Can only handle cubic boxes
   assert((HBTReal)Header.BoxSize==HBTConfig.BoxSize);
-  ReadAttribute(file, "Header", "Time", H5T_NATIVE_DOUBLE, &Header.ScaleFactor);
-  ReadAttribute(file, "Header", "Omega0", H5T_NATIVE_DOUBLE, &Header.OmegaM0);
-  ReadAttribute(file, "Header", "OmegaLambda", H5T_NATIVE_DOUBLE, &Header.OmegaLambda0);  
-  ReadAttribute(file, "Header", "MassTable", H5T_NATIVE_DOUBLE, Header.mass);
-//   cout<<Header.mass[0]<<","<<Header.mass[1]<<","<<Header.mass[2]<<endl;
+  ReadAttribute(file, "Cosmology", "Scale-factor", H5T_NATIVE_DOUBLE, &Header.ScaleFactor);
+  ReadAttribute(file, "Cosmology", "Omega_m", H5T_NATIVE_DOUBLE, &Header.OmegaM0);
+  ReadAttribute(file, "Cosmology", "Omega_lambda", H5T_NATIVE_DOUBLE, &Header.OmegaLambda0);  
+  for(int i=0; i<TypeMax; i+=1)
+    Header.mass[i] = 0.0; // Swift particles always have individual masses
   ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, Header.npart);
-  
   unsigned np[TypeMax], np_high[TypeMax];
   ReadAttribute(file, "Header", "NumPart_Total", H5T_NATIVE_UINT, np);
   ReadAttribute(file, "Header", "NumPart_Total_HighWord", H5T_NATIVE_UINT, np_high);
@@ -335,7 +336,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
 	
 	{//Hostid
 	  vector <HBTInt> id(np);
-	  ReadDataset(particle_data, "GroupNumber", H5T_HBTInt, id.data());
+	  ReadDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data());
 	  for(int i=0;i<np;i++)
 		ParticlesThisType[i].HostId=(id[i]<0?NullGroupId:id[i]);//negative means outside fof but within Rv 
 	}
@@ -504,7 +505,7 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Ha
 
 bool IsSwiftSimGroup(const string &GroupFileFormat)
 {
-  return GroupFileFormat.substr(0, 7)=="swiftsim";
+  return GroupFileFormat.substr(0, 8)=="swiftsim";
 }
 
 struct HaloInfo_t
