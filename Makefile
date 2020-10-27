@@ -24,7 +24,7 @@ $(EXE_HBT): HBT.o
 
 depend:
 	makedepend --$(CXXFLAGS)-- -Y $(SRC) $(SRC_COMM)
-	
+
 #custom command, not needed by a general user
 -include .Makefile_sync_mpi.inc
 # DO NOT DELETE
@@ -77,7 +77,7 @@ src/io/snapshot_io.o: src/snapshot.h src/config_parser.h
 src/io/snapshot_io.o: src/snapshot_number.h src/hash.h src/hash.tpp
 src/io/snapshot_io.o: src/mpi_wrapper.h src/mymath.h src/io/gadget_io.h
 src/io/snapshot_io.o: src/io/apostle_io.h src/hdf_wrapper.h src/halo.h
-src/io/snapshot_io.o: src/snapshot.h
+src/io/snapshot_io.o: src/snapshot.h src/swiftsim_io.h
 src/io/gadget_io.o: src/snapshot.h src/datatypes.h src/mymath.h
 src/io/gadget_io.o: src/config_parser.h src/snapshot_number.h src/hash.h
 src/io/gadget_io.o: src/hash.tpp src/mpi_wrapper.h src/mymath.h
@@ -88,6 +88,12 @@ src/io/apostle_io.o: src/hash.tpp src/mpi_wrapper.h src/mymath.h
 src/io/apostle_io.o: src/hdf_wrapper.h src/io/apostle_io.h src/halo.h
 src/io/apostle_io.o: src/snapshot.h src/mpi_wrapper.h
 src/io/apostle_io.o: src/halo_particle_iterator.h
+src/io/swiftsim_io.o: src/snapshot.h src/datatypes.h src/mymath.h
+src/io/swiftsim_io.o: src/config_parser.h src/snapshot_number.h src/hash.h
+src/io/swiftsim_io.o: src/hash.tpp src/mpi_wrapper.h src/mymath.h
+src/io/swiftsim_io.o: src/hdf_wrapper.h src/io/swiftsim_io.h src/halo.h
+src/io/swiftsim_io.o: src/snapshot.h src/mpi_wrapper.h
+src/io/swiftsim_io.o: src/halo_particle_iterator.h
 src/io/subhalo_io.o: src/mpi_wrapper.h src/datatypes.h src/mymath.h
 src/io/subhalo_io.o: src/datatypes.h src/snapshot_number.h
 src/io/subhalo_io.o: src/config_parser.h src/subhalo.h src/snapshot_number.h
@@ -99,4 +105,4 @@ src/io/gadget_group_io.o: src/mpi_wrapper.h src/mymath.h
 src/io/halo_io.o: src/mymath.h src/halo.h src/datatypes.h
 src/io/halo_io.o: src/snapshot_number.h src/config_parser.h src/snapshot.h
 src/io/halo_io.o: src/io/gadget_group_io.h src/mpi_wrapper.h src/mymath.h
-src/io/halo_io.o: src/io/apostle_io.h src/hdf_wrapper.h
+src/io/halo_io.o: src/io/apostle_io.h src/io/swiftsim_io.h src/hdf_wrapper.h

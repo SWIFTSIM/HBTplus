@@ -14,12 +14,12 @@ using namespace std;
 #include "../snapshot.h"
 #include "../mymath.h"
 #include "../hdf_wrapper.h"
-#include "apostle_io.h"
+#include "swiftsim_io.h"
 
-void create_ApostleHeader_MPI_type(MPI_Datatype& dtype)
+void create_SwiftSimHeader_MPI_type(MPI_Datatype& dtype)
 {
   /*to create the struct data type for communication*/	
-  ApostleHeader_t p;
+  SwiftSimHeader_t p;
   #define NumAttr 13
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
@@ -49,7 +49,7 @@ void create_ApostleHeader_MPI_type(MPI_Datatype& dtype)
   #undef NumAttr
 }
 
-void ApostleReader_t::SetSnapshot(int snapshotId)
+void SwiftSimReader_t::SetSnapshot(int snapshotId)
 {  
   if(HBTConfig.SnapshotNameList.empty())
   {
@@ -61,7 +61,7 @@ void ApostleReader_t::SetSnapshot(int snapshotId)
 	SnapshotName=HBTConfig.SnapshotNameList[snapshotId];
 }
 
-void ApostleReader_t::GetFileName(int ifile, string &filename)
+void SwiftSimReader_t::GetFileName(int ifile, string &filename)
 {
   string subname=SnapshotName;
   subname.erase(4, 4);//i.e., remove "shot" from "snapshot" or "snipshot"
@@ -70,7 +70,7 @@ void ApostleReader_t::GetFileName(int ifile, string &filename)
   filename=formatter.str();
 }
 
-void ApostleReader_t::ReadHeader(int ifile, ApostleHeader_t &header)
+void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
 {
   string filename;
   GetFileName(ifile, filename);
@@ -92,7 +92,7 @@ void ApostleReader_t::ReadHeader(int ifile, ApostleHeader_t &header)
 	Header.npartTotal[i]=(((unsigned long)np_high[i])<<32)|np[i];
   H5Fclose(file);
 }
-void ApostleReader_t::GetParticleCountInFile(hid_t file, int np[])
+void SwiftSimReader_t::GetParticleCountInFile(hid_t file, int np[])
 {
   ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, np);
 #ifdef DM_ONLY
@@ -100,7 +100,7 @@ void ApostleReader_t::GetParticleCountInFile(hid_t file, int np[])
 	if(i!=TypeDM) np[i]=0;
 #endif
 }
-HBTInt ApostleReader_t::CompileFileOffsets(int nfiles)
+HBTInt SwiftSimReader_t::CompileFileOffsets(int nfiles)
 {
   HBTInt offset=0;
   np_file.reserve(nfiles);
@@ -132,7 +132,7 @@ static void check_id_size(hid_t loc)
   H5Tclose(dtype);
   H5Dclose(dset);
 }
-void ApostleReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
+void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 {
   string filename;
   GetFileName(ifile, filename);
@@ -235,7 +235,7 @@ void ApostleReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
   H5Fclose(file);
 }
 
-void ApostleReader_t::ReadGroupParticles(int ifile, ParticleHost_t *ParticlesInFile, bool FlagReadParticleId)
+void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *ParticlesInFile, bool FlagReadParticleId)
 {
   string filename;
   GetFileName(ifile, filename);
@@ -346,7 +346,7 @@ void ApostleReader_t::ReadGroupParticles(int ifile, ParticleHost_t *ParticlesInF
   H5Fclose(file);
 }
 
-void ApostleReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <Particle_t> &Particles, Cosmology_t &Cosmology)
+void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <Particle_t> &Particles, Cosmology_t &Cosmology)
 {
   SetSnapshot(snapshotId);
   
@@ -356,7 +356,7 @@ void ApostleReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <P
     ReadHeader(0, Header);
     CompileFileOffsets(Header.NumberOfFiles);
   }
-  MPI_Bcast(&Header, 1, MPI_ApostleHeader_t, root, world.Communicator);
+  MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
   
@@ -397,12 +397,12 @@ void ApostleReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <P
 //   cout<<" Particle[end]: x="<<Particles.back().ComovingPosition<<", v="<<Particles.back().PhysicalVelocity<<", m="<<Particles.back().Mass<<endl;
 }
 
-inline bool CompParticleHost(const ParticleHost_t &a, const ParticleHost_t &b)
+inline bool CompParticleHost(const SwiftParticleHost_t &a, const SwiftParticleHost_t &b)
 {
   return a.HostId<b.HostId;
 }
 
-void ApostleReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Halo_t >& Halos)
+void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Halo_t >& Halos)
 {//read in particle properties at the same time, to avoid particle look-up at later stage.
   SetSnapshot(snapshotId);
   
@@ -412,11 +412,11 @@ void ApostleReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Hal
     ReadHeader(0, Header);
     CompileFileOffsets(Header.NumberOfFiles);
   }
-  MPI_Bcast(&Header, 1, MPI_ApostleHeader_t, root, world.Communicator);
+  MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
   
-  vector <ParticleHost_t> ParticleHosts;
+  vector <SwiftParticleHost_t> ParticleHosts;
   HBTInt nfiles_skip, nfiles_end;
   AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
   {
@@ -502,9 +502,9 @@ void ApostleReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Hal
 //   return np;
 }
 
-bool IsApostleGroup(const string &GroupFileFormat)
+bool IsSwiftSimGroup(const string &GroupFileFormat)
 {
-  return GroupFileFormat.substr(0, 7)=="apostle";
+  return GroupFileFormat.substr(0, 7)=="swiftsim";
 }
 
 struct HaloInfo_t
@@ -752,7 +752,7 @@ static void ExchangeHalos(MpiWorker_t& world, vector <Halo_t>& InHalos, vector<H
 	}
 }
 
-void ApostleReader_t::ExchangeAndMerge(MpiWorker_t& world, vector< Halo_t >& Halos)
+void SwiftSimReader_t::ExchangeAndMerge(MpiWorker_t& world, vector< Halo_t >& Halos)
 {
   vector <Halo_t> LocalHalos;
   MPI_Datatype MPI_Halo_Shell_t;
