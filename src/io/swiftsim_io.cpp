@@ -76,10 +76,15 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   hid_t file=H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
   ReadAttribute(file, "Header", "NumFilesPerSnapshot", H5T_NATIVE_INT, &Header.NumberOfFiles);
   ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, BoxSize_3D);
-  assert(BoxSize_3D[0]==BoxSize_3D[1]);
-  assert(BoxSize_3D[0]==BoxSize_3D[2]);
+  if(BoxSize_3D[0]!=BoxSize_3D[1] || BoxSize_3D[0]!=BoxSize_3D[2]) {
+    cout << "Swift simulation box must have equal size in each dimension!\n";
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
   Header.BoxSize = BoxSize_3D[0]; // Can only handle cubic boxes
-  assert((HBTReal)Header.BoxSize==HBTConfig.BoxSize);
+  if(Header.BoxSize==HBTConfig.BoxSize) {
+    cout << "Box size in snapshot does not match parameter file!\n";
+    MPI_Abort(MPI_COMM_WORLD, 1);  
+  }
   ReadAttribute(file, "Cosmology", "Scale-factor", H5T_NATIVE_DOUBLE, &Header.ScaleFactor);
   ReadAttribute(file, "Cosmology", "Omega_m", H5T_NATIVE_DOUBLE, &Header.OmegaM0);
   ReadAttribute(file, "Cosmology", "Omega_lambda", H5T_NATIVE_DOUBLE, &Header.OmegaLambda0);  
