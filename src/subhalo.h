@@ -225,8 +225,9 @@ public:
   }
   ~SubhaloSnapshot_t()
   {
-	H5Tclose(H5T_SubhaloInDisk);
-	H5Tclose(H5T_SubhaloInMem);
+        // This destructor may be called after HDF5 and MPI have shut down
+        if(H5Iis_valid(H5T_SubhaloInDisk)) H5Tclose(H5T_SubhaloInDisk);
+        if(H5Iis_valid(H5T_SubhaloInMem))  H5Tclose(H5T_SubhaloInMem);
         My_Type_free(&MPI_HBT_SubhaloShell_t);
   }
   string GetSubDir();
