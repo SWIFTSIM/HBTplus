@@ -1,13 +1,14 @@
 #
 # Minimum cmake version:
-# Setting C++ standard seems to require at least 3.7
+# Setting C++ standard seems to require at least 3.9
 #
-cmake_minimum_required(VERSION 3.7 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 
 #
 # Set project name and language
 #
 project(hbtplus)
+enable_language(C)
 enable_language(CXX)
 
 #
@@ -31,6 +32,12 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 #
+# Specify which C++ standard we need
+#
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+#
 # Find OpenMP flag for this compiler, if necessary
 #
 option(HBT_USE_OPENMP "Whether to enable OpenMP support" ON)
@@ -50,19 +57,20 @@ else(HBT_USE_OPENMP)
 endif(HBT_USE_OPENMP)
 
 #
-# Find MPI libraries for C++
+# Find MPI libraries
 #
-find_package(MPI COMPONENTS CXX REQUIRED)
-add_definitions(${MPI_CXX_COMPILE_FLAGS})
-include_directories(${MPI_CXX_INCLUDE_PATH})
-link_directories(${MPI_CXX_LIBRARIES})
+find_package(MPI REQUIRED)
+include_directories(${MPI_C_INCLUDE_DIRS})
 
 #
-# Find HDF5 library
+# Find HDF5 library: we need the C and high level interfaces, and
+# prefer to have MPI support if possible.
 #
-find_package(HDF5 COMPONENTS CXX HL REQUIRED)
-include_directories(${HDF5_INCLUDE_DIRS})
-link_directories(${HDF5_LIBRARY_DIRS})
+# Parallel HDF5 defines the preprocessor macro H5_HAVE_PARALLEL.
+#
+set(HDF5_PREFER_PARALLEL ON)
+find_package(HDF5 COMPONENTS C HL REQUIRED)
+include_directories(${HDF5_C_INCLUDE_DIRS})
 
 #
 # Find GSL library (optional)
@@ -111,12 +119,6 @@ set(HBT_SRC
   )
 
 #
-# Specify which C++ standard we need
-#
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-#
 # Function for defining optional features
 #
 function(hbt_option NAME DEFINE DESCRIPTION DEFAULT)
@@ -140,7 +142,7 @@ hbt_option(HBT_UNSIGNED_LONG_ID_OUTPUT UNSIGNED_LONG_ID_OUTPUT "Enable to output
 # HBT executable
 #
 add_executable(HBT ${HBT_SRC})
-target_link_libraries(HBT ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES} ${MPI_CXX_LIBRARIES})
+target_link_libraries(HBT ${MPI_C_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
 
 #
 # Hide some variables we usually don't need from the default view in the cmake GUI
