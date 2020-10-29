@@ -168,6 +168,74 @@ static void check_id_size(hid_t loc)
   H5Tclose(dtype);
   H5Dclose(dset);
 }
+
+static void read_positions(int np, HBTReal boxsize, HBTReal scalefactor, 
+                           hid_t particle_data, Particle_t *ParticlesThisType)
+{
+  vector <HBTxyz> x(np);
+  ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());
+  HBTReal aexp;
+  ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
+  if(aexp!=1.0)
+    {
+      /* Don't know how to do the box wrapping in this case! Is BoxSize comoving? */
+      cout << "Can't handle Coordinates with a-scale exponent != 1\n";
+            MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+  if(HBTConfig.PeriodicBoundaryOn)
+    {
+      for(int i=0;i<np;i++)
+        for(int j=0;j<3;j++)
+          x[i][j]=position_modulus(x[i][j], boxsize);
+    }
+  for(int i=0;i<np;i++)
+    for(int j=0; j<3; j+=1)
+      ParticlesThisType[i].ComovingPosition[j] = x[i][j] * pow(scalefactor, aexp-1.0);
+}
+
+static void read_velocities(int np, HBTReal scalefactor, hid_t particle_data,
+                            Particle_t *ParticlesThisType)
+{
+  vector <HBTxyz> v(np);
+  ReadDataset(particle_data, "Velocity", H5T_HBTReal, v.data());
+  HBTReal aexp;
+  ReadAttribute(particle_data, "Velocity", "a-scale exponent", H5T_HBTReal, &aexp);
+  for(int i=0;i<np;i++)
+    for(int j=0;j<3;j++)
+      ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*pow(scalefactor, aexp);
+}
+
+static void read_ids(int np, hid_t particle_data, Particle_t *ParticlesThisType)
+{
+  vector <HBTInt> id(np);
+  ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
+  for(int i=0;i<np;i++)
+    ParticlesThisType[i].Id=id[i];
+}
+
+static void read_masses(int np, HBTReal scalefactor, hid_t particle_data,
+                        Particle_t *ParticlesThisType)
+{
+  vector <HBTReal> m(np);
+  ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
+  HBTReal aexp;
+  ReadAttribute(particle_data, "Masses", "a-scale exponent", H5T_HBTReal, &aexp);
+  for(int i=0;i<np;i++)
+    ParticlesThisType[i].Mass=m[i]*pow(scalefactor, aexp);
+}
+
+#ifdef HAS_THERMAL_ENERGY
+static void read_internal_energy(int np, HBTReal scalefactor, hid_t particle_data,
+                                 Particle_t *ParticlesThisType)
+{
+  // TODO: deal with units here
+  vector <HBTReal> u(np);
+  ReadDataset(particle_data, "InternalEnergy", H5T_HBTReal, u.data());
+  for(int i=0;i<np;i++)
+    ParticlesThisType[i].InternalEnergy=u[i];
+}
+#endif
+
 void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 {
   hid_t file=OpenFile(ifile);
@@ -176,7 +244,6 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
   GetParticleCountInFile(file, np_this.data());
   CompileOffsets(np_this, offset_this);
  
-  HBTReal vunit=sqrt(Header.ScaleFactor);
   HBTReal boxsize=Header.BoxSize;
   for(int itype=0;itype<TypeMax;itype++)
   {
@@ -190,82 +257,26 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 // 	if(particle_data<0) continue; //skip non-existing type
 
 	check_id_size(particle_data);
-	
-	{//read position
-	  vector <HBTxyz> x(np);
-	  ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());	
-	  if(HBTConfig.PeriodicBoundaryOn)
-	  {
-		for(int i=0;i<np;i++)
-		for(int j=0;j<3;j++)
-		  x[i][j]=position_modulus(x[i][j], boxsize);
-	  }
-	  for(int i=0;i<np;i++)
-		copyHBTxyz(ParticlesThisType[i].ComovingPosition, x[i]);
-	}
-	
-	{//velocity
-	  vector <HBTxyz> v(np);
-	  if(H5Lexists(particle_data, "Velocities", H5P_DEFAULT))
-	    ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
-	  else
-	    ReadDataset(particle_data, "Velocity", H5T_HBTReal, v.data());
-	  for(int i=0;i<np;i++)
-		for(int j=0;j<3;j++)
-		  ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*vunit;
-	}
-	
-	{//id
-	  vector <HBTInt> id(np);
-	  ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].Id=id[i];
-	}
-	
-	//mass
-	if(Header.mass[itype]==0)
-	{
-	  vector <HBTReal> m(np);
-	  if(H5Lexists(particle_data, "Masses", H5P_DEFAULT))
-	    ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
-	  else
-	    ReadDataset(particle_data, "Mass", H5T_HBTReal, m.data());
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].Mass=m[i];
-	}
-	else
-	{
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].Mass=Header.mass[itype];
-	}
 
+        read_positions(np, boxsize, Header.ScaleFactor, particle_data, ParticlesThisType);
+        read_velocities(np, Header.ScaleFactor, particle_data, ParticlesThisType);
+        read_ids(np, particle_data, ParticlesThisType);
+        read_masses(np, Header.ScaleFactor, particle_data, ParticlesThisType);
+	
 #ifndef DM_ONLY
 	//internal energy
 #ifdef HAS_THERMAL_ENERGY
 	if(itype==0)
-	{
-	  vector <HBTReal> u(np);
-	  ReadDataset(particle_data, "InternalEnergy", H5T_HBTReal, u.data());
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].InternalEnergy=u[i];
-	}	
-/*	else
-	{
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].InternalEnergy=0; //necessary? maybe default initialized?
-	}*/
+          read_internal_energy(np, Header.ScaleFactor, particle_data, ParticlesThisType);
 #endif
-	
 	{//type
 	  ParticleType_t t=static_cast<ParticleType_t>(itype);
 	  for(int i=0;i<np;i++)
 		ParticlesThisType[i].Type=t;
 	}
 #endif
-
 	H5Gclose(particle_data);
   }
-  
   H5Fclose(file);
 }
 
@@ -277,7 +288,6 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
   GetParticleCountInFile(file, np_this.data());
   CompileOffsets(np_this, offset_this);
   
-  HBTReal vunit=sqrt(Header.ScaleFactor);
   HBTReal boxsize=Header.BoxSize;
   for(int itype=0;itype<TypeMax;itype++)
   {
@@ -291,77 +301,22 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
 	
 	if(FlagReadParticleId)
 	{
-	{//read position
-	  vector <HBTxyz> x(np);
-	  ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());	
-	  if(HBTConfig.PeriodicBoundaryOn)
-	  {
-		for(int i=0;i<np;i++)
-		for(int j=0;j<3;j++)
-		  x[i][j]=position_modulus(x[i][j], boxsize);
-	  }
-	  for(int i=0;i<np;i++)
-		copyHBTxyz(ParticlesThisType[i].ComovingPosition, x[i]);
-	}
-	
-	{//velocity
-	  vector <HBTxyz> v(np);
-	  if(H5Lexists(particle_data, "Velocities", H5P_DEFAULT))
-	    ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
-	  else
-	    ReadDataset(particle_data, "Velocity", H5T_HBTReal, v.data());
-	  for(int i=0;i<np;i++)
-		for(int j=0;j<3;j++)
-		  ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*vunit;
-	}
-	
-	{//id
-	  vector <HBTInt> id(np);
-	  ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].Id=id[i];
-	}
-	
+          read_positions(np, boxsize, Header.ScaleFactor, particle_data, ParticlesThisType);
+          read_velocities(np, Header.ScaleFactor, particle_data, ParticlesThisType);
+          read_ids(np, particle_data, ParticlesThisType);
+          read_masses(np, Header.ScaleFactor, particle_data, ParticlesThisType);
 
-	//mass
-	if(Header.mass[itype]==0)
-	{
-	  vector <HBTReal> m(np);
-	  if(H5Lexists(particle_data, "Masses", H5P_DEFAULT))
-	    ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
-	  else
-	    ReadDataset(particle_data, "Mass", H5T_HBTReal, m.data());
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].Mass=m[i];
-	}
-	else
-	{
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].Mass=Header.mass[itype];
-	}
-	
-#ifndef DM_ONLY	
-	//internal energy
+#ifndef DM_ONLY
+          //internal energy
 #ifdef HAS_THERMAL_ENERGY
-	if(itype==0)
-	{
-	  vector <HBTReal> u(np);
-	  ReadDataset(particle_data, "InternalEnergy", H5T_HBTReal, u.data());
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].InternalEnergy=u[i];
-	}	
-/*	else
-	{
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].InternalEnergy=0; //necessary? maybe default initialized?
-	}*/
+          if(itype==0)
+            read_internal_energy(np, Header.ScaleFactor, particle_data, ParticlesThisType);
 #endif
-	
-	{//type
-	  ParticleType_t t=static_cast<ParticleType_t>(itype);
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].Type=t;
-	}
+          {//type
+            ParticleType_t t=static_cast<ParticleType_t>(itype);
+            for(int i=0;i<np;i++)
+              ParticlesThisType[i].Type=t;
+          }
 #endif
 	}
 	
@@ -784,3 +739,4 @@ void SwiftSimReader_t::ExchangeAndMerge(MpiWorker_t& world, vector< Halo_t >& Ha
   Halos.swap(LocalHalos);
   MergeHalos(Halos);
 }
+
