@@ -41,6 +41,7 @@ class SwiftSimReader_t
   vector <HBTInt> np_file;
   vector <HBTInt> offset_file;
   SwiftSimHeader_t Header;
+  hid_t OpenFile(int ifile);
   void ReadHeader(int ifile, SwiftSimHeader_t &header);
   HBTInt CompileFileOffsets(int nfiles);
   void ReadSnapshot(int ifile, Particle_t * ParticlesInFile);

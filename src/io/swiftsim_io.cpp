@@ -63,17 +63,49 @@ void SwiftSimReader_t::SetSnapshot(int snapshotId)
 void SwiftSimReader_t::GetFileName(int ifile, string &filename)
 {
   stringstream formatter;
-  //formatter<<HBTConfig.SnapshotPath<<"/"<<SnapshotName<<"."<<ifile<<".hdf5";
-  formatter<<HBTConfig.SnapshotPath<<"/"<<SnapshotName<<".hdf5";
+  if(ifile < 0)
+    formatter<<HBTConfig.SnapshotPath<<"/"<<SnapshotName<<".hdf5";
+  else
+    formatter<<HBTConfig.SnapshotPath<<"/"<<SnapshotName<<"."<<ifile<<".hdf5";
   filename=formatter.str();
+}
+
+hid_t SwiftSimReader_t::OpenFile(int ifile)
+{
+  string filename;
+
+  H5E_auto_t err_func;
+  char *err_data;
+  H5Eget_auto(H5E_DEFAULT, &err_func, (void **) &err_data); 
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+
+  /* Try filename with index first (e.g. snap_0001.0.hdf5) */
+  GetFileName(ifile, filename);
+  hid_t file=H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+  /* If that failed, try without an index (e.g. snap_0001.hdf5),
+     but only if we're reading file 0 */
+  if(file < 0 && ifile==0)
+  {
+    GetFileName(-1, filename);
+    file=H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT); 
+  }
+
+  if(file < 0) {
+    cout << "Failed to open file: " << filename << "\n";
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+
+  H5Eset_auto(H5E_DEFAULT, err_func, (void *) err_data); 
+
+  return file;
 }
 
 void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
 {
-  string filename;
   double BoxSize_3D[3];
-  GetFileName(ifile, filename);
-  hid_t file=H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+  hid_t file = OpenFile(ifile);
   ReadAttribute(file, "Header", "NumFilesPerSnapshot", H5T_NATIVE_INT, &Header.NumberOfFiles);
   ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, BoxSize_3D);
   if(BoxSize_3D[0]!=BoxSize_3D[1] || BoxSize_3D[0]!=BoxSize_3D[2]) {
@@ -81,7 +113,7 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
   Header.BoxSize = BoxSize_3D[0]; // Can only handle cubic boxes
-  if(Header.BoxSize==HBTConfig.BoxSize) {
+  if(Header.BoxSize!=HBTConfig.BoxSize) {
     cout << "Box size in snapshot does not match parameter file!\n";
     MPI_Abort(MPI_COMM_WORLD, 1);  
   }
@@ -116,9 +148,7 @@ HBTInt SwiftSimReader_t::CompileFileOffsets(int nfiles)
 	offset_file.push_back(offset);
 	
 	int np_this[TypeMax];
-	string filename;
-	GetFileName(ifile, filename);
-	hid_t file=H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+	hid_t file=OpenFile(ifile);
 	GetParticleCountInFile(file, np_this);
 	H5Fclose(file);
 	HBTInt np=accumulate(begin(np_this), end(np_this), (HBTInt)0);
@@ -140,9 +170,7 @@ static void check_id_size(hid_t loc)
 }
 void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 {
-  string filename;
-  GetFileName(ifile, filename);
-  hid_t file=H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+  hid_t file=OpenFile(ifile);
   vector <int> np_this(TypeMax);
   vector <HBTInt> offset_this(TypeMax);
   GetParticleCountInFile(file, np_this.data());
@@ -243,9 +271,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 
 void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *ParticlesInFile, bool FlagReadParticleId)
 {
-  string filename;
-  GetFileName(ifile, filename);
-  hid_t file=H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+  hid_t file = OpenFile(ifile);
   vector <int> np_this(TypeMax);
   vector <HBTInt> offset_this(TypeMax);
   GetParticleCountInFile(file, np_this.data());
@@ -367,9 +393,6 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
   
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
-#ifdef DM_ONLY
-//   Cosmology.ParticleMass=Header.mass[TypeDM];
-#endif
   
   HBTInt nfiles_skip, nfiles_end;
   AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
@@ -390,17 +413,10 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
 	{
 	  for(int iFile=nfiles_skip; iFile<nfiles_end; iFile++)
 	  {
-// 	        cout<<"("<<world.rank()<<","<<iFile<<")"<<flush;
 		ReadSnapshot(iFile, Particles.data()+offset_file[iFile]-offset_file[nfiles_skip]);
 	  }
 	}
   }
-    
-//   cout<<endl;
-//   cout<<" ( "<<Header.NumberOfFiles<<" total files ) : "<<Particles.size()<<" particles loaded."<<endl;
-//   cout<<" Particle[0]: x="<<Particles[0].ComovingPosition<<", v="<<Particles[0].PhysicalVelocity<<", m="<<Particles[0].Mass<<endl;
-//   cout<<" Particle[2]: x="<<Particles[2].ComovingPosition<<", v="<<Particles[2].PhysicalVelocity<<", m="<<Particles[2].Mass<<endl;
-//   cout<<" Particle[end]: x="<<Particles.back().ComovingPosition<<", v="<<Particles.back().PhysicalVelocity<<", m="<<Particles.back().Mass<<endl;
 }
 
 inline bool CompParticleHost(const SwiftParticleHost_t &a, const SwiftParticleHost_t &b)
