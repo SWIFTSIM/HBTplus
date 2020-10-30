@@ -197,9 +197,9 @@ static void read_velocities(int np, HBTReal scalefactor, hid_t particle_data,
                             Particle_t *ParticlesThisType)
 {
   vector <HBTxyz> v(np);
-  ReadDataset(particle_data, "Velocity", H5T_HBTReal, v.data());
+  ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
   HBTReal aexp;
-  ReadAttribute(particle_data, "Velocity", "a-scale exponent", H5T_HBTReal, &aexp);
+  ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
   for(int i=0;i<np;i++)
     for(int j=0;j<3;j++)
       ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*pow(scalefactor, aexp);
@@ -337,6 +337,55 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
   H5Fclose(file);
 }
 
+
+void SwiftSimReader_t::ReadUnits(HBTReal &MassInMsunh, HBTReal &LengthInMpch, HBTReal &VelInKmS)
+{
+  // Read Swift unit information to determine how HBT's unit parameters should be set
+  hid_t file = OpenFile(0);
+  double h;
+  // Hubble parameter
+  ReadAttribute(file, "Cosmology", "h", H5T_NATIVE_DOUBLE, &h);
+  // Constants we'll need
+  double parsec_cgs, solar_mass_cgs;
+  ReadAttribute(file, "PhysicalConstants/CGS", "parsec", H5T_NATIVE_DOUBLE,
+                &parsec_cgs);
+  ReadAttribute(file, "PhysicalConstants/CGS", "solar_mass", H5T_NATIVE_DOUBLE,
+                &solar_mass_cgs);
+  // Coordinates
+  double length_cgs, length_hexp;
+  ReadAttribute(file, "PartType1/Coordinates",
+                "Conversion factor to CGS (not including cosmological corrections)",
+                H5T_NATIVE_DOUBLE, &length_cgs);
+  ReadAttribute(file, "PartType1/Coordinates", "h-scale exponent", H5T_NATIVE_DOUBLE,
+                &length_hexp);
+  // Velocities
+  double velocity_cgs, velocity_hexp;
+  ReadAttribute(file, "PartType1/Velocities",
+                "Conversion factor to CGS (not including cosmological corrections)",
+                H5T_NATIVE_DOUBLE, &velocity_cgs);
+  ReadAttribute(file, "PartType1/Velocities", "h-scale exponent", H5T_NATIVE_DOUBLE,
+                &velocity_hexp);
+  // Masses
+  double mass_cgs, mass_hexp;
+  ReadAttribute(file, "PartType1/Masses",
+                "Conversion factor to CGS (not including cosmological corrections)",
+                H5T_NATIVE_DOUBLE, &mass_cgs);
+  ReadAttribute(file, "PartType1/Masses", "h-scale exponent", H5T_NATIVE_DOUBLE,
+                &mass_hexp);
+
+  // Conversion factor from mass units in snapshot to to Msolar/h
+  MassInMsunh = (mass_cgs/solar_mass_cgs)*pow(h, mass_hexp)*h;
+
+  // Conversion factor from length units in snapshot to Mpc/h
+  LengthInMpch = (length_cgs/(1.0e6*parsec_cgs))*pow(h, length_hexp)*h;
+
+  // Conversion factor from velocity units in snapshot to km/sec
+  VelInKmS = (velocity_cgs/1.0e5)*pow(h, velocity_hexp);
+  
+  H5Fclose(file);
+}
+
+
 void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <Particle_t> &Particles, Cosmology_t &Cosmology)
 {
   SetSnapshot(snapshotId);
@@ -346,6 +395,15 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
   {
     ReadHeader(0, Header);
     CompileFileOffsets(Header.NumberOfFiles);
+
+    // Report units
+    HBTReal MassInMsunh;
+    HBTReal LengthInMpch;
+    HBTReal VelInKmS;
+    ReadUnits(MassInMsunh, LengthInMpch, VelInKmS);
+    cout << "MassInMsunh  = " << MassInMsunh  << endl;
+    cout << "LengthInMpch = " << LengthInMpch << endl;
+    cout << "VelInKmS     = " << VelInKmS     << endl;
   }
   MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
