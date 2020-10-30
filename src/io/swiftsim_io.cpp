@@ -228,11 +228,15 @@ static void read_masses(int np, HBTReal scalefactor, hid_t particle_data,
 static void read_internal_energy(int np, HBTReal scalefactor, hid_t particle_data,
                                  Particle_t *ParticlesThisType)
 {
-  // TODO: deal with units here
+  // Here we convert the internal energy to physical units.
+  // TODO: is this a dependence correct? Should I be ensuring it's in velocity units squared?
+  // Note that swift has 'a-scale exponent'=-2 for this dataset.
+  HBTReal aexp;
+  ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
   vector <HBTReal> u(np);
-  ReadDataset(particle_data, "InternalEnergy", H5T_HBTReal, u.data());
+  ReadDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data());
   for(int i=0;i<np;i++)
-    ParticlesThisType[i].InternalEnergy=u[i];
+    ParticlesThisType[i].InternalEnergy=u[i]*pow(scalefactor, aexp);
 }
 #endif
 
