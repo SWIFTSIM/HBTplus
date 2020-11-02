@@ -169,77 +169,6 @@ static void check_id_size(hid_t loc)
   H5Dclose(dset);
 }
 
-static void read_positions(int np, HBTReal boxsize, HBTReal scalefactor, 
-                           hid_t particle_data, Particle_t *ParticlesThisType)
-{
-  vector <HBTxyz> x(np);
-  ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());
-  HBTReal aexp;
-  ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
-  if(aexp!=1.0)
-    {
-      /* Don't know how to do the box wrapping in this case! Is BoxSize comoving? */
-      cout << "Can't handle Coordinates with a-scale exponent != 1\n";
-            MPI_Abort(MPI_COMM_WORLD, 1);
-    }
-  if(HBTConfig.PeriodicBoundaryOn)
-    {
-      for(int i=0;i<np;i++)
-        for(int j=0;j<3;j++)
-          x[i][j]=position_modulus(x[i][j], boxsize);
-    }
-  for(int i=0;i<np;i++)
-    for(int j=0; j<3; j+=1)
-      ParticlesThisType[i].ComovingPosition[j] = x[i][j] * pow(scalefactor, aexp-1.0);
-}
-
-static void read_velocities(int np, HBTReal scalefactor, hid_t particle_data,
-                            Particle_t *ParticlesThisType)
-{
-  vector <HBTxyz> v(np);
-  ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
-  HBTReal aexp;
-  ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
-  for(int i=0;i<np;i++)
-    for(int j=0;j<3;j++)
-      ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*pow(scalefactor, aexp);
-}
-
-static void read_ids(int np, hid_t particle_data, Particle_t *ParticlesThisType)
-{
-  vector <HBTInt> id(np);
-  ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
-  for(int i=0;i<np;i++)
-    ParticlesThisType[i].Id=id[i];
-}
-
-static void read_masses(int np, HBTReal scalefactor, hid_t particle_data,
-                        Particle_t *ParticlesThisType)
-{
-  vector <HBTReal> m(np);
-  ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
-  HBTReal aexp;
-  ReadAttribute(particle_data, "Masses", "a-scale exponent", H5T_HBTReal, &aexp);
-  for(int i=0;i<np;i++)
-    ParticlesThisType[i].Mass=m[i]*pow(scalefactor, aexp);
-}
-
-#ifdef HAS_THERMAL_ENERGY
-static void read_internal_energy(int np, HBTReal scalefactor, hid_t particle_data,
-                                 Particle_t *ParticlesThisType)
-{
-  // Here we convert the internal energy to physical units.
-  // TODO: is this a dependence correct? Should I be ensuring it's in velocity units squared?
-  // Note that swift has 'a-scale exponent'=-2 for this dataset.
-  HBTReal aexp;
-  ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
-  vector <HBTReal> u(np);
-  ReadDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data());
-  for(int i=0;i<np;i++)
-    ParticlesThisType[i].InternalEnergy=u[i]*pow(scalefactor, aexp);
-}
-#endif
-
 void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 {
   hid_t file=OpenFile(ifile);
@@ -262,16 +191,73 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 
 	check_id_size(particle_data);
 
-        read_positions(np, boxsize, Header.ScaleFactor, particle_data, ParticlesThisType);
-        read_velocities(np, Header.ScaleFactor, particle_data, ParticlesThisType);
-        read_ids(np, particle_data, ParticlesThisType);
-        read_masses(np, Header.ScaleFactor, particle_data, ParticlesThisType);
+        // Positions
+        {
+          vector <HBTxyz> x(np);
+          ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());
+          HBTReal aexp;
+          ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
+          if(aexp!=1.0)
+            {
+              /* Don't know how to do the box wrapping in this case! Is BoxSize comoving? */
+              cout << "Can't handle Coordinates with a-scale exponent != 1\n";
+              MPI_Abort(MPI_COMM_WORLD, 1);
+            }
+          if(HBTConfig.PeriodicBoundaryOn)
+            {
+              for(int i=0;i<np;i++)
+                for(int j=0;j<3;j++)
+                  x[i][j]=position_modulus(x[i][j], boxsize);
+            }
+          for(int i=0;i<np;i++)
+            for(int j=0; j<3; j+=1)
+              ParticlesThisType[i].ComovingPosition[j] = x[i][j] * pow(Header.ScaleFactor, aexp-1.0);
+        }
+
+        // Velocities
+        {
+          vector <HBTxyz> v(np);
+          ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
+          HBTReal aexp;
+          ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
+          for(int i=0;i<np;i++)
+            for(int j=0;j<3;j++)
+              ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*pow(Header.ScaleFactor, aexp);
+        }
+
+        // Ids
+        {
+          vector <HBTInt> id(np);
+          ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
+          for(int i=0;i<np;i++)
+            ParticlesThisType[i].Id=id[i];
+        }
+
+        // Masses
+        {
+          vector <HBTReal> m(np);
+          ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
+          HBTReal aexp;
+          ReadAttribute(particle_data, "Masses", "a-scale exponent", H5T_HBTReal, &aexp);
+          for(int i=0;i<np;i++)
+            ParticlesThisType[i].Mass=m[i]*pow(Header.ScaleFactor, aexp);
+        }
 	
 #ifndef DM_ONLY
 	//internal energy
 #ifdef HAS_THERMAL_ENERGY
 	if(itype==0)
-          read_internal_energy(np, Header.ScaleFactor, particle_data, ParticlesThisType);
+          {
+            // Here we convert the internal energy to physical units.
+            // TODO: is this a dependence correct? Should I be ensuring it's in velocity units squared?
+            // Note that swift has 'a-scale exponent'=-2 for this dataset.
+            HBTReal aexp;
+            ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
+            vector <HBTReal> u(np);
+            ReadDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data());
+            for(int i=0;i<np;i++)
+              ParticlesThisType[i].InternalEnergy=u[i]*pow(Header.ScaleFactor, aexp);
+          }
 #endif
 	{//type
 	  ParticleType_t t=static_cast<ParticleType_t>(itype);
@@ -305,16 +291,73 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
 	
 	if(FlagReadParticleId)
 	{
-          read_positions(np, boxsize, Header.ScaleFactor, particle_data, ParticlesThisType);
-          read_velocities(np, Header.ScaleFactor, particle_data, ParticlesThisType);
-          read_ids(np, particle_data, ParticlesThisType);
-          read_masses(np, Header.ScaleFactor, particle_data, ParticlesThisType);
+          // Positions
+          {
+            vector <HBTxyz> x(np);
+            ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());
+            HBTReal aexp;
+            ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
+            if(aexp!=1.0)
+              {
+                /* Don't know how to do the box wrapping in this case! Is BoxSize comoving? */
+                cout << "Can't handle Coordinates with a-scale exponent != 1\n";
+                MPI_Abort(MPI_COMM_WORLD, 1);
+              }
+            if(HBTConfig.PeriodicBoundaryOn)
+              {
+                for(int i=0;i<np;i++)
+                  for(int j=0;j<3;j++)
+                    x[i][j]=position_modulus(x[i][j], boxsize);
+              }
+            for(int i=0;i<np;i++)
+              for(int j=0; j<3; j+=1)
+                ParticlesThisType[i].ComovingPosition[j] = x[i][j] * pow(Header.ScaleFactor, aexp-1.0);
+          }
+          
+          // Velocities
+          {
+            vector <HBTxyz> v(np);
+            ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
+            HBTReal aexp;
+            ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
+            for(int i=0;i<np;i++)
+              for(int j=0;j<3;j++)
+                ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*pow(Header.ScaleFactor, aexp);
+          }
+
+          // Ids
+          {
+            vector <HBTInt> id(np);
+            ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
+            for(int i=0;i<np;i++)
+              ParticlesThisType[i].Id=id[i];
+          }
+
+          // Masses
+          {
+            vector <HBTReal> m(np);
+            ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
+            HBTReal aexp;
+            ReadAttribute(particle_data, "Masses", "a-scale exponent", H5T_HBTReal, &aexp);
+            for(int i=0;i<np;i++)
+              ParticlesThisType[i].Mass=m[i]*pow(Header.ScaleFactor, aexp);
+          }
 
 #ifndef DM_ONLY
           //internal energy
 #ifdef HAS_THERMAL_ENERGY
           if(itype==0)
-            read_internal_energy(np, Header.ScaleFactor, particle_data, ParticlesThisType);
+          {
+            // Here we convert the internal energy to physical units.
+            // TODO: is this a dependence correct? Should I be ensuring it's in velocity units squared?
+            // Note that swift has 'a-scale exponent'=-2 for this dataset.
+            HBTReal aexp;
+            ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
+            vector <HBTReal> u(np);
+            ReadDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data());
+            for(int i=0;i<np;i++)
+              ParticlesThisType[i].InternalEnergy=u[i]*pow(Header.ScaleFactor, aexp);
+          }
 #endif
           {//type
             ParticleType_t t=static_cast<ParticleType_t>(itype);
