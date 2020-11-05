@@ -47,7 +47,6 @@ class ApostleReader_t
   void GetFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
-  void ExchangeAndMerge(MpiWorker_t &world, vector< Halo_t >& Halos);
   
   MPI_Datatype MPI_ApostleHeader_t;
   
