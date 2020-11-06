@@ -102,8 +102,9 @@ void Parameter_t::ParseConfigFile(const char * param_file)
   TreeNodeResolutionHalf=TreeNodeResolution/2.;
   TreeNodeOpenAngleSquare=TreeNodeOpenAngle*TreeNodeOpenAngle;
   
-  if(GroupFileFormat=="apostle_particle_index")
-	GroupLoadedFullParticle=true;
+  if(GroupFileFormat=="apostle_particle_index" || 
+     GroupFileFormat=="swiftsim_particle_index")
+    GroupLoadedFullParticle=true;
   
   ReadSnapshotNameList();
 }
