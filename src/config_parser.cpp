@@ -25,6 +25,7 @@ void Parameter_t::SetParameterValue(const string &line)
   else TrySetPar(SofteningHalo,6)
 #undef TrySetPar		
 #define TrySetPar(var) if(name==#var) ss>>var;
+  else TrySetPar(SnapshotDirBase)
   else TrySetPar(SnapshotFormat)
   else TrySetPar(GroupFileFormat)
   else TrySetPar(MaxConcurrentIO)
@@ -198,6 +199,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncReal(SofteningHalo);
   _SyncVecBool(IsSet);
   
+  _SyncVec(SnapshotDirBase, MPI_CHAR);
   _SyncVec(SnapshotFormat, MPI_CHAR);
   _SyncVec(GroupFileFormat, MPI_CHAR);
   _SyncAtom(MaxConcurrentIO, MPI_INT);
@@ -275,6 +277,7 @@ void Parameter_t::DumpParameters()
   DumpPar(SofteningHalo)
   
   /*optional*/
+  DumpPar(SnapshotDirBase)
   DumpPar(SnapshotFormat)
   DumpPar(GroupFileFormat)
   DumpPar(MaxConcurrentIO)

@@ -34,6 +34,7 @@ public:
   vector <bool> IsSet;
   
   /*optional*/
+  string SnapshotDirBase;
   string SnapshotFormat;
   string GroupFileFormat;
   int MaxConcurrentIO;
@@ -76,6 +77,7 @@ public:
   
   Parameter_t(): IsSet(NumberOfCompulsaryConfigEntries, false),SnapshotIdList(), SnapshotNameList()
   {
+        SnapshotDirBase="";
 	SnapshotFormat="gadget"; //see example config file for alternative formats
 	GroupFileFormat="gadget3_int";
 	MaxConcurrentIO=10;

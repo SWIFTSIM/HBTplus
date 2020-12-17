@@ -54,6 +54,8 @@ void SwiftSimReader_t::SetSnapshot(int snapshotId)
   if(HBTConfig.SnapshotNameList.empty())
   {
 	stringstream formatter;
+        if(HBTConfig.SnapshotDirBase.length()>0)
+          formatter<<HBTConfig.SnapshotDirBase<<"_"<<setw(4)<<setfill('0')<<snapshotId<<"/";
 	formatter<<HBTConfig.SnapshotFileBase<<"_"<<setw(4)<<setfill('0')<<snapshotId;
 	SnapshotName=formatter.str();
   }
