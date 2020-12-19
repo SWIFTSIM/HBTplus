@@ -434,6 +434,10 @@ void SwiftSimReader_t::ReadUnits(HBTReal &MassInMsunh, HBTReal &LengthInMpch, HB
 
 void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <Particle_t> &Particles, Cosmology_t &Cosmology)
 {
+
+  MPI_Barrier(world.Communicator);
+  if(world.rank()==0)cout << "Start LoadSnapshot" << endl;
+
   SetSnapshot(snapshotId);
   
   const int root=0;
@@ -480,6 +484,10 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
 	  }
 	}
   }
+
+  MPI_Barrier(world.Communicator);
+  if(world.rank()==0)cout << "End LoadSnapshot" << endl;
+
 }
 
 inline bool CompParticleHost(const SwiftParticleHost_t &a, const SwiftParticleHost_t &b)

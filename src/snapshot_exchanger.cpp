@@ -12,6 +12,7 @@ using namespace std;
 #include "snapshot.h"
 #include "mymath.h"
 #include "mpi_wrapper.h"
+#include "pairwise_alltoallv.h"
 
 inline int GetGrid(HBTReal x, HBTReal step, int dim)
 {
@@ -105,7 +106,7 @@ bool ParticleSnapshot_t::IsContiguousId(MpiWorker_t &world, HBTInt &GlobalIdMin)
 
 void ParticleSnapshot_t::PartitionParticles(MpiWorker_t &world, vector <int> &offset)
 {
-  int nremainder=NumberOfParticlesOnAllNodes%world.size();
+  int nremainder=(((HBTInt) NumberOfParticlesOnAllNodes) % ((HBTInt) world.size()));
   HBTInt nnew=NumberOfParticlesOnAllNodes/world.size()+1;
   
   HBTInt GlobalIdMin;
@@ -155,7 +156,14 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
     MPI_Allreduce(&np, &NumberOfParticlesOnAllNodes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   }
   
+  MPI_Barrier(world.Communicator);
+  if(world.rank()==0)cout << "Start sorting" << endl;
+
   sort(Particles.begin(), Particles.end(), CompParticleId);
+
+  MPI_Barrier(world.Communicator);
+  if(world.rank()==0)cout << "Done sorting" << endl;
+
   
   vector <int> SendOffsets(world.size()+1), SendSizes(world.size(), 0);
   PartitionParticles(world, SendOffsets);
@@ -170,8 +178,40 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
   
   MPI_Datatype MPI_HBT_Particle;
   Particle_t().create_MPI_type(MPI_HBT_Particle);
-  MPI_Alltoallv(Particles.data(), SendSizes.data(), SendOffsets.data(), MPI_HBT_Particle, 
-				ReceivedParticles.data(), ReceiveSizes.data(), ReceiveOffsets.data(), MPI_HBT_Particle, world.Communicator);
+
+  MPI_Barrier(world.Communicator);
+  if(world.rank()==0)cout << "Start MPI_Alltoallv" << endl;
+
+  // Sanity check
+  {
+    int i;
+    for(i=0; i<world.size(); i+=1)
+      {
+        // Check overflow
+        if(SendOffsets[i]    < 0) {cout << "SendOffset overflow!"    << endl; MPI_Abort(world.Communicator, 1);}
+        if(ReceiveOffsets[i] < 0) {cout << "ReceiveOffset overflow!" << endl; MPI_Abort(world.Communicator, 1);}
+        if(SendSizes[i]      < 0) {cout << "SendSize overflow!"      << endl; MPI_Abort(world.Communicator, 1);}
+        if(ReceiveSizes[i]   < 0) {cout << "ReceiveSize overflow!"   << endl; MPI_Abort(world.Communicator, 1);}
+        // Check bounds
+        if(SendOffsets[i]+SendSizes[i] > Particles.size()) {cout << "SendOffset out of bounds!" << endl; MPI_Abort(world.Communicator, 1);}
+        if(ReceiveOffsets[i]+ReceiveSizes[i] > ReceivedParticles.size()) {cout << "ReceiveOffset out of bounds!" << endl; MPI_Abort(world.Communicator, 1);}
+        // Check offsets are monotonic
+        if(i > 0) {
+          if(SendOffsets[i] < SendOffsets[i-1]){cout << "SendOffset not increasing!" << endl; MPI_Abort(world.Communicator, 1);}
+          if(SendOffsets[i-1]+SendSizes[i-1]-1 >= SendOffsets[i]){cout << "SendOffsets overlap!" << endl; MPI_Abort(world.Communicator, 1);}
+          if(ReceiveOffsets[i] < ReceiveOffsets[i-1]){cout << "ReceiveOffset not increasing!" << endl; MPI_Abort(world.Communicator, 1);}
+          if(ReceiveOffsets[i-1]+ReceiveSizes[i-1]-1 >= ReceiveOffsets[i]){cout << "ReceiveOffsets overlap!" << endl; MPI_Abort(world.Communicator, 1);}
+        }
+      }
+  }
+
+  Pairwise_Alltoallv(Particles.data(), SendSizes.data(), SendOffsets.data(), MPI_HBT_Particle, 
+                     ReceivedParticles.data(), ReceiveSizes.data(), ReceiveOffsets.data(),
+                     MPI_HBT_Particle, world.Communicator);
+
+  MPI_Barrier(world.Communicator);
+  if(world.rank()==0)cout << "End MPI_Alltoallv" << endl;
+
 
   MPI_Type_free(&MPI_HBT_Particle);
   
