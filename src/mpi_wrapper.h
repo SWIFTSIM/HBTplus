@@ -101,11 +101,11 @@ void VectorAllToAll(MpiWorker_t &world, vector < vector<T> > &SendVecs, vector <
   for(int i=0;i<world.size();i++)
   {
 	MPI_Aint p;
-	MPI_Address(SendVecs[i].data(), &p);
+	MPI_Get_address(SendVecs[i].data(), &p);
 	MPI_Type_create_hindexed(1, &SendSizes[i], &p, dtype, &SendTypes[i]);
 	MPI_Type_commit(&SendTypes[i]);
 	
-	MPI_Address(ReceiveVecs[i].data(), &p);
+	MPI_Get_address(ReceiveVecs[i].data(), &p);
 	MPI_Type_create_hindexed(1, &ReceiveSizes[i], &p, dtype, &ReceiveTypes[i]);
 	MPI_Type_commit(&ReceiveTypes[i]);
   }
