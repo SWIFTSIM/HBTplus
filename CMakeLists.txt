@@ -59,8 +59,8 @@ endif(HBT_USE_OPENMP)
 #
 # Find MPI libraries
 #
-find_package(MPI REQUIRED)
-include_directories(${MPI_C_INCLUDE_DIRS})
+find_package(MPI REQUIRED COMPONENTS C CXX)
+include_directories(${MPI_C_INCLUDE_DIRS} ${MPI_CXX_INCLUDE_DIRS})
 
 #
 # Find HDF5 library: we need the C and high level interfaces, and
@@ -144,7 +144,7 @@ hbt_option(HBT_UNSIGNED_LONG_ID_OUTPUT UNSIGNED_LONG_ID_OUTPUT "Enable to output
 # HBT executable
 #
 add_executable(HBT ${HBT_SRC})
-target_link_libraries(HBT ${MPI_C_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
+target_link_libraries(HBT ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
 
 #
 # Hide some variables we usually don't need from the default view in the cmake GUI
