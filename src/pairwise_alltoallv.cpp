@@ -41,9 +41,22 @@ int Pairwise_Alltoallv(const void *sendbuf, const int *sendcounts,
               size_t num_send = sendcount <= max_num_send ? sendcount : max_num_send;
               size_t num_recv = recvcount <= max_num_recv ? recvcount : max_num_recv;
 
-              MPI_Sendrecv(sendptr, (int) num_send, sendtype, rank, 0,
-                           recvptr, (int) num_recv, recvtype, rank, 0,
-                           comm, MPI_STATUS_IGNORE);
+              if(sendcount > 0 && recvcount > 0) 
+                {
+                  MPI_Sendrecv(sendptr, (int) num_send, sendtype, rank, 0,
+                               recvptr, (int) num_recv, recvtype, rank, 0,
+                               comm, MPI_STATUS_IGNORE);
+                } 
+              else if(sendcount > 0)
+                {
+                  MPI_Send(sendptr, (int) num_send, sendtype, rank, 0,
+                           comm);
+                }
+              else
+                {
+                  MPI_Recv(recvptr, (int) num_recv, recvtype, rank, 0,
+                           comm, MPI_STATUS_IGNORE);                  
+                }
 
               sendptr   += send_type_size * num_send;
               sendcount -= num_send;
@@ -53,4 +66,5 @@ int Pairwise_Alltoallv(const void *sendbuf, const int *sendcounts,
             }
         }
     }  
+  return 0;
 }
