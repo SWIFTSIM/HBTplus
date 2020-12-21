@@ -2,7 +2,8 @@
 
 int Pairwise_Alltoallv(const void *sendbuf, const int *sendcounts,
                        const int *sdispls, MPI_Datatype sendtype, void *recvbuf,
-                       const int *recvcounts, const int *rdispls, MPI_Datatype recvtype, MPI_Comm comm)
+                       const int *recvcounts, const int *rdispls, MPI_Datatype recvtype,
+                       MPI_Comm comm)
 {
   
   int comm_size;
@@ -14,11 +15,12 @@ int Pairwise_Alltoallv(const void *sendbuf, const int *sendcounts,
   while(1<<ptask < comm_size)
     ptask += 1;
 
-  int send_type_size;
-  MPI_Type_size(sendtype, &send_type_size);
-  int recv_type_size;
-  MPI_Type_size(recvtype, &recv_type_size);
-  
+  MPI_Aint lower_bound, extent;
+  MPI_Type_get_extent(sendtype, &lower_bound, &extent);
+  int send_type_size = extent;
+  MPI_Type_get_extent(recvtype, &lower_bound, &extent);
+  int recv_type_size = extent;
+
   for(int ngrp=0; ngrp < (1<<ptask); ngrp+=1)
     {
       int rank = comm_rank ^ ngrp;
