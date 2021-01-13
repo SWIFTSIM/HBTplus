@@ -325,6 +325,13 @@ void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
   writeHDFmatrix(file, &MemberTable.NFake, "NumberOfFakeHalos", ndim, dim_atom, H5T_HBTInt);
   writeHDFmatrix(file, &NumSubsAll, "NumberOfSubhalosInAllFiles", ndim, dim_atom, H5T_HBTInt);//for data verification
   
+  // Write unit information to the output file
+  hid_t units=H5Gcreate2(file, "/Units", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  writeHDFmatrix(units, &HBTConfig.LengthInMpch, "LengthInMpch", ndim, dim_atom, H5T_HBTReal);
+  writeHDFmatrix(units, &HBTConfig.MassInMsunh,  "MassInMsunh",  ndim, dim_atom, H5T_HBTReal);
+  writeHDFmatrix(units, &HBTConfig.VelInKmS,     "VelInKmS",     ndim, dim_atom, H5T_HBTReal);
+  H5Gclose(units);
+
   vector <hvl_t> vl(Subhalos.size());
   hsize_t dim_sub[]={Subhalos.size()};
     //now write the particle list for each subhalo
