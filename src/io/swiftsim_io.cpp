@@ -436,7 +436,6 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
 {
 
   MPI_Barrier(world.Communicator);
-  if(world.rank()==0)cout << "Start LoadSnapshot" << endl;
 
   SetSnapshot(snapshotId);
   
@@ -486,7 +485,6 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
   }
 
   MPI_Barrier(world.Communicator);
-  if(world.rank()==0)cout << "End LoadSnapshot" << endl;
 
 }
 

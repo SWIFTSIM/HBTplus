@@ -157,12 +157,10 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
   }
   
   MPI_Barrier(world.Communicator);
-  if(world.rank()==0)cout << "Start sorting" << endl;
 
   sort(Particles.begin(), Particles.end(), CompParticleId);
 
   MPI_Barrier(world.Communicator);
-  if(world.rank()==0)cout << "Done sorting" << endl;
 
   
   vector <int> SendOffsets(world.size()+1), SendSizes(world.size(), 0);
@@ -180,7 +178,6 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
   Particle_t().create_MPI_type(MPI_HBT_Particle);
 
   MPI_Barrier(world.Communicator);
-  if(world.rank()==0)cout << "Start MPI_Alltoallv" << endl;
 
   // Sanity check
   {
@@ -210,7 +207,6 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
                      MPI_HBT_Particle, world.Communicator);
 
   MPI_Barrier(world.Communicator);
-  if(world.rank()==0)cout << "End MPI_Alltoallv" << endl;
 
 
   MPI_Type_free(&MPI_HBT_Particle);
