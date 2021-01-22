@@ -591,6 +591,9 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Ha
 //     np+=h.Particles.size();
 //   MPI_Allreduce(MPI_IN_PLACE, &np, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
 //   return np;
+
+  HBTConfig.GroupLoadedFullParticle = true;
+
 }
 
 bool IsSwiftSimGroup(const string &GroupFileFormat)
