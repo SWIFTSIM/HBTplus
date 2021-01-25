@@ -335,12 +335,18 @@ void Snapshot_t::HaloVirialFactors(HBTReal &virialF_tophat, HBTReal &virialF_b20
 	virialF_b200=200.*Cosmology.OmegaZ;//virialF w.r.t contemporary critical density 
 }
 
-void ParticleSnapshot_t::Clear()
-/*reset to empty*/
+void ParticleSnapshot_t::ClearParticles()
+/*this allows us to clear the particle data when it's no longer needed*/
 {
   #define RESET(x, T) {vector <T>().swap(x);}
   RESET(Particles, Particle_t);
   #undef RESET 
+}
+
+void ParticleSnapshot_t::Clear()
+/*reset to empty*/
+{
+  ClearParticles();
   ClearParticleHash();//even if you don't do this, the destructor will still clean up the memory.
   //   cout<<NumberOfParticles<<" particles cleared from snapshot "<<SnapshotIndex<<endl;
   NumberOfParticlesOnAllNodes=0;

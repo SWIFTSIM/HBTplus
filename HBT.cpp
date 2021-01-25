@@ -66,6 +66,9 @@ int main(int argc, char **argv)
 // 	if(world.rank()==0) cout<<"updateing subsnap particles...\n";
 	subsnap.UpdateParticles(world, partsnap);
 	subsnap.UpdateMostBoundPosition(world, partsnap);
+	
+        // Don't need the particle data after this point, so save memory
+        partsnap.ClearParticles();
 
 	timer.Tick(world.Communicator);
 	subsnap.AssignHosts(world, halosnap, partsnap);

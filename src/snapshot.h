@@ -185,6 +185,7 @@ public:
   }
   void FillParticleHash();
   void ClearParticleHash();
+  void ClearParticles();
   
   HBTInt size() const;
   HBTInt GetId(HBTInt index) const;
