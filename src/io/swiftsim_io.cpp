@@ -107,8 +107,10 @@ hid_t SwiftSimReader_t::OpenFile(int ifile)
 void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
 {
   double BoxSize_3D[3];
+  int NumPartTypes;
 
   hid_t file = OpenFile(ifile);
+  ReadAttribute(file, "Header", "NumPartTypes", H5T_NATIVE_INT, &NumPartTypes);
   ReadAttribute(file, "Header", "NumFilesPerSnapshot", H5T_NATIVE_INT, &Header.NumberOfFiles);
   ReadAttribute(file, "Header", "BoxSize", H5T_NATIVE_DOUBLE, BoxSize_3D);
   if(BoxSize_3D[0]!=BoxSize_3D[1] || BoxSize_3D[0]!=BoxSize_3D[2]) {
@@ -125,17 +127,38 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   ReadAttribute(file, "Cosmology", "Omega_lambda", H5T_NATIVE_DOUBLE, &Header.OmegaLambda0);  
   for(int i=0; i<TypeMax; i+=1)
     Header.mass[i] = 0.0; // Swift particles always have individual masses
-  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, Header.npart);
-  unsigned np[TypeMax], np_high[TypeMax];
-  ReadAttribute(file, "Header", "NumPart_Total", H5T_NATIVE_UINT, np);
-  ReadAttribute(file, "Header", "NumPart_Total_HighWord", H5T_NATIVE_UINT, np_high);
+
+  /* 
+     Read per-type header entries
+     
+     There may be more than TypeMax particle types. Here we ignore
+     any extra types (e.g. neutrinos). The number of types we use
+     is the smaller of Swift's NumPartTypes and HBT's TypeMax.
+  */
+  int NumPart_ThisFile[NumPartTypes]; // same size as attributes in the file
+  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, NumPart_ThisFile);
+  unsigned int NumPart_Total[NumPartTypes];
+  ReadAttribute(file, "Header", "NumPart_Total", H5T_NATIVE_UINT, NumPart_Total);
+  unsigned int NumPart_Total_HighWord[NumPartTypes];
+  ReadAttribute(file, "Header", "NumPart_Total_HighWord", H5T_NATIVE_UINT, NumPart_Total_HighWord);
   for(int i=0;i<TypeMax;i++)
-	Header.npartTotal[i]=(((unsigned long)np_high[i])<<32)|np[i];
+    if(i < NumPartTypes)
+      Header.npartTotal[i]=(((unsigned long)NumPart_Total_HighWord[i])<<32)|NumPart_Total[i];
+    else
+      Header.npartTotal[i] = 0;
   H5Fclose(file);
 }
 void SwiftSimReader_t::GetParticleCountInFile(hid_t file, int np[])
 {
-  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, np);
+  int NumPartTypes;
+  ReadAttribute(file, "Header", "NumPartTypes", H5T_NATIVE_INT, &NumPartTypes);
+  int NumPart_ThisFile[NumPartTypes]; // same size as attributes in the file
+  ReadAttribute(file, "Header", "NumPart_ThisFile", H5T_NATIVE_INT, NumPart_ThisFile);
+  for(int i=0; i<TypeMax;i++)
+    if(i < NumPartTypes)
+      np[i] = NumPart_ThisFile[i];
+    else
+      np[i] = 0;
 #ifdef DM_ONLY
   for(int i=0;i<TypeMax;i++)
 	if(i!=TypeDM) np[i]=0;
