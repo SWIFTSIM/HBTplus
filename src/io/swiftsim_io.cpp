@@ -188,7 +188,10 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 	auto ParticlesThisType=ParticlesInFile+offset_this[itype];
 	stringstream grpname;
 	grpname<<"PartType"<<itype;
-	if(!H5Lexists(file, grpname.str().c_str(), H5P_DEFAULT)) continue;
+        const std::string& tmp = grpname.str();   
+        const char* group_name = tmp.c_str();
+	if(!H5Lexists(file, group_name, H5P_DEFAULT)) continue;
+
 	hid_t particle_data=H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
 // 	if(particle_data<0) continue; //skip non-existing type
 
