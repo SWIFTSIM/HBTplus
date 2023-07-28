@@ -365,9 +365,15 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
           // Masses
           {
             vector <HBTReal> m(np);
-            ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
             HBTReal aexp;
-            ReadAttribute(particle_data, "Masses", "a-scale exponent", H5T_HBTReal, &aexp);
+            if(itype == 5) {
+              /* Use dynamical mass field for black hole particles */
+              ReadDataset(particle_data, "DynamicalMasses", H5T_HBTReal, m.data());
+              ReadAttribute(particle_data, "DynamicalMasses", "a-scale exponent", H5T_HBTReal, &aexp);
+            } else {
+              ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
+              ReadAttribute(particle_data, "Masses", "a-scale exponent", H5T_HBTReal, &aexp);              
+            }
             for(int i=0;i<np;i++)
               ParticlesThisType[i].Mass=m[i]*pow(Header.ScaleFactor, aexp);
           }
