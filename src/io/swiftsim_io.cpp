@@ -16,6 +16,7 @@ using namespace std;
 #include "../hdf_wrapper.h"
 #include "swiftsim_io.h"
 #include "exchange_and_merge.h"
+#include "../config_parser.h"
 
 void create_SwiftSimHeader_MPI_type(MPI_Datatype& dtype)
 {
@@ -37,9 +38,15 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype& dtype)
   RegisterAttr(ScaleFactor, MPI_DOUBLE, 1)
   RegisterAttr(OmegaM0, MPI_DOUBLE, 1)
   RegisterAttr(OmegaLambda0, MPI_DOUBLE, 1)
+  RegisterAttr(h, MPI_DOUBLE, 1)
   RegisterAttr(mass, MPI_DOUBLE, TypeMax)
   RegisterAttr(npart[0], MPI_INT, TypeMax)
   RegisterAttr(npartTotal[0], MPI_HBT_INT, TypeMax)
+  RegisterAttr(length_conversion, MPI_DOUBLE, 1)
+  RegisterAttr(mass_conversion, MPI_DOUBLE, 1)
+  RegisterAttr(velocity_conversion, MPI_DOUBLE, 1)
+  RegisterAttr(energy_conversion, MPI_DOUBLE, 1)
+
   #undef RegisterAttr
   assert(i<=NumAttr);
   
@@ -118,15 +125,36 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
   Header.BoxSize = BoxSize_3D[0]; // Can only handle cubic boxes
-  if(Header.BoxSize!=HBTConfig.BoxSize) {
-    cout << "Box size in snapshot does not match parameter file!\n";
-    MPI_Abort(MPI_COMM_WORLD, 1);  
-  }
   ReadAttribute(file, "Cosmology", "Scale-factor", H5T_NATIVE_DOUBLE, &Header.ScaleFactor);
   ReadAttribute(file, "Cosmology", "Omega_m", H5T_NATIVE_DOUBLE, &Header.OmegaM0);
   ReadAttribute(file, "Cosmology", "Omega_lambda", H5T_NATIVE_DOUBLE, &Header.OmegaLambda0);  
+  ReadAttribute(file, "Cosmology", "h", H5T_NATIVE_DOUBLE, &Header.h);  
   for(int i=0; i<TypeMax; i+=1)
     Header.mass[i] = 0.0; // Swift particles always have individual masses
+
+  /* Read physical constants assumed by SWIFT */
+  double parsec_cgs;
+  ReadAttribute(file, "PhysicalConstants/CGS", "parsec", H5T_NATIVE_DOUBLE, &parsec_cgs);
+  double solar_mass_cgs;
+  ReadAttribute(file, "PhysicalConstants/CGS", "solar_mass", H5T_NATIVE_DOUBLE, &solar_mass_cgs);
+  const double km_cgs = 1.0e5;
+
+  /* Read unit system used by SWIFT */
+  double length_cgs;
+  ReadAttribute(file, "Units", "Unit length in cgs (U_L)", H5T_NATIVE_DOUBLE, &length_cgs);
+  double mass_cgs;
+  ReadAttribute(file, "Units", "Unit mass in cgs (U_M)", H5T_NATIVE_DOUBLE, &mass_cgs);
+  double time_cgs;
+  ReadAttribute(file, "Units", "Unit time in cgs (U_t)", H5T_NATIVE_DOUBLE, &time_cgs);
+
+  /* Compute conversion from SWIFT's unit system to HBT's unit system (apart from any a factors) */
+  Header.length_conversion   = (length_cgs / (1.0e6*parsec_cgs)) * Header.h / HBTConfig.LengthInMpch;
+  Header.mass_conversion     = (mass_cgs / solar_mass_cgs) * Header.h / HBTConfig.MassInMsunh;
+  Header.velocity_conversion = (length_cgs/time_cgs) / km_cgs / HBTConfig.VelInKmS;
+  Header.energy_conversion   = Header.velocity_conversion * Header.velocity_conversion;
+
+  /* Convert box size to HBT units */
+  Header.BoxSize *= Header.length_conversion;
 
   /* 
      Read per-type header entries
@@ -148,6 +176,7 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
       Header.npartTotal[i] = 0;
   H5Fclose(file);
 }
+
 void SwiftSimReader_t::GetParticleCountInFile(hid_t file, int np[])
 {
   int NumPartTypes;
@@ -164,6 +193,7 @@ void SwiftSimReader_t::GetParticleCountInFile(hid_t file, int np[])
 	if(i!=TypeDM) np[i]=0;
 #endif
 }
+
 HBTInt SwiftSimReader_t::CompileFileOffsets(int nfiles)
 {
   HBTInt offset=0;
@@ -216,8 +246,6 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 	if(!H5Lexists(file, group_name, H5P_DEFAULT)) continue;
 
 	hid_t particle_data=H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
-// 	if(particle_data<0) continue; //skip non-existing type
-
 	check_id_size(particle_data);
 
         // Positions
@@ -232,6 +260,9 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
               cout << "Can't handle Coordinates with a-scale exponent != 1\n";
               MPI_Abort(MPI_COMM_WORLD, 1);
             }
+          for(int i=0;i<np;i++)
+            for(int j=0;j<3;j++)
+              x[i][j] *= Header.length_conversion;
           if(HBTConfig.PeriodicBoundaryOn)
             {
               for(int i=0;i<np;i++)
@@ -240,7 +271,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
             }
           for(int i=0;i<np;i++)
             for(int j=0; j<3; j+=1)
-              ParticlesThisType[i].ComovingPosition[j] = x[i][j] * pow(Header.ScaleFactor, aexp-1.0);
+              ParticlesThisType[i].ComovingPosition[j] = x[i][j];
         }
 
         // Velocities
@@ -251,7 +282,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
           ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
           for(int i=0;i<np;i++)
             for(int j=0;j<3;j++)
-              ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*pow(Header.ScaleFactor, aexp);
+              ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*Header.velocity_conversion*pow(Header.ScaleFactor, aexp);
         }
 
         // Ids
@@ -269,7 +300,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
           HBTReal aexp;
           ReadAttribute(particle_data, "Masses", "a-scale exponent", H5T_HBTReal, &aexp);
           for(int i=0;i<np;i++)
-            ParticlesThisType[i].Mass=m[i]*pow(Header.ScaleFactor, aexp);
+            ParticlesThisType[i].Mass=m[i]*Header.mass_conversion*pow(Header.ScaleFactor, aexp);
         }
 	
 #ifndef DM_ONLY
@@ -278,14 +309,12 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 	if(itype==0)
           {
             // Here we convert the internal energy to physical units.
-            // TODO: is this a dependence correct? Should I be ensuring it's in velocity units squared?
-            // Note that swift has 'a-scale exponent'=-2 for this dataset.
             HBTReal aexp;
             ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
             vector <HBTReal> u(np);
             ReadDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data());
             for(int i=0;i<np;i++)
-              ParticlesThisType[i].InternalEnergy=u[i]*pow(Header.ScaleFactor, aexp);
+              ParticlesThisType[i].InternalEnergy=u[i]*Header.energy_conversion*pow(Header.ScaleFactor, aexp);
           }
 #endif
 	{//type
@@ -477,14 +506,10 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
     ReadHeader(0, Header);
     CompileFileOffsets(Header.NumberOfFiles);
 
-    // Report units
-    HBTReal MassInMsunh;
-    HBTReal LengthInMpch;
-    HBTReal VelInKmS;
-    ReadUnits(MassInMsunh, LengthInMpch, VelInKmS);
-    cout << "MassInMsunh  = " << MassInMsunh  << endl;
-    cout << "LengthInMpch = " << LengthInMpch << endl;
-    cout << "VelInKmS     = " << VelInKmS     << endl;
+    /* Report conversion factors used to go from SWIFT to HBT units */
+    cout << "SWIFT length conversion factor = " << Header.length_conversion << endl;
+    cout << "SWIFT mass conversion factor = " << Header.mass_conversion << endl;
+    cout << "SWIFT velocity conversion factor = " << Header.velocity_conversion << endl;
   }
   MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);

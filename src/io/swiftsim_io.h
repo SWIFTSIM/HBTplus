@@ -20,9 +20,14 @@ struct SwiftSimHeader_t
   double   ScaleFactor;
   double   OmegaM0;
   double   OmegaLambda0;
+  double   h;
   double   mass[TypeMax];
   int      npart[TypeMax];  
-  HBTInt npartTotal[TypeMax]; 
+  HBTInt npartTotal[TypeMax];
+  double length_conversion;
+  double mass_conversion;
+  double velocity_conversion;
+  double energy_conversion;
 };
 
 void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype);
