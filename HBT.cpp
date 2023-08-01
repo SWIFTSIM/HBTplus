@@ -36,6 +36,11 @@ int main(int argc, char **argv)
     cout<<", each with "<<omp_get_num_threads()<<" threads";
     #endif
     cout<<endl;
+    cout<<"Configured with the following data type sizes (bytes):"<< endl;
+    cout<<"  Real quantities    : " << sizeof(HBTReal) << endl;
+    cout<<"  Integer quantities : " << sizeof(HBTInt) << endl;
+    cout<<"  Particle velocities: " << sizeof(HBTVelType) << endl;
+    cout<<"  Particle masses    : " << sizeof(HBTMassType) << endl;
   }
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 
