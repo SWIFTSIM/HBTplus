@@ -52,6 +52,56 @@ inline herr_t ReadDataset(hid_t file, const char *name, hid_t dtype, void *buf)
   H5Dclose(dset);
   return status;
 }
+
+inline herr_t ReadPartialDataset(hid_t file, const char *name, hid_t dtype, void *buf, hsize_t offset, hsize_t count)
+/* read named dataset from file into buf.
+ * dtype specifies the datatype of buf; it does not need to be the same as the storage type in file
+ * offset and count specify the range of elements in the first dimension to read */
+{
+  herr_t status;
+  hid_t dset=H5Dopen2(file, name, H5P_DEFAULT);
+
+  /* Get dataspace in the file */
+  hid_t file_space_id = H5Dget_space(dset);
+
+  /* Get size of dataset in the file */
+  const int max_dims = 32;
+  hsize_t dims[max_dims];
+  int rank = H5Sget_simple_extent_ndims(file_space_id);
+  H5Sget_simple_extent_dims(file_space_id, dims, NULL);
+
+  /* Create memory dataspace same size as in the file, except that first dimension has count elements */
+  dims[0] = count;
+  hsize_t mem_space_id = H5Screate_simple(rank, dims, NULL);
+
+  /* Select elements in the file to read */
+  hsize_t start_arr[max_dims];
+  hsize_t count_arr[max_dims];
+  start_arr[0] = offset;
+  count_arr[0] = count;
+  for(int i=1; i<rank; i+=1)
+    {
+      start_arr[i] = 0;        
+      count_arr[i] = dims[i];
+    }
+  H5Sselect_hyperslab(file_space_id, H5S_SELECT_SET, start_arr, NULL, count_arr, NULL);
+
+  /* Read the data */
+  status=H5Dread(dset, dtype, mem_space_id, file_space_id, H5P_DEFAULT, buf);
+  if(status<0)
+  {
+    const int bufsize=1024;
+    char grpname[bufsize],filename[bufsize];
+    H5Iget_name(file, grpname, bufsize);
+    H5Fget_name(file, filename, bufsize);
+    std::cerr<<"####ERROR READING "<<grpname<<"/"<<name<<" from "<<filename<<", error number "<<status<<std::endl<<std::flush;
+  }
+  H5Dclose(dset);
+  H5Sclose(mem_space_id);
+  H5Sclose(file_space_id);
+  return status;
+}
+
 inline herr_t ReadAttribute(hid_t loc_id, const char *obj_name, const char *attr_name, hid_t dtype, void *buf)
 /* read named attribute of object into buf. if loc_id fully specifies the object, obj_name="."
  * dtype specifies the datatype of buf; it does not need to be the same as the storage type in file*/

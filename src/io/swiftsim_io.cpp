@@ -248,59 +248,97 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 	hid_t particle_data=H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
 	check_id_size(particle_data);
 
+        const hsize_t chunksize=10*1024*1024;
+        const hsize_t nr = (hsize_t) np;
+
         // Positions
         {
-          vector <HBTxyz> x(np);
-          ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());
+          // Check that positions are comoving
           HBTReal aexp;
           ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
           if(aexp!=1.0)
             {
-              /* Don't know how to do the box wrapping in this case! Is BoxSize comoving? */
               cout << "Can't handle Coordinates with a-scale exponent != 1\n";
               MPI_Abort(MPI_COMM_WORLD, 1);
             }
-          for(int i=0;i<np;i++)
-            for(int j=0;j<3;j++)
-              x[i][j] *= Header.length_conversion;
-          if(HBTConfig.PeriodicBoundaryOn)
+
+          // Read data in chunks to minimize memory overhead
+          for(hsize_t offset=0; offset<nr; offset+=chunksize)
             {
-              for(int i=0;i<np;i++)
+              // Read the next chunk
+              hsize_t count = nr - offset;
+              if(count > chunksize)count=chunksize;
+              vector <HBTxyz> x(count);
+              ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset, count);
+              // Convert to HBT units
+              for(hsize_t i=0;i<count;i++)
                 for(int j=0;j<3;j++)
-                  x[i][j]=position_modulus(x[i][j], boxsize);
+                  x[i][j] *= Header.length_conversion;
+              // Box wrap if necessary
+              if(HBTConfig.PeriodicBoundaryOn)
+                {
+                  for(hsize_t i=0;i<count;i++)
+                    for(int j=0;j<3;j++)
+                      x[i][j]=position_modulus(x[i][j], boxsize);
+                }
+              // Store the particle positions
+              for(hsize_t i=0; i<count; i+=1)
+                for(int j=0; j<3; j+=1)
+                  ParticlesThisType[offset+i].ComovingPosition[j] = x[i][j];
             }
-          for(int i=0;i<np;i++)
-            for(int j=0; j<3; j+=1)
-              ParticlesThisType[i].ComovingPosition[j] = x[i][j];
         }
 
         // Velocities
         {
-          vector <HBTxyz> v(np);
-          ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
           HBTReal aexp;
           ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
-          for(int i=0;i<np;i++)
-            for(int j=0;j<3;j++)
-              ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*Header.velocity_conversion*pow(Header.ScaleFactor, aexp);
+
+          // Read data in chunks to minimize memory overhead
+          for(hsize_t offset=0; offset<nr; offset+=chunksize)
+            {
+              // Read the next chunk
+              hsize_t count = nr - offset;
+              if(count > chunksize)count=chunksize;
+              vector <HBTxyz> v(count);
+              ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset, count);
+              // Convert units and store the particle velocities
+              for(hsize_t i=0; i<count; i+=1)
+                for(int j=0; j<3; j+=1)
+                  ParticlesThisType[offset+i].PhysicalVelocity[j] = v[i][j]*Header.velocity_conversion*pow(Header.ScaleFactor, aexp);
+            }
         }
 
         // Ids
         {
-          vector <HBTInt> id(np);
-          ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
-          for(int i=0;i<np;i++)
-            ParticlesThisType[i].Id=id[i];
+          for(hsize_t offset=0; offset<nr; offset+=chunksize)
+            {
+              hsize_t count = nr - offset;
+              if(count > chunksize)count=chunksize;
+              vector <HBTInt> id(count);
+              ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset, count);
+              for(hsize_t i=0; i<count; i+=1)
+                ParticlesThisType[offset+i].Id=id[i];
+            }
         }
 
         // Masses
         {
-          vector <HBTReal> m(np);
-          ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
           HBTReal aexp;
-          ReadAttribute(particle_data, "Masses", "a-scale exponent", H5T_HBTReal, &aexp);
-          for(int i=0;i<np;i++)
-            ParticlesThisType[i].Mass=m[i]*Header.mass_conversion*pow(Header.ScaleFactor, aexp);
+          std::string name;
+          if(itype==5)
+            name="DynamicalMasses";
+          else
+            name="Masses";
+          ReadAttribute(particle_data, name.c_str(), "a-scale exponent", H5T_HBTReal, &aexp);
+          for(hsize_t offset=0; offset<nr; offset+=chunksize)
+            {
+              hsize_t count = nr - offset;
+              if(count > chunksize)count=chunksize;
+              vector <HBTReal> m(count);
+              ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset, count);
+              for(hsize_t i=0; i<count; i+=1)
+                ParticlesThisType[offset+i].Mass=m[i]*Header.mass_conversion*pow(Header.ScaleFactor, aexp);
+            }
         }
 	
 #ifndef DM_ONLY
@@ -308,13 +346,8 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 #ifdef HAS_THERMAL_ENERGY
 	if(itype==0)
           {
-            // Here we convert the internal energy to physical units.
-            HBTReal aexp;
-            ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
-            vector <HBTReal> u(np);
-            ReadDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data());
-            for(int i=0;i<np;i++)
-              ParticlesThisType[i].InternalEnergy=u[i]*Header.energy_conversion*pow(Header.ScaleFactor, aexp);
+            cout << "Reading internal energy from SWIFT not implemented yet!\n";
+            MPI_Abort(MPI_COMM_WORLD, 1);
           }
 #endif
 	{//type
@@ -338,90 +371,119 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
   
   HBTReal boxsize=Header.BoxSize;
   for(int itype=0;itype<TypeMax;itype++)
-  {
-	int np=np_this[itype];
-	if(np==0) continue;
-	auto ParticlesThisType=ParticlesInFile+offset_this[itype];
-	stringstream grpname;
-	grpname<<"PartType"<<itype;
-	if(!H5Lexists(file, grpname.str().c_str(), H5P_DEFAULT)) continue;
-	hid_t particle_data=H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
+    {
+      int np=np_this[itype];
+      if(np==0) continue;
+      auto ParticlesThisType=ParticlesInFile+offset_this[itype];
+      stringstream grpname;
+      grpname<<"PartType"<<itype;
+      if(!H5Lexists(file, grpname.str().c_str(), H5P_DEFAULT)) continue;
+      hid_t particle_data=H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
+        
+      const hsize_t chunksize=10*1024*1024;
+      const hsize_t nr = (hsize_t) np;
 	
-	if(FlagReadParticleId)
-	{
+      if(FlagReadParticleId)
+        {
+
           // Positions
           {
-            vector <HBTxyz> x(np);
-            ReadDataset(particle_data, "Coordinates", H5T_HBTReal, x.data());
+            // Check that positions are comoving
             HBTReal aexp;
             ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
             if(aexp!=1.0)
               {
-                /* Don't know how to do the box wrapping in this case! Is BoxSize comoving? */
                 cout << "Can't handle Coordinates with a-scale exponent != 1\n";
                 MPI_Abort(MPI_COMM_WORLD, 1);
               }
-            if(HBTConfig.PeriodicBoundaryOn)
+            
+            // Read data in chunks to minimize memory overhead
+            for(hsize_t offset=0; offset<nr; offset+=chunksize)
               {
-                for(int i=0;i<np;i++)
+                // Read the next chunk
+                hsize_t count = nr - offset;
+                if(count > chunksize)count=chunksize;
+                vector <HBTxyz> x(count);
+                ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset, count);
+                // Convert to HBT units
+                for(hsize_t i=0;i<count;i++)
                   for(int j=0;j<3;j++)
-                    x[i][j]=position_modulus(x[i][j], boxsize);
+                    x[i][j] *= Header.length_conversion;
+                // Box wrap if necessary
+                if(HBTConfig.PeriodicBoundaryOn)
+                  {
+                    for(hsize_t i=0;i<count;i++)
+                      for(int j=0;j<3;j++)
+                        x[i][j]=position_modulus(x[i][j], boxsize);
+                  }
+                // Store the particle positions
+                for(hsize_t i=0; i<count; i+=1)
+                  for(int j=0; j<3; j+=1)
+                    ParticlesThisType[offset+i].ComovingPosition[j] = x[i][j];
               }
-            for(int i=0;i<np;i++)
-              for(int j=0; j<3; j+=1)
-                ParticlesThisType[i].ComovingPosition[j] = x[i][j] * pow(Header.ScaleFactor, aexp-1.0);
           }
-          
+
           // Velocities
           {
-            vector <HBTxyz> v(np);
-            ReadDataset(particle_data, "Velocities", H5T_HBTReal, v.data());
             HBTReal aexp;
             ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
-            for(int i=0;i<np;i++)
-              for(int j=0;j<3;j++)
-                ParticlesThisType[i].PhysicalVelocity[j]=v[i][j]*pow(Header.ScaleFactor, aexp);
+
+            // Read data in chunks to minimize memory overhead
+            for(hsize_t offset=0; offset<nr; offset+=chunksize)
+              {
+                // Read the next chunk
+                hsize_t count = nr - offset;
+                if(count > chunksize)count=chunksize;
+                vector <HBTxyz> v(count);
+                ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset, count);
+                // Convert units and store the particle velocities
+                for(hsize_t i=0; i<count; i+=1)
+                  for(int j=0; j<3; j+=1)
+                    ParticlesThisType[offset+i].PhysicalVelocity[j] = v[i][j]*Header.velocity_conversion*pow(Header.ScaleFactor, aexp);
+              }
           }
 
           // Ids
           {
-            vector <HBTInt> id(np);
-            ReadDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data());
-            for(int i=0;i<np;i++)
-              ParticlesThisType[i].Id=id[i];
+            for(hsize_t offset=0; offset<nr; offset+=chunksize)
+              {
+                hsize_t count = nr - offset;
+                if(count > chunksize)count=chunksize;
+                vector <HBTInt> id(count);
+                ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset, count);
+                for(hsize_t i=0; i<count; i+=1)
+                  ParticlesThisType[offset+i].Id=id[i];
+              }
           }
 
           // Masses
           {
-            vector <HBTReal> m(np);
             HBTReal aexp;
-            if(itype == 5) {
-              /* Use dynamical mass field for black hole particles */
-              ReadDataset(particle_data, "DynamicalMasses", H5T_HBTReal, m.data());
-              ReadAttribute(particle_data, "DynamicalMasses", "a-scale exponent", H5T_HBTReal, &aexp);
-            } else {
-              ReadDataset(particle_data, "Masses", H5T_HBTReal, m.data());
-              ReadAttribute(particle_data, "Masses", "a-scale exponent", H5T_HBTReal, &aexp);              
-            }
-            for(int i=0;i<np;i++)
-              ParticlesThisType[i].Mass=m[i]*pow(Header.ScaleFactor, aexp);
+            std::string name;
+            if(itype==5)
+              name="DynamicalMasses";
+            else
+              name="Masses";
+            ReadAttribute(particle_data, name.c_str(), "a-scale exponent", H5T_HBTReal, &aexp);
+            for(hsize_t offset=0; offset<nr; offset+=chunksize)
+              {
+                hsize_t count = nr - offset;
+                if(count > chunksize)count=chunksize;
+                vector <HBTReal> m(count);
+                ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset, count);
+                for(hsize_t i=0; i<count; i+=1)
+                  ParticlesThisType[offset+i].Mass=m[i]*Header.mass_conversion*pow(Header.ScaleFactor, aexp);
+              }
           }
 
 #ifndef DM_ONLY
           //internal energy
 #ifdef HAS_THERMAL_ENERGY
           if(itype==0)
-          {
-            // Here we convert the internal energy to physical units.
-            // TODO: is this a dependence correct? Should I be ensuring it's in velocity units squared?
-            // Note that swift has 'a-scale exponent'=-2 for this dataset.
-            HBTReal aexp;
-            ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
-            vector <HBTReal> u(np);
-            ReadDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data());
-            for(int i=0;i<np;i++)
-              ParticlesThisType[i].InternalEnergy=u[i]*pow(Header.ScaleFactor, aexp);
-          }
+            {
+              cout << "Reading internal energy from SWIFT not implemented yet!\n";
+              MPI_Abort(MPI_COMM_WORLD, 1);
+            }
 #endif
           {//type
             ParticleType_t t=static_cast<ParticleType_t>(itype);
@@ -429,69 +491,24 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
               ParticlesThisType[i].Type=t;
           }
 #endif
-	}
-	
-	{//Hostid
-	  vector <HBTInt> id(np);
-	  ReadDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data());
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].HostId=(id[i]<0?NullGroupId:id[i]);//negative means outside fof but within Rv 
-	}
-	
-	H5Gclose(particle_data);
-  }
-  
+        }
+
+      // Hostid
+      {
+        for(hsize_t offset=0; offset<nr; offset+=chunksize)
+          {
+            hsize_t count = nr - offset;
+            if(count > chunksize)count=chunksize;
+            vector <HBTInt> id(count);
+            ReadPartialDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data(), offset, count);
+            for(hsize_t i=0; i<count; i+=1)
+              ParticlesThisType[offset+i].HostId=(id[i]<0?NullGroupId:id[i]);//negative means outside fof but within Rv 
+          }
+      }
+      H5Gclose(particle_data);
+    }
   H5Fclose(file);
 }
-
-
-void SwiftSimReader_t::ReadUnits(HBTReal &MassInMsunh, HBTReal &LengthInMpch, HBTReal &VelInKmS)
-{
-  // Read Swift unit information to determine how HBT's unit parameters should be set
-  hid_t file = OpenFile(0);
-  double h;
-  // Hubble parameter
-  ReadAttribute(file, "Cosmology", "h", H5T_NATIVE_DOUBLE, &h);
-  // Constants we'll need
-  double parsec_cgs, solar_mass_cgs;
-  ReadAttribute(file, "PhysicalConstants/CGS", "parsec", H5T_NATIVE_DOUBLE,
-                &parsec_cgs);
-  ReadAttribute(file, "PhysicalConstants/CGS", "solar_mass", H5T_NATIVE_DOUBLE,
-                &solar_mass_cgs);
-  // Coordinates
-  double length_cgs, length_hexp;
-  ReadAttribute(file, "PartType1/Coordinates",
-                "Conversion factor to CGS (not including cosmological corrections)",
-                H5T_NATIVE_DOUBLE, &length_cgs);
-  ReadAttribute(file, "PartType1/Coordinates", "h-scale exponent", H5T_NATIVE_DOUBLE,
-                &length_hexp);
-  // Velocities
-  double velocity_cgs, velocity_hexp;
-  ReadAttribute(file, "PartType1/Velocities",
-                "Conversion factor to CGS (not including cosmological corrections)",
-                H5T_NATIVE_DOUBLE, &velocity_cgs);
-  ReadAttribute(file, "PartType1/Velocities", "h-scale exponent", H5T_NATIVE_DOUBLE,
-                &velocity_hexp);
-  // Masses
-  double mass_cgs, mass_hexp;
-  ReadAttribute(file, "PartType1/Masses",
-                "Conversion factor to CGS (not including cosmological corrections)",
-                H5T_NATIVE_DOUBLE, &mass_cgs);
-  ReadAttribute(file, "PartType1/Masses", "h-scale exponent", H5T_NATIVE_DOUBLE,
-                &mass_hexp);
-
-  // Conversion factor from mass units in snapshot to to Msolar/h
-  MassInMsunh = (mass_cgs/solar_mass_cgs)*pow(h, mass_hexp)*h;
-
-  // Conversion factor from length units in snapshot to Mpc/h
-  LengthInMpch = (length_cgs/(1.0e6*parsec_cgs))*pow(h, length_hexp)*h;
-
-  // Conversion factor from velocity units in snapshot to km/sec
-  VelInKmS = (velocity_cgs/1.0e5)*pow(h, velocity_hexp);
-  
-  H5Fclose(file);
-}
-
 
 void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <Particle_t> &Particles, Cosmology_t &Cosmology)
 {
