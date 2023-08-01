@@ -524,9 +524,9 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
     CompileFileOffsets(Header.NumberOfFiles);
 
     /* Report conversion factors used to go from SWIFT to HBT units */
-    cout << "SWIFT length conversion factor = " << Header.length_conversion << endl;
-    cout << "SWIFT mass conversion factor = " << Header.mass_conversion << endl;
-    cout << "SWIFT velocity conversion factor = " << Header.velocity_conversion << endl;
+    cout << "Conversion factor from SWIFT length units to " << HBTConfig.LengthInMpch << " Mpc/h = " << Header.length_conversion << endl;
+    cout << "Conversion factor from SWIFT mass units to " << HBTConfig.MassInMsunh << " Msun/h = " << Header.mass_conversion << endl;
+    cout << "Conversion factor from SWIFT velocity units to " << HBTConfig.VelInKmS << " km/s = " << Header.velocity_conversion << endl;
   }
   MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
