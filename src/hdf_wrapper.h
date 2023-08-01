@@ -95,10 +95,12 @@ inline herr_t ReadPartialDataset(hid_t file, const char *name, hid_t dtype, void
     H5Iget_name(file, grpname, bufsize);
     H5Fget_name(file, filename, bufsize);
     std::cerr<<"####ERROR READING "<<grpname<<"/"<<name<<" from "<<filename<<", error number "<<status<<std::endl<<std::flush;
+    MPI_Abort(MPI_COMM_WORLD, 1);
   }
   H5Dclose(dset);
   H5Sclose(mem_space_id);
   H5Sclose(file_space_id);
+
   return status;
 }
 
