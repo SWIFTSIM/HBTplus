@@ -53,7 +53,7 @@ struct Particle_t
   HBTInt Id;
   HBTxyz ComovingPosition;
   HBTvel PhysicalVelocity;
-  HBTReal Mass;
+  HBTMassType Mass;
 #ifndef DM_ONLY
 #ifdef HAS_THERMAL_ENERGY
   HBTReal InternalEnergy;

@@ -140,7 +140,8 @@ hbt_option(HBT_INPUT_INT8              INPUT_INT8              "Enable to read 8
 hbt_option(HBT_INT8                    HBT_INT8                "Enable to use 8 byte integers"                   ON)
 hbt_option(HBT_REAL8                   HBT_REAL8               "Enable to use 8 byte reals"                      OFF)
 hbt_option(HBT_UNSIGNED_LONG_ID_OUTPUT UNSIGNED_LONG_ID_OUTPUT "Enable to output IDs as unsigned long"           ON)
-hbt_option(HBT_REAL4_VEL               HBT_REAL4_VEL           "Enable to store velocities as 4 byte reals"      OFF)
+hbt_option(HBT_REAL4_VEL               HBT_REAL4_VEL           "Enable to store particle velocities as 4 byte reals" OFF)
+hbt_option(HBT_REAL4_MASS              HBT_REAL4_MASS          "Enable to store particle masses as 4 byte reals" OFF)
 
 #
 # HBT executable
