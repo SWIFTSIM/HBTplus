@@ -41,6 +41,7 @@ int main(int argc, char **argv)
     cout<<"  Integer quantities : " << sizeof(HBTInt) << endl;
     cout<<"  Particle velocities: " << sizeof(HBTVelType) << endl;
     cout<<"  Particle masses    : " << sizeof(HBTMassType) << endl;
+    cout<<"  Size of Particle_t : " << sizeof(Particle_t) << endl;
   }
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 
