@@ -18,7 +18,7 @@ void create_Mpi_RemoteParticleType(MPI_Datatype& dtype)
   #define RegisterAttr(x, type, count) {MPI_Get_address(&(p.x), offsets+i); offsets[i]-=origin; oldtypes[i]=type; blockcounts[i]=count; i++;}
   RegisterAttr(Id, MPI_HBT_INT, 1)
   RegisterAttr(ComovingPosition, MPI_HBT_REAL, 3)
-  RegisterAttr(PhysicalVelocity, MPI_HBT_REAL, 3)
+  RegisterAttr(PhysicalVelocity, MPI_HBT_VEL, 3)
   RegisterAttr(Mass, MPI_HBT_REAL, 1)
 #ifndef DM_ONLY
   #ifdef HAS_THERMAL_ENERGY

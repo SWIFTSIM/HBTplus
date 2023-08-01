@@ -50,8 +50,8 @@ typedef float HBTReal;
 typedef float HBTVelType;
 #define MPI_HBT_VEL MPI_FLOAT
 #else
-typedef double HBTVelType;
-#define MPI_HBT_VEL MPI_DOUBLE
+typedef HBTReal HBTVelType;
+#define MPI_HBT_VEL MPI_HBT_REAL
 #endif
 typedef array <HBTVelType, 3> HBTvel;
 
