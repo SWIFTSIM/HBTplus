@@ -258,7 +258,7 @@ public:
   {
 	return Subhalos[index].ComovingMostBoundPosition;
   }
-  const HBTxyz & GetPhysicalVelocity(HBTInt index) const
+  const HBTxyz GetPhysicalVelocity(HBTInt index) const
   {
 	return Subhalos[index].PhysicalAverageVelocity;
   }

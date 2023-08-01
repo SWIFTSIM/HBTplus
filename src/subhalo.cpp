@@ -224,7 +224,7 @@ void Subhalo_t::AverageCoordinates()
   if(Particles.size())
   {
 	copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
-	copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
+	copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
   }
   AveragePosition(ComovingAveragePosition, Particles.data(), Nbound);
   AverageVelocity(PhysicalAverageVelocity, Particles.data(), Nbound);

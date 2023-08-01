@@ -589,7 +589,7 @@ void SubhaloSnapshot_t::PurgeMostBoundParticles()
 			if(&p!=&subhalo.Particles[0])
 			{
 			  copyHBTxyz(subhalo.ComovingMostBoundPosition, p.ComovingPosition);
-			  copyHBTxyz(subhalo.PhysicalMostBoundVelocity, p.PhysicalVelocity);
+			  copyHBTxyz(subhalo.PhysicalMostBoundVelocity, p.GetPhysicalVelocity());
 			  swap(subhalo.Particles[0], p);
 			  break;
 			}

@@ -215,7 +215,7 @@ double AverageVelocity(HBTxyz& CoV, const Particle_t Particles[], HBTInt NumPart
 	if(0==NumPart) return 0.;
 	if(1==NumPart) 
 	{
-	  copyHBTxyz(CoV, Particles[0].PhysicalVelocity);
+          copyHBTxyz(CoV, Particles[0].GetPhysicalVelocity());
 	  return Particles[0].Mass;
 	}
 	
@@ -226,8 +226,9 @@ double AverageVelocity(HBTxyz& CoV, const Particle_t Particles[], HBTInt NumPart
 	{
 	  HBTReal m=Particles[i].Mass;
 	  msum+=m;
+          HBTxyz vel = Particles[i].GetPhysicalVelocity();
 	  for(j=0;j<3;j++)
-		sv[j]+=Particles[i].PhysicalVelocity[j]*m;
+            sv[j]+=vel[j]*m;
 	}
 	
 	for(j=0;j<3;j++)

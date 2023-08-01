@@ -45,6 +45,16 @@ typedef float HBTReal;
 #define MPI_HBT_REAL MPI_FLOAT
 #endif
 
+// Type to store velocities
+#ifdef HBT_REAL4_VEL
+typedef float HBTVelType;
+#define MPI_HBT_VEL MPI_FLOAT
+#else
+typedef double HBTVelType;
+#define MPI_HBT_VEL MPI_DOUBLE
+#endif
+typedef array <HBTVelType, 3> HBTvel;
+
 // the user should ganrantee that HBTInt can at least hold NP_DM 
 #ifdef HBT_INT8
 typedef long HBTInt;  
