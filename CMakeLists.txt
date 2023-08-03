@@ -109,6 +109,7 @@ set(HBT_SRC
   src/subhalo_merge.cpp
   src/subhalo_tracking.cpp
   src/subhalo_unbind.cpp
+  src/subhalo_update_mostbound.cpp
   src/io/apostle_io.cpp
   src/io/gadget_group_io.cpp
   src/io/gadget_io.cpp

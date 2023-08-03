@@ -65,7 +65,8 @@ int main(int argc, char **argv)
 	timer.Tick(world.Communicator);
 // 	if(world.rank()==0) cout<<"updateing subsnap particles...\n";
 	subsnap.UpdateParticles(world, partsnap);
-	
+	subsnap.UpdateMostBoundPosition(world, partsnap);
+
 	timer.Tick(world.Communicator);
 	subsnap.AssignHosts(world, halosnap, partsnap);
 	subsnap.PrepareCentrals(world, halosnap);
