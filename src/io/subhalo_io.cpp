@@ -7,7 +7,7 @@
 #include "../datatypes.h"
 #include "../snapshot_number.h"
 #include "../subhalo.h"
-
+#include "../config_parser.h"
 
 void SubhaloSnapshot_t::BuildHDFDataType()
 {
@@ -98,10 +98,12 @@ void SubhaloSnapshot_t::BuildHDFDataType()
 }
 inline void Subhalo_t::DuplicateMostBoundParticleId()
 {
-  if(Particles.size())
+  // Subhalos with no particles inherit their MostBoundID from their progenitor
+  // so all subhalos have a defined MostBoundID even if they contain zero particles.
+  if(Particles.size() > 0) {
     MostBoundParticleId=Particles[0].Id;
-  else
-    MostBoundParticleId=SpecialConst::NullParticleId;
+  }
+  
 }
 string SubhaloSnapshot_t::GetSubDir()
 {
