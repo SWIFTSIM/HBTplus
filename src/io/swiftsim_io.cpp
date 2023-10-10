@@ -229,138 +229,157 @@ static void check_id_size(hid_t loc)
   H5Dclose(dset);
 }
 
-void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
+void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count)
 {
   hid_t file=OpenFile(ifile);
   vector <int> np_this(TypeMax);
   vector <HBTInt> offset_this(TypeMax);
   GetParticleCountInFile(file, np_this.data());
   CompileOffsets(np_this, offset_this);
- 
+  
   HBTReal boxsize=Header.BoxSize;
+  auto ParticlesToRead=ParticlesInFile;
   for(int itype=0;itype<TypeMax;itype++)
   {
-	int np=np_this[itype];
-	if(np==0) continue;
-	auto ParticlesThisType=ParticlesInFile+offset_this[itype];
-	stringstream grpname;
-	grpname<<"PartType"<<itype;
-        const std::string& tmp = grpname.str();   
-        const char* group_name = tmp.c_str();
-	if(!H5Lexists(file, group_name, H5P_DEFAULT)) continue;
+    
+    // Find the range of offsets in the file for particles of this type
+    HBTInt type_first_offset = offset_this[itype];
+    HBTInt type_last_offset = type_first_offset + np_this[itype] - 1;
 
-	hid_t particle_data=H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
-	check_id_size(particle_data);
+    // Find the range of offsets in the file we actually want to read
+    HBTInt read_first_offset = file_start;
+    HBTInt read_last_offset = file_start + file_count - 1;
 
-        const hsize_t chunksize=10*1024*1024;
-        const hsize_t nr = (hsize_t) np;
+    // The overlap of these two ranges contains the particles we will read now.
+    HBTInt i1 = type_first_offset;
+    if(read_first_offset > i1)i1 = read_first_offset;
+    HBTInt i2 = type_last_offset;
+    if(read_last_offset < i2)i2 = read_last_offset;
 
-        // Positions
+    // Compute range of particles of this type to read from this file
+    HBTInt read_offset = i1 - offset_this[itype];
+    HBTInt read_count = i2 - i1 + 1;    
+    if(read_count <= 0) continue;
+
+    // Open the HDF5 group for this type
+    stringstream grpname;
+    grpname<<"PartType"<<itype;
+    const std::string& tmp = grpname.str();   
+    const char* group_name = tmp.c_str();
+    hid_t particle_data=H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
+    check_id_size(particle_data);
+
+    const hsize_t chunksize=10*1024*1024;
+
+    // Positions
+    {
+      // Check that positions are comoving
+      HBTReal aexp;
+      ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
+      if(aexp!=1.0)
         {
-          // Check that positions are comoving
-          HBTReal aexp;
-          ReadAttribute(particle_data, "Coordinates", "a-scale exponent", H5T_HBTReal, &aexp);
-          if(aexp!=1.0)
-            {
-              cout << "Can't handle Coordinates with a-scale exponent != 1\n";
-              MPI_Abort(MPI_COMM_WORLD, 1);
-            }
+          cout << "Can't handle Coordinates with a-scale exponent != 1\n";
+          MPI_Abort(MPI_COMM_WORLD, 1);
+        }
 
-          // Read data in chunks to minimize memory overhead
-          for(hsize_t offset=0; offset<nr; offset+=chunksize)
+      // Read data in chunks to minimize memory overhead
+      for(hsize_t offset=0; offset<read_count; offset+=chunksize)
+        {
+          // Read the next chunk
+          hsize_t count = read_count - offset; // number left to read
+          if(count > chunksize)count=chunksize;
+          vector <HBTxyz> x(count);
+          ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset+read_offset, count);
+          // Convert to HBT units
+          for(hsize_t i=0;i<count;i++)
+            for(int j=0;j<3;j++)
+              x[i][j] *= Header.length_conversion;
+          // Box wrap if necessary
+          if(HBTConfig.PeriodicBoundaryOn)
             {
-              // Read the next chunk
-              hsize_t count = nr - offset;
-              if(count > chunksize)count=chunksize;
-              vector <HBTxyz> x(count);
-              ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset, count);
-              // Convert to HBT units
               for(hsize_t i=0;i<count;i++)
                 for(int j=0;j<3;j++)
-                  x[i][j] *= Header.length_conversion;
-              // Box wrap if necessary
-              if(HBTConfig.PeriodicBoundaryOn)
-                {
-                  for(hsize_t i=0;i<count;i++)
-                    for(int j=0;j<3;j++)
-                      x[i][j]=position_modulus(x[i][j], boxsize);
-                }
-              // Store the particle positions
-              for(hsize_t i=0; i<count; i+=1)
-                for(int j=0; j<3; j+=1)
-                  ParticlesThisType[offset+i].ComovingPosition[j] = x[i][j];
+                  x[i][j]=position_modulus(x[i][j], boxsize);
             }
+          // Store the particle positions
+          for(hsize_t i=0; i<count; i+=1)
+            for(int j=0; j<3; j+=1)
+              ParticlesToRead[offset+i].ComovingPosition[j] = x[i][j];
         }
+    }
 
-        // Velocities
+    // Velocities
+    {
+      HBTReal aexp;
+      ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
+
+      // Read data in chunks to minimize memory overhead
+      for(hsize_t offset=0; offset<read_count; offset+=chunksize)
         {
-          HBTReal aexp;
-          ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
-
-          // Read data in chunks to minimize memory overhead
-          for(hsize_t offset=0; offset<nr; offset+=chunksize)
-            {
-              // Read the next chunk
-              hsize_t count = nr - offset;
-              if(count > chunksize)count=chunksize;
-              vector <HBTxyz> v(count);
-              ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset, count);
-              // Convert units and store the particle velocities
-              for(hsize_t i=0; i<count; i+=1)
-                for(int j=0; j<3; j+=1)
-                  ParticlesThisType[offset+i].PhysicalVelocity[j] = v[i][j]*Header.velocity_conversion*pow(Header.ScaleFactor, aexp);
-            }
+          // Read the next chunk
+          hsize_t count = read_count - offset;
+          if(count > chunksize)count=chunksize;
+          vector <HBTxyz> v(count);
+          ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset+read_offset, count);
+          // Convert units and store the particle velocities
+          for(hsize_t i=0; i<count; i+=1)
+            for(int j=0; j<3; j+=1)
+              ParticlesToRead[offset+i].PhysicalVelocity[j] = v[i][j]*Header.velocity_conversion*pow(Header.ScaleFactor, aexp);
         }
+    }
 
-        // Ids
+    // Ids
+    {
+      for(hsize_t offset=0; offset<read_count; offset+=chunksize)
         {
-          for(hsize_t offset=0; offset<nr; offset+=chunksize)
-            {
-              hsize_t count = nr - offset;
-              if(count > chunksize)count=chunksize;
-              vector <HBTInt> id(count);
-              ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset, count);
-              for(hsize_t i=0; i<count; i+=1)
-                ParticlesThisType[offset+i].Id=id[i];
-            }
+          hsize_t count = read_count - offset;
+          if(count > chunksize)count=chunksize;
+          vector <HBTInt> id(count);
+          ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset+read_offset, count);
+          for(hsize_t i=0; i<count; i+=1)
+            ParticlesToRead[offset+i].Id=id[i];
         }
+    }
 
-        // Masses
+    // Masses
+    {
+      HBTReal aexp;
+      std::string name;
+      if(itype==5)
+        name="DynamicalMasses";
+      else
+        name="Masses";
+      ReadAttribute(particle_data, name.c_str(), "a-scale exponent", H5T_HBTReal, &aexp);
+      for(hsize_t offset=0; offset<read_count; offset+=chunksize)
         {
-          HBTReal aexp;
-          std::string name;
-          if(itype==5)
-            name="DynamicalMasses";
-          else
-            name="Masses";
-          ReadAttribute(particle_data, name.c_str(), "a-scale exponent", H5T_HBTReal, &aexp);
-          for(hsize_t offset=0; offset<nr; offset+=chunksize)
-            {
-              hsize_t count = nr - offset;
-              if(count > chunksize)count=chunksize;
-              vector <HBTReal> m(count);
-              ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset, count);
-              for(hsize_t i=0; i<count; i+=1)
-                ParticlesThisType[offset+i].Mass=m[i]*Header.mass_conversion*pow(Header.ScaleFactor, aexp);
-            }
+          hsize_t count = read_count - offset;
+          if(count > chunksize)count=chunksize;
+          vector <HBTReal> m(count);
+          ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset+read_offset, count);
+          for(hsize_t i=0; i<count; i+=1)
+            ParticlesToRead[offset+i].Mass=m[i]*Header.mass_conversion*pow(Header.ScaleFactor, aexp);
         }
+    }
 	
 #ifndef DM_ONLY
-	//internal energy
+    //internal energy
 #ifdef HAS_THERMAL_ENERGY
-	if(itype==0)
-          {
-            cout << "Reading internal energy from SWIFT not implemented yet!\n";
-            MPI_Abort(MPI_COMM_WORLD, 1);
-          }
+    if(itype==0)
+      {
+        cout << "Reading internal energy from SWIFT not implemented yet!\n";
+        MPI_Abort(MPI_COMM_WORLD, 1);
+      }
 #endif
-	{//type
-	  ParticleType_t t=static_cast<ParticleType_t>(itype);
-	  for(int i=0;i<np;i++)
-		ParticlesThisType[i].Type=t;
-	}
+    {//type
+      ParticleType_t t=static_cast<ParticleType_t>(itype);
+      for(hsize_t i=0;i<read_count;i++)
+        ParticlesToRead[i].Type=t;
+    }
 #endif
-	H5Gclose(particle_data);
+
+    // Advance to next particle type
+    H5Gclose(particle_data);
+    ParticlesToRead += read_count;
   }
   H5Fclose(file);
 }
@@ -537,31 +556,45 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
   
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
-  
-  HBTInt nfiles_skip, nfiles_end;
-  AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
-  {
-    HBTInt np=0;
-    np=accumulate(np_file.begin()+nfiles_skip, np_file.begin()+nfiles_end, np);
-    Particles.resize(np);
-  }
-  
-  for(int i=0, ireader=0;i<world.size();i++, ireader++)
-  {
-	if(ireader==HBTConfig.MaxConcurrentIO) 
-	{
-	  ireader=0;//reset reader count
-	  MPI_Barrier(world.Communicator);//wait for every thread to arrive.
-	}
-	if(i==world.rank())//read
-	{
-	  for(int iFile=nfiles_skip; iFile<nfiles_end; iFile++)
-	  {
-		ReadSnapshot(iFile, Particles.data()+offset_file[iFile]-offset_file[nfiles_skip]);
-	  }
-	}
-  }
 
+  // Decide how many particles this MPI rank will read
+  HBTInt np_total = accumulate(np_file.begin(), np_file.end(), 0);
+  HBTInt np_local = np_total / world.size();
+  if(world.rank() < (np_total % world.size()))np_local += 1;
+
+  // Determine offset to the first and last particle this rank will read
+  HBTInt local_first_offset;
+  MPI_Scan(&np_local, &local_first_offset, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  local_first_offset -= np_local;
+  HBTInt local_last_offset = local_first_offset + np_local - 1;
+  
+  // Allocate storage for the particles
+  Particles.resize(np_local);
+
+  // Loop over all files
+  HBTInt particle_offset = 0;
+  for(int file_nr=0; file_nr<Header.NumberOfFiles; file_nr+=1) {
+
+    // Determine global offset of first particle to read from this file:
+    // This is the larger of the offset of the first particle in the file
+    // and the offset of the first particle this rank is to read.
+    HBTInt i1 = offset_file[file_nr];
+    if(local_first_offset > i1)i1 = local_first_offset;
+    
+    // Determine global offset of last particle to read from this file:
+    // This is the smaller of the offset to the last particle in this file
+    // and the offset of the last particle this rank is to read.
+    HBTInt i2 = offset_file[file_nr] + np_file[file_nr] - 1;
+    if(local_last_offset < i2)i2 = local_last_offset;
+    
+    if(i2 >= i1) {
+      // We have particles to read from this file.
+      HBTInt file_start = i1 - offset_file[file_nr]; // Offset to first particle to read
+      HBTInt file_count = i2 - i1 + 1;               // Number of particles to read
+      ReadSnapshot(file_nr, Particles.data()+particle_offset, file_start, file_count);
+      particle_offset += file_count;
+    } 
+  }
   MPI_Barrier(world.Communicator);
 
 }
