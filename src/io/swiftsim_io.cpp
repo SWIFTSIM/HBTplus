@@ -46,7 +46,8 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype& dtype)
   RegisterAttr(mass_conversion, MPI_DOUBLE, 1)
   RegisterAttr(velocity_conversion, MPI_DOUBLE, 1)
   RegisterAttr(energy_conversion, MPI_DOUBLE, 1)
-
+  RegisterAttr(NullGroupId, MPI_INTEGER, 1)
+    
   #undef RegisterAttr
   assert(i<=NumAttr);
   
@@ -147,6 +148,9 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   double time_cgs;
   ReadAttribute(file, "Units", "Unit time in cgs (U_t)", H5T_NATIVE_DOUBLE, &time_cgs);
 
+  /* Read group ID used to indicate that a particle is in no FoF group */
+  ReadAttribute(file, "Parameters", "FOF:group_id_default", H5T_NATIVE_INT, &Header.NullGroupId);
+  
   /* Compute conversion from SWIFT's unit system to HBT's unit system (apart from any a factors) */
   Header.length_conversion   = (length_cgs / (1.0e6*parsec_cgs)) * Header.h / HBTConfig.LengthInMpch;
   Header.mass_conversion     = (mass_cgs / solar_mass_cgs) * Header.h / HBTConfig.MassInMsunh;
@@ -502,7 +506,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
             vector <HBTInt> id(count);
             ReadPartialDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data(), offset, count);
             for(hsize_t i=0; i<count; i+=1)
-              ParticlesThisType[offset+i].HostId=(id[i]<0?NullGroupId:id[i]);//negative means outside fof but within Rv 
+              ParticlesThisType[offset+i].HostId=(id[i]<0?Header.NullGroupId:id[i]);//negative means outside fof but within Rv 
           }
       }
       H5Gclose(particle_data);
@@ -608,7 +612,7 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Ha
   sort(ParticleHosts.begin(), ParticleHosts.end(), CompParticleHost);
   if(!ParticleHosts.empty())
   {
-    assert(ParticleHosts.back().HostId<=NullGroupId);//max haloid==NullGroupId
+    assert(ParticleHosts.back().HostId<=Header.NullGroupId);//max haloid==NullGroupId
     assert(ParticleHosts.front().HostId>=0);//min haloid>=0
   }
   
@@ -623,10 +627,10 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Ha
   };
   vector <HaloLen_t> HaloLen;
   
-  HBTInt curr_host_id=NullGroupId;
+  HBTInt curr_host_id=Header.NullGroupId;
   for(auto &&p: ParticleHosts)
   {
-    if(p.HostId==NullGroupId) break;//NullGroupId comes last
+    if(p.HostId==Header.NullGroupId) break;//NullGroupId comes last
     if(p.HostId!=curr_host_id)
     {
       curr_host_id=p.HostId;

@@ -28,6 +28,7 @@ struct SwiftSimHeader_t
   double mass_conversion;
   double velocity_conversion;
   double energy_conversion;
+  int NullGroupId;
 };
 
 void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype);
@@ -39,10 +40,7 @@ struct SwiftParticleHost_t: public Particle_t
 
 class SwiftSimReader_t
 {
-  // TODO: read null group ID from snapshot in case user changed it in Swift config
-  const int NullGroupId=(((long long) 1)<<31)-1;
   string SnapshotName;
-    
   vector <HBTInt> np_file;
   vector <HBTInt> offset_file;
   SwiftSimHeader_t Header;
