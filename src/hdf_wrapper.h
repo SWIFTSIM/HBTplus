@@ -114,6 +114,36 @@ inline herr_t ReadAttribute(hid_t loc_id, const char *obj_name, const char *attr
   status=H5Aclose(attr);
   return status;
 }
+
+/* As above, but for string attributes */
+inline herr_t ReadAttribute(hid_t loc_id, const char *obj_name, const char *attr_name, std::string &buf)
+{
+  herr_t status;
+
+  // Open the attribute and determine length of the string
+  hid_t attr = H5Aopen_by_name(loc_id, obj_name, attr_name, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t dtype = H5Aget_type(attr);
+
+  // Create memory buffer to read into and type to describe it
+  const size_t maxlen = 1024;
+  char readbuf[maxlen];
+  hid_t mem_type = H5Tcreate(H5T_STRING, maxlen);
+  H5Tset_strpad(mem_type, H5T_STR_NULLTERM);
+  
+  // Read the attribute
+  status=H5Aread(attr, mem_type, readbuf);
+
+  // Assign value to the output string
+  buf = readbuf;
+  
+  H5Tclose(dtype);
+  H5Tclose(mem_type);
+  H5Aclose(attr);
+
+  return status;
+}
+
+
 inline void writeHDFmatrix(hid_t file, const void * buf, const char * name, hsize_t ndim, const hsize_t *dims, hid_t dtype)
 {
   writeHDFmatrix(file, buf, name, ndim, dims, dtype, dtype);
