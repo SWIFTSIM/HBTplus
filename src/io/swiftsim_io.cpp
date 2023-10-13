@@ -1,6 +1,7 @@
 using namespace std;
 #include <iostream>
 #include <numeric>
+#include <cassert>
 // #include <iomanip>
 #include <sstream>
 #include <string>
@@ -260,7 +261,9 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
     HBTInt read_offset = i1 - offset_this[itype];
     HBTInt read_count = i2 - i1 + 1;    
     if(read_count <= 0) continue;
-
+    assert(read_offset >= 0);
+    assert(read_offset + read_count < np_this[itype]);
+    
     // Open the HDF5 group for this type
     stringstream grpname;
     grpname<<"PartType"<<itype;
@@ -561,12 +564,19 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
   HBTInt np_total = accumulate(np_file.begin(), np_file.end(), 0);
   HBTInt np_local = np_total / world.size();
   if(world.rank() < (np_total % world.size()))np_local += 1;
-
+#ifndef NDEBUG
+  HBTInt np_check;
+  MPI_Allreduce(&np_local, &np_check, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  assert(np_check==np_total);
+#endif
+  
   // Determine offset to the first and last particle this rank will read
   HBTInt local_first_offset;
   MPI_Scan(&np_local, &local_first_offset, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   local_first_offset -= np_local;
   HBTInt local_last_offset = local_first_offset + np_local - 1;
+  assert(local_first_offset>=0);
+  assert(local_last_offset<np_total);
   
   // Allocate storage for the particles
   Particles.resize(np_local);
@@ -591,10 +601,14 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
       // We have particles to read from this file.
       HBTInt file_start = i1 - offset_file[file_nr]; // Offset to first particle to read
       HBTInt file_count = i2 - i1 + 1;               // Number of particles to read
+      assert(file_count > 0);
+      assert(file_start >= 0);
+      assert(file_start+file_count <= np_file[file_nr]);
       ReadSnapshot(file_nr, Particles.data()+particle_offset, file_start, file_count);
       particle_offset += file_count;
     } 
   }
+  assert(particle_offset==np_local); // Check we read the expected number of particles
   MPI_Barrier(world.Communicator);
 
 }
