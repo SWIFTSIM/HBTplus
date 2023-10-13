@@ -23,7 +23,7 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype& dtype)
 {
   /*to create the struct data type for communication*/	
   SwiftSimHeader_t p;
-  #define NumAttr 13
+  #define NumAttr 14
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
   MPI_Aint   offsets[NumAttr], origin,extent;
@@ -150,7 +150,9 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   ReadAttribute(file, "Units", "Unit time in cgs (U_t)", H5T_NATIVE_DOUBLE, &time_cgs);
 
   /* Read group ID used to indicate that a particle is in no FoF group */
-  ReadAttribute(file, "Parameters", "FOF:group_id_default", H5T_NATIVE_INT, &Header.NullGroupId);
+  string buf;
+  ReadAttribute(file, "Parameters", "FOF:group_id_default", buf);
+  Header.NullGroupId = std::stoi(buf);
   
   /* Compute conversion from SWIFT's unit system to HBT's unit system (apart from any a factors) */
   Header.length_conversion   = (length_cgs / (1.0e6*parsec_cgs)) * Header.h / HBTConfig.LengthInMpch;
@@ -553,6 +555,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
     cout << "Conversion factor from SWIFT length units to " << HBTConfig.LengthInMpch << " Mpc/h = " << Header.length_conversion << endl;
     cout << "Conversion factor from SWIFT mass units to " << HBTConfig.MassInMsunh << " Msun/h = " << Header.mass_conversion << endl;
     cout << "Conversion factor from SWIFT velocity units to " << HBTConfig.VelInKmS << " km/s = " << Header.velocity_conversion << endl;
+    cout << "Null group ID is " << Header.NullGroupId << endl;
   }
   MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
