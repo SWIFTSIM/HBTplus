@@ -49,7 +49,7 @@ class SwiftSimReader_t
   void ReadUnits(HBTReal &MassInMsunh, HBTReal &LengthInMpch, HBTReal &VelInKmS);
   HBTInt CompileFileOffsets(int nfiles);
   void ReadSnapshot(int ifile, Particle_t * ParticlesInFile, HBTInt file_start, HBTInt file_count);
-  void ReadGroupParticles(int ifile, SwiftParticleHost_t * ParticlesInFile, bool FlagReadParticleId);
+  void ReadGroupParticles(int ifile, SwiftParticleHost_t * ParticlesInFile, HBTInt file_start, HBTInt file_count, bool FlagReadParticleId);
   void GetFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
