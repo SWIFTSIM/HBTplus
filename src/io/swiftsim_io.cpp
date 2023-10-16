@@ -264,7 +264,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
     HBTInt read_count = i2 - i1 + 1;    
     if(read_count <= 0) continue;
     assert(read_offset >= 0);
-    assert(read_offset + read_count < np_this[itype]);
+    assert(read_offset + read_count <= np_this[itype]);
     
     // Open the HDF5 group for this type
     stringstream grpname;
