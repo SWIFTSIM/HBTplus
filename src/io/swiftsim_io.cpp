@@ -614,6 +614,51 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
   assert(particle_offset==np_local); // Check we read the expected number of particles
   MPI_Barrier(world.Communicator);
 
+  //#define SNAPSHOT_IO_TEST
+#ifdef SNAPSHOT_IO_TEST
+  // For testing: dump the snapshot to a new set of files
+  // Generate test file name for this MPI  rank
+  stringstream formatter1;
+  formatter1<<HBTConfig.SubhaloPath<<"/"<<setw(3)<<setfill('0')<<snapshotId<<"/"<<"test_"<<setw(3)<<setfill('0')<<snapshotId<<"."<<world.rank()<<".hdf5";
+  string tfilename = formatter1.str();
+  // Create array of coordinates
+  double *pos = (double *) malloc(3*sizeof(double)*np_local);
+  for(size_t i = 0; i<np_local; i+=1) {
+    pos[3*i+0] = Particles[i].ComovingPosition[0];
+    pos[3*i+1] = Particles[i].ComovingPosition[1];
+    pos[3*i+2] = Particles[i].ComovingPosition[2];
+  }
+  // Create array of IDs
+  long long *ids = (long long *) malloc(sizeof(long long)*np_local);
+  for(size_t i = 0; i<np_local; i+=1)
+    ids[i] = Particles[i].Id;
+  // Create array of types
+  int *type = (int *) malloc(sizeof(int)*np_local);
+  for(size_t i = 0; i<np_local; i+=1)
+    type[i] = Particles[i].Type;
+
+  // Create the file
+  hid_t tfile = H5Fcreate(tfilename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  // Write out the data
+  hsize_t ndims;
+  hsize_t dims[2];
+  ndims = 2;
+  dims[0] = np_local;
+  dims[1] = 3;
+  writeHDFmatrix(tfile, pos, "Coordinates", ndims, dims, H5T_NATIVE_DOUBLE);
+  ndims = 1;
+  writeHDFmatrix(tfile, ids, "ParticleIDs", ndims, dims, H5T_NATIVE_LLONG);
+  writeHDFmatrix(tfile, type, "Types", ndims, dims, H5T_NATIVE_INT);
+  
+  // Tidy up
+  H5Fclose(tfile);
+  free(pos);
+  free(ids);
+  free(type);
+  
+#endif
+  
 }
 
 inline bool CompParticleHost(const SwiftParticleHost_t &a, const SwiftParticleHost_t &b)
