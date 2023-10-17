@@ -96,6 +96,12 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
      * format */
     for (int i; ParameterValues >> i;)
       TracerParticleTypes.push_back(i);
+    
+    /* Create a bitmask, to be used internally by the code to identify valid
+     * tracer particle types*/
+    TracerParticleBitMask = 0;
+    for (int i : TracerParticleTypes)
+      TracerParticleBitMask += 1 << i;
   }
   return false; // This signals to continue looking for valid parameter names
 }

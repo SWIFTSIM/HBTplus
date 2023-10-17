@@ -101,17 +101,18 @@ public:
 #else
     MergeTrappedSubhalos = true;
 #endif
-    MajorProgenitorMassRatio = 0.8;
-    BoundMassPrecision = 0.995;
-    SourceSubRelaxFactor = 3.;
-    SubCoreSizeFactor = 0.25;
-    SubCoreSizeMin = 20;
-    TreeAllocFactor = 0.8; /* a value of 2 should be more than sufficient*/
-    TreeNodeOpenAngle = 0.45;
-    TreeMinNumOfCells = 10;
-    MaxSampleSizeOfPotentialEstimate = 1000; // set to 0 to disable sampling
-    RefineMostboundParticle = true;
-    GroupLoadedFullParticle = false;
+	MajorProgenitorMassRatio=0.8;
+	BoundMassPrecision=0.995;
+	SourceSubRelaxFactor=3.;
+	SubCoreSizeFactor=0.25;
+	SubCoreSizeMin=20;
+	TreeAllocFactor=0.8; /* a value of 2 should be more than sufficient*/
+	TreeNodeOpenAngle=0.45;
+	TreeMinNumOfCells=10;
+	MaxSampleSizeOfPotentialEstimate=1000;//set to 0 to disable sampling
+	RefineMostboundParticle=true;
+	GroupLoadedFullParticle=false;
+  TracerParticleBitMask=1+2+4+8+16+32; /* If unset, use any particle as tracer*/
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
