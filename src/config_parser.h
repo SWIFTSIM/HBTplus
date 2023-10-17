@@ -111,6 +111,7 @@ public:
 	MaxSampleSizeOfPotentialEstimate=1000;//set to 0 to disable sampling
 	RefineMostboundParticle=true;
 	GroupLoadedFullParticle=false;
+  TracerParticleBitMask=1+2+4+8+16+32; /* If unset, use any particle as tracer*/
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char * param_file);

@@ -62,6 +62,7 @@ void Parameter_t::SetParameterValue(const string &line)
   /* Create a bitmask from the list of particle types to use as tracers. */
   else if("TracerParticleTypes"==name)
   {
+    TracerParticleBitMask = 0;
     for(int i; ss>>i;)
       TracerParticleBitMask += 1 << i;
   }
