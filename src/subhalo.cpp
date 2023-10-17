@@ -423,41 +423,60 @@ void Subhalo_t::CountParticleTypes()
   }
   if (Nbound > 100) // parallelize
   {
-#pragma omp parallel
-    {
-      vector<HBTInt> nboundtype(TypeMax, 0);
-      vector<float> mboundtype(TypeMax, 0.);
-#pragma omp for
-      for (HBTInt i = 0; i < Nbound; i++)
-      {
-        auto &p = Particles[i];
-        // 		if(p.Id==SpecialConst::NullParticleId) continue;
-        int itype = p.Type;
-        nboundtype[itype]++;
-        mboundtype[itype] += p.Mass;
-      }
-#pragma omp critical
-      for (int i = 0; i < TypeMax; i++)
-      {
-        NboundType[i] += nboundtype[i];
-        MboundType[i] += mboundtype[i];
-      }
-    }
+	#pragma omp parallel
+	{
+	  vector <HBTInt> nboundtype(TypeMax, 0);
+	  vector <float> mboundtype(TypeMax, 0.);
+	  #pragma omp for reduction(min : TracerIndex)
+	  for(HBTInt i=0;i<Nbound;i++)
+	  {
+		auto &p=Particles[i];
+// 		if(p.Id==SpecialConst::NullParticleId) continue;
+		int itype=p.Type;
+		nboundtype[itype]++;
+		mboundtype[itype]+=p.Mass;
+
+		/* Check whether we found a collisionless particle for the first time, 
+		 * indicating we have reached the tentative most bound collisionless 
+		 * tracer */
+		if((TracerIndex > Nbound) && (itype == 1))
+		  TracerIndex = i;
+
+	  }
+	  #pragma omp critical
+	  for(int i=0;i<TypeMax;i++)
+	  {
+		NboundType[i]+=nboundtype[i];
+		MboundType[i]+=mboundtype[i];
+	  }
+	}
   }
   else
   {
-    auto end = Particles.begin() + Nbound;
-    for (auto it = Particles.begin(); it != end; ++it)
-    {
-      auto &p = *it;
-      if (p.Id == SpecialConst::NullParticleId)
-        continue;
-      int itype = p.Type;
-      NboundType[itype]++;
-      MboundType[itype] += p.Mass;
-    }
+	/* Initialise large value in this case, since OMP reduction operation 
+	 * handled that part in the other case. */
+	TracerIndex = Nbound + 1;
+	
+	auto end=Particles.begin()+Nbound;
+	for(auto it=Particles.begin();it!=end;++it)
+	{
+	  auto &p=*it;
+	  if(p.Id==SpecialConst::NullParticleId) continue;
+	  int itype=p.Type;
+	  NboundType[itype]++;
+	  MboundType[itype]+=p.Mass;
+
+	  /* Check whether we found a collisionless particle for the first time, 
+	   * indicating we have reached the most bound collisionless tracer */
+	  if((TracerIndex > Nbound) && (itype == 1))
+		TracerIndex = it - Particles.begin();
+	}
   }
-#endif
+
+  /* We found no collisionless tracer in this subgroup. Use most bound particle 
+   * instead. */
+  TracerIndex = (TracerIndex > Nbound) ? 0 : TracerIndex;
+#endif  
 }
 
 HBTInt Subhalo_t::KickNullParticles()

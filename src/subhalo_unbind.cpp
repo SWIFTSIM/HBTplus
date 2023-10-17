@@ -280,12 +280,17 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
   }
 }
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
-{ // the reference frame (pos and vel) should already be initialized before unbinding.
-  HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
-  bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
-  HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
-
-  if (Particles.size() < HBTConfig.MinNumPartOfSub) // not enough src particles, can be due to masking
+{//the reference frame (pos and vel) should already be initialized before unbinding.
+  HBTInt MaxSampleSize=HBTConfig.MaxSampleSizeOfPotentialEstimate;
+  bool RefineMostboundParticle=(MaxSampleSize>0&&HBTConfig.RefineMostboundParticle);
+  HBTReal BoundMassPrecision=HBTConfig.BoundMassPrecision;
+  
+  /* Need to initialise here, since orphans/disrupted objects do not call the
+   * function used to set the value of TracerIndex (CountParticleTypes). This 
+   * prevents accessing entries beyond the corresponding particle array. */
+  TracerIndex = 0;
+  
+  if(Particles.size()<HBTConfig.MinNumPartOfSub)//not enough src particles, can be due to masking
   {
     if (IsAlive())
       SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
