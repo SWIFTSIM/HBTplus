@@ -67,6 +67,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(VelInKmS);
   TrySetPar(PeriodicBoundaryOn);
   TrySetPar(SnapshotHasIdBlock);
+  TrySetPar(TracerParticleBitMask);
 
 #undef TrySetPar
 
@@ -290,8 +291,9 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncReal(BoxHalf);
 
   _SyncBool(GroupLoadedFullParticle);
-  //---------------end sync params-------------------------//
-
+  _SyncAtom(TracerParticleBitMask, MPI_INT);
+  //---------------end sync params-------------------------//	
+  
   _SyncReal(PhysicalConst::G);
   _SyncReal(PhysicalConst::H0);
 
@@ -367,19 +369,21 @@ void Parameter_t::DumpParameters()
       version_file << " " << i;
     version_file << endl;
   }
-
-  DumpPar(MajorProgenitorMassRatio);
-  DumpPar(BoundMassPrecision);
-  DumpPar(SourceSubRelaxFactor);
-  DumpPar(SubCoreSizeFactor);
-  DumpPar(SubCoreSizeMin);
-  DumpPar(TreeAllocFactor);
-  DumpPar(TreeNodeOpenAngle);
-  DumpPar(TreeMinNumOfCells);
-  DumpPar(MaxSampleSizeOfPotentialEstimate);
-  DumpPar(RefineMostboundParticle);
-  DumpComment(GroupLoadedFullParticle);
-
+  
+  DumpPar(MajorProgenitorMassRatio) 
+  DumpPar(BoundMassPrecision)
+  DumpPar(SourceSubRelaxFactor)
+  DumpPar(SubCoreSizeFactor) 
+  DumpPar(SubCoreSizeMin)
+  
+  DumpPar(TreeAllocFactor)
+  DumpPar(TreeNodeOpenAngle)
+  DumpPar(TreeMinNumOfCells)
+  
+  DumpPar(MaxSampleSizeOfPotentialEstimate)
+  DumpPar(RefineMostboundParticle)
+  DumpPar(TracerParticleBitMask);
+  DumpComment(GroupLoadedFullParticle)
 #undef DumpPar
 #undef DumpComment
   version_file.close();
