@@ -5,6 +5,7 @@
 #include "hdf5_hl.h"	
 // #include "H5Cpp.h"
 #include <iostream>
+#include <mpi.h>
 
 #ifdef HBT_REAL8
 #define H5T_HBTReal H5T_NATIVE_DOUBLE
