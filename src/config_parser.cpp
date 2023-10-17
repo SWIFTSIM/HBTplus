@@ -58,8 +58,13 @@ void Parameter_t::SetParameterValue(const string &line)
   else TrySetPar(TreeMinNumOfCells)
   else TrySetPar(MaxSampleSizeOfPotentialEstimate)
   else TrySetPar(RefineMostboundParticle)
-  else TrySetPar(TracerParticleBitMask)
 #undef TrySetPar
+  /* Create a bitmask from the list of particle types to use as tracers. */
+  else if("TracerParticleTypes"==name)
+  {
+    for(int i; ss>>i;)
+      TracerParticleBitMask += 1 << i;
+  }
   else if("SnapshotIdList"==name)
   {
 	for(int i; ss>>i;)
