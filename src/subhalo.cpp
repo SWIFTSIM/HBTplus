@@ -423,8 +423,9 @@ void Subhalo_t::CountParticleTypes()
 		/* Check whether we found a collisionless particle for the first time, 
 		 * indicating we have reached the tentative most bound collisionless 
 		 * tracer */
-		if((TracerIndex > Nbound) && (itype == 1))
-		  TracerIndex = i;
+		if(TracerIndex > Nbound)
+		  if((1 << itype) & HBTConfig.TracerParticleBitMask)
+			TracerIndex = i;
 
 	  }
 	  #pragma omp critical
@@ -452,8 +453,9 @@ void Subhalo_t::CountParticleTypes()
 
 	  /* Check whether we found a collisionless particle for the first time, 
 	   * indicating we have reached the most bound collisionless tracer */
-	  if((TracerIndex > Nbound) && (itype == 1))
-		TracerIndex = it - Particles.begin();
+	  if(TracerIndex > Nbound)
+	  	if((1 << itype) & HBTConfig.TracerParticleBitMask)
+		  TracerIndex = it - Particles.begin();
 	}
   }
 

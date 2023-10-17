@@ -58,6 +58,7 @@ void Parameter_t::SetParameterValue(const string &line)
   else TrySetPar(TreeMinNumOfCells)
   else TrySetPar(MaxSampleSizeOfPotentialEstimate)
   else TrySetPar(RefineMostboundParticle)
+  else TrySetPar(TracerParticleBitMask)
 #undef TrySetPar
   else if("SnapshotIdList"==name)
   {
@@ -241,6 +242,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncReal(BoxHalf);
   
   _SyncBool(GroupLoadedFullParticle);
+  _SyncAtom(TracerParticleBitMask, MPI_INT);
   //---------------end sync params-------------------------//	
   
   _SyncReal(PhysicalConst::G);
@@ -322,7 +324,7 @@ void Parameter_t::DumpParameters()
   
   DumpPar(MaxSampleSizeOfPotentialEstimate)
   DumpPar(RefineMostboundParticle)
-  
+  DumpPar(TracerParticleBitMask);
   DumpComment(GroupLoadedFullParticle)
 #undef DumpPar
 #undef DumpComment  
