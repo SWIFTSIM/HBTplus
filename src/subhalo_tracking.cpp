@@ -167,37 +167,36 @@ void MemberShipTable_t::Build(const HBTInt nhalos, const SubhaloList_t &Subhalos
 
 inline HBTInt GetLocalHostId(HBTInt pid, const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
 {
-  HBTInt hostid = halo_snap.ParticleHash.GetIndex(pid);
-  if (hostid < 0) // not in the haloes, =-1
-  {
-    if (part_snap.GetIndex(pid) == SpecialConst::NullParticleId)
-      hostid--; // not in this snapshot either, =-2
-  }
-  return hostid;
+	HBTInt hostid=halo_snap.ParticleHash.GetIndex(pid);
+	if(hostid<0)//not in the haloes, =-1
+	{
+	  if(part_snap.GetIndex(pid)==SpecialConst::NullParticleId)
+		hostid--;//not in this snapshot either, =-2
+	}
+	return hostid;
 }
-void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap, vector<Subhalo_t> &Subhalos,
-                    vector<Subhalo_t> &LocalSubhalos)
+void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap, vector <Subhalo_t> & Subhalos, vector <Subhalo_t> &LocalSubhalos)
 {
-#pragma omp parallel for
-  for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
+  #pragma omp parallel for 
+  for(HBTInt subid=0;subid<Subhalos.size();subid++)
   {
-    if (Subhalos[subid].Particles.size())
-      Subhalos[subid].HostHaloId = GetLocalHostId(Subhalos[subid].Particles[0].Id, halo_snap, part_snap);
-    else
-      Subhalos[subid].HostHaloId = -1;
+	if(Subhalos[subid].Particles.size())
+	  Subhalos[subid].HostHaloId=GetLocalHostId(Subhalos[subid].Particles[Subhalos[subid].TracerIndex].Id, halo_snap, part_snap);
+	else
+	  Subhalos[subid].HostHaloId=-1;
   }
-
-  HBTInt nsub = 0;
-  for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
+  
+  HBTInt nsub=0;
+  for(HBTInt subid=0;subid<Subhalos.size();subid++)
   {
-    if (Subhalos[subid].HostHaloId < 0 && Subhalos[subid].Particles.size()) // only move nonempty subhalos
-    {
-      if (subid > nsub)
-        Subhalos[nsub] = move(Subhalos[subid]); // there should be a default move assignement operator.
-      nsub++;
-    }
-    else
-      LocalSubhalos.push_back(move(Subhalos[subid]));
+	if(Subhalos[subid].HostHaloId<0&&Subhalos[subid].Particles.size())//only move nonempty subhalos
+	{
+	  if(subid>nsub)
+		Subhalos[nsub]=move(Subhalos[subid]);//there should be a default move assignement operator.
+	  nsub++;
+	}
+	else
+	  LocalSubhalos.push_back(move(Subhalos[subid]));
   }
   Subhalos.resize(nsub);
 }
@@ -224,8 +223,8 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   TrackParticleIds.resize(NumSubhalos);
   if (thisrank == root)
   {
-    for (HBTInt i = 0; i < Subhalos.size(); i++)
-      TrackParticleIds[i] = Subhalos[i].Particles[0].Id;
+	for(HBTInt i=0;i<Subhalos.size();i++)
+	  TrackParticleIds[i]=Subhalos[i].Particles[Subhalos[i].TracerIndex].Id;
   }
   MPI_Bcast(TrackParticleIds.data(), NumSubhalos, MPI_HBT_INT, root, world.Communicator);
 
