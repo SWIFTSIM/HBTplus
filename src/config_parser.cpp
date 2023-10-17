@@ -59,6 +59,13 @@ void Parameter_t::SetParameterValue(const string &line)
   else TrySetPar(MaxSampleSizeOfPotentialEstimate)
   else TrySetPar(RefineMostboundParticle)
 #undef TrySetPar
+  /* Create a bitmask from the list of particle types to use as tracers. */
+  else if("TracerParticleTypes"==name)
+  {
+    TracerParticleBitMask = 0;
+    for(int i; ss>>i;)
+      TracerParticleBitMask += 1 << i;
+  }
   else if("SnapshotIdList"==name)
   {
 	for(int i; ss>>i;)
@@ -241,6 +248,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncReal(BoxHalf);
   
   _SyncBool(GroupLoadedFullParticle);
+  _SyncAtom(TracerParticleBitMask, MPI_INT);
   //---------------end sync params-------------------------//	
   
   _SyncReal(PhysicalConst::G);
@@ -322,7 +330,7 @@ void Parameter_t::DumpParameters()
   
   DumpPar(MaxSampleSizeOfPotentialEstimate)
   DumpPar(RefineMostboundParticle)
-  
+  DumpPar(TracerParticleBitMask);
   DumpComment(GroupLoadedFullParticle)
 #undef DumpPar
 #undef DumpComment  

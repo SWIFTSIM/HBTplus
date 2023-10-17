@@ -68,6 +68,8 @@ public:
   HBTInt MaxSampleSizeOfPotentialEstimate;
   bool RefineMostboundParticle; //whether to further improve mostbound particle accuracy in case a MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but leads to more accuracy mostbound particle
   
+  int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
+
   /*derived parameters; do not require user input*/
   HBTReal TreeNodeOpenAngleSquare;
   HBTReal TreeNodeResolution;
@@ -109,6 +111,7 @@ public:
 	MaxSampleSizeOfPotentialEstimate=1000;//set to 0 to disable sampling
 	RefineMostboundParticle=true;
 	GroupLoadedFullParticle=false;
+	TracerParticleBitMask=1+2+4+8+16+32; /* If unset, use any particle as tracer*/
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char * param_file);
