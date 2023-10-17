@@ -90,7 +90,13 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
       SnapshotIdList.push_back(i);
     return true;
   }
-
+  if (ParameterName == "TracerParticleTypes")
+  {
+    /* Store as a vector first to output in Params.log in a human-readable 
+     * format */
+    for (int i; ParameterValues >> i;)
+      TracerParticleTypes.push_back(i);
+  }
   return false; // This signals to continue looking for valid parameter names
 }
 
