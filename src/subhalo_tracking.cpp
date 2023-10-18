@@ -602,6 +602,25 @@ void SubhaloSnapshot_t::PurgeMostBoundParticles()
   }
 }
 
+void SubhaloSnapshot_t::SetNestedParentIds() {
+
+  TrackKeyList_t Ids(*this); 
+  MappedIndexTable_t<HBTInt, HBTInt> TrackHash;
+  TrackHash.Fill(Ids, SpecialConst::NullTrackId);
+
+  // Initialize all subhalos to no parent
+  for(auto &&subhalo: Subhalos)
+    subhalo.NestedParentTrackId = SpecialConst::NullTrackId;
+
+  // Use nesting info to set parent trackid
+  for(auto &&subhalo: Subhalos) {
+    for(auto & nested_trackid: subhalo.NestedSubhalos) {
+      HBTInt child_index=TrackHash.GetIndex(nested_trackid);
+      Subhalos[child_index].NestedParentTrackId = subhalo.TrackId;
+    }
+  }
+}
+
 void SubhaloSnapshot_t::LocalizeNestedIds(MpiWorker_t &world)
 /*convert TrackIds of NestedSubhalos to local index, and move non-local nestedsubhalos to their host processors as DissociatedTrack*/
 {
@@ -897,6 +916,7 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
 	  Subhalos[i].HostHaloId=halo_snap.Halos[HostId].HaloId;//restore global haloid
   }
   GlobalizeTrackReferences();
+  SetNestedParentIds();
   }
   #pragma omp parallel for if(ParallelizeHaloes)
   for(HBTInt i=0;i<Subhalos.size();i++)

@@ -85,6 +85,7 @@ public:
 
   //for merging  
   HBTInt SinkTrackId; //the trackId it sinked to, -1 if it hasn't sunk.
+  HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
   
   ParticleList_t Particles;
 #ifdef SAVE_BINDING_ENERGY
@@ -211,6 +212,8 @@ private:
   void FillDepthRecursive(HBTInt subid, int depth);
   void FillDepth();
   void MergeRecursive(HBTInt subid);
+  void SetNestedParentIds();
+
 public:
   SubhaloList_t Subhalos;
   MemberShipTable_t MemberTable;

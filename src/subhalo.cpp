@@ -173,6 +173,7 @@ RegisterAttr(PhysicalMostBoundVelocity[0], MPI_HBT_REAL, 3)
 assert(offsets[NumAttr-1]-offsets[NumAttr-2]==sizeof(HBTReal)*3);//to make sure HBTxyz is stored locally.
 RegisterAttr(MostBoundParticleId, MPI_HBT_INT, 1)
 RegisterAttr(SinkTrackId, MPI_HBT_INT, 1)
+RegisterAttr(NestedParentTrackId, MPI_HBT_INT, 1)
 #undef RegisterAttr
 assert(NumAttr<=MaxNumAttr);
 
