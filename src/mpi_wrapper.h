@@ -14,10 +14,11 @@
 class MpiWorker_t
 { 
 public:
-  int  NumberOfWorkers, WorkerId, NameLen;
+  int  NumberOfWorkers, WorkerId, NameLen, NodeRank, NodeSize, MaxNodeSize;
   int NextWorkerId, PrevWorkerId;//for ring communication
   char HostName[MPI_MAX_PROCESSOR_NAME];
   MPI_Comm Communicator; //do not use reference
+  MPI_Comm NodeCommunicator;
   MpiWorker_t(MPI_Comm comm): Communicator(comm) //the default initializer will copy a handle? doesn't matter.
   {
 	MPI_Comm_size(comm,&NumberOfWorkers);
@@ -27,6 +28,13 @@ public:
 	if(NextWorkerId==NumberOfWorkers) NextWorkerId=0;
 	PrevWorkerId=WorkerId-1;
 	if(PrevWorkerId<0) PrevWorkerId=NumberOfWorkers-1;
+
+        // Get rank within the node and ranks per node
+        MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, WorkerId, MPI_INFO_NULL,
+                            &NodeCommunicator);
+	MPI_Comm_size(NodeCommunicator, &NodeSize);
+	MPI_Comm_rank(NodeCommunicator, &NodeRank);
+        MPI_Allreduce(&NodeSize, &MaxNodeSize, 1, MPI_INT, MPI_MAX, comm);
   }
   int size()
   {

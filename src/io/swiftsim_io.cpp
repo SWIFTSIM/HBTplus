@@ -559,10 +559,14 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
 }
 
 void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <Particle_t> &Particles, Cosmology_t &Cosmology)
-{
-
+{  
   MPI_Barrier(world.Communicator);
 
+  // Decide how many ranks per node read simultaneously
+  int nr_nodes = (world.size() / world.MaxNodeSize);
+  int nr_reading = HBTConfig.MaxConcurrentIO / nr_nodes;
+  if(nr_reading < 1)nr_reading = 1; // Always at least one per node
+  
   SetSnapshot(snapshotId);
   
   const int root=0;
@@ -576,6 +580,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
     cout << "Conversion factor from SWIFT mass units to " << HBTConfig.MassInMsunh << " Msun/h = " << Header.mass_conversion << endl;
     cout << "Conversion factor from SWIFT velocity units to " << HBTConfig.VelInKmS << " km/s = " << Header.velocity_conversion << endl;
     cout << "Null group ID is " << Header.NullGroupId << endl;
+    cout << "Number of ranks per node reading simultaneously is " << nr_reading << endl;
   }
   MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
@@ -604,36 +609,47 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
   // Allocate storage for the particles
   Particles.resize(np_local);
 
-  // Loop over all files
-  HBTInt particle_offset = 0;
-  for(int file_nr=0; file_nr<Header.NumberOfFiles; file_nr+=1) {
+  // Allow a limited number of ranks per node to read simultaneously
+  int reads_done = 0;
+  for(int rank_within_node=0; rank_within_node < world.MaxNodeSize; rank_within_node+=1) {
+    if(rank_within_node == world.NodeRank) {
+      
+      // Loop over all files
+      HBTInt particle_offset = 0;
+      for(int file_nr=0; file_nr<Header.NumberOfFiles; file_nr+=1) {
 
-    // Determine global offset of first particle to read from this file:
-    // This is the larger of the offset of the first particle in the file
-    // and the offset of the first particle this rank is to read.
-    HBTInt i1 = offset_file[file_nr];
-    if(local_first_offset > i1)i1 = local_first_offset;
+        // Determine global offset of first particle to read from this file:
+        // This is the larger of the offset of the first particle in the file
+        // and the offset of the first particle this rank is to read.
+        HBTInt i1 = offset_file[file_nr];
+        if(local_first_offset > i1)i1 = local_first_offset;
     
-    // Determine global offset of last particle to read from this file:
-    // This is the smaller of the offset to the last particle in this file
-    // and the offset of the last particle this rank is to read.
-    HBTInt i2 = offset_file[file_nr] + np_file[file_nr] - 1;
-    if(local_last_offset < i2)i2 = local_last_offset;
+        // Determine global offset of last particle to read from this file:
+        // This is the smaller of the offset to the last particle in this file
+        // and the offset of the last particle this rank is to read.
+        HBTInt i2 = offset_file[file_nr] + np_file[file_nr] - 1;
+        if(local_last_offset < i2)i2 = local_last_offset;
     
-    if(i2 >= i1) {
-      // We have particles to read from this file.
-      HBTInt file_start = i1 - offset_file[file_nr]; // Offset to first particle to read
-      HBTInt file_count = i2 - i1 + 1;               // Number of particles to read
-      assert(file_count > 0);
-      assert(file_start >= 0);
-      assert(file_start+file_count <= np_file[file_nr]);
-      ReadSnapshot(file_nr, Particles.data()+particle_offset, file_start, file_count);
-      particle_offset += file_count;
-    } 
-  }
-  assert(particle_offset==np_local); // Check we read the expected number of particles
-  MPI_Barrier(world.Communicator);
+        if(i2 >= i1) {
+          // We have particles to read from this file.
+          HBTInt file_start = i1 - offset_file[file_nr]; // Offset to first particle to read
+          HBTInt file_count = i2 - i1 + 1;               // Number of particles to read
+          assert(file_count > 0);
+          assert(file_start >= 0);
+          assert(file_start+file_count <= np_file[file_nr]);
+          ReadSnapshot(file_nr, Particles.data()+particle_offset, file_start, file_count);
+          particle_offset += file_count;
+        } 
+      } // Next file
+      assert(particle_offset==np_local); // Check we read the expected number of particles
+      reads_done += 1;
+    }
+    if(rank_within_node % nr_reading == nr_reading-1)MPI_Barrier(world.Communicator);
+  } // Next MPI rank within the node
 
+  // Every rank should have executed the reading code exactly once
+  assert(reads_done==1);
+  
   //#define SNAPSHOT_IO_TEST
 #ifdef SNAPSHOT_IO_TEST
   // For testing: dump the snapshot to a new set of files
@@ -688,7 +704,13 @@ inline bool CompParticleHost(const SwiftParticleHost_t &a, const SwiftParticleHo
 
 void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Halo_t >& Halos)
 {//read in particle properties at the same time, to avoid particle look-up at later stage.
+
   SetSnapshot(snapshotId);
+
+  // Decide how many ranks per node read simultaneously
+  int nr_nodes = (world.size() / world.MaxNodeSize);
+  int nr_reading = HBTConfig.MaxConcurrentIO / nr_nodes;
+  if(nr_reading < 1)nr_reading = 1; // Always at least one per node
   
   const int root=0;
   if(world.rank()==root)
@@ -723,39 +745,47 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Ha
   ParticleHosts.resize(np_local);
 
   bool FlagReadId=true; //!HBTConfig.GroupLoadedIndex;
-  
-  // Loop over all files
-  HBTInt particle_offset = 0;
-  for(int file_nr=0; file_nr<Header.NumberOfFiles; file_nr+=1) {
 
-    // Determine global offset of first particle to read from this file:
-    // This is the larger of the offset of the first particle in the file
-    // and the offset of the first particle this rank is to read.
-    HBTInt i1 = offset_file[file_nr];
-    if(local_first_offset > i1)i1 = local_first_offset;
+  // Allow a limited number of ranks per node to read simultaneously
+  int reads_done = 0;
+  for(int rank_within_node=0; rank_within_node < world.MaxNodeSize; rank_within_node+=1) {
+    if(rank_within_node == world.NodeRank) {
+
+      // Loop over all files
+      HBTInt particle_offset = 0;
+      for(int file_nr=0; file_nr<Header.NumberOfFiles; file_nr+=1) {
+
+        // Determine global offset of first particle to read from this file:
+        // This is the larger of the offset of the first particle in the file
+        // and the offset of the first particle this rank is to read.
+        HBTInt i1 = offset_file[file_nr];
+        if(local_first_offset > i1)i1 = local_first_offset;
     
-    // Determine global offset of last particle to read from this file:
-    // This is the smaller of the offset to the last particle in this file
-    // and the offset of the last particle this rank is to read.
-    HBTInt i2 = offset_file[file_nr] + np_file[file_nr] - 1;
-    if(local_last_offset < i2)i2 = local_last_offset;
+        // Determine global offset of last particle to read from this file:
+        // This is the smaller of the offset to the last particle in this file
+        // and the offset of the last particle this rank is to read.
+        HBTInt i2 = offset_file[file_nr] + np_file[file_nr] - 1;
+        if(local_last_offset < i2)i2 = local_last_offset;
     
-    if(i2 >= i1) {
-      // We have particles to read from this file.
-      HBTInt file_start = i1 - offset_file[file_nr]; // Offset to first particle to read
-      HBTInt file_count = i2 - i1 + 1;               // Number of particles to read
-      assert(file_count > 0);
-      assert(file_start >= 0);
-      assert(file_start+file_count <= np_file[file_nr]);
-      ReadGroupParticles(file_nr, ParticleHosts.data()+particle_offset, file_start, file_count, FlagReadId);
-      particle_offset += file_count;
-    } 
-  }
-  assert(particle_offset==np_local); // Check we read the expected number of particles
-  MPI_Barrier(world.Communicator);
+        if(i2 >= i1) {
+          // We have particles to read from this file.
+          HBTInt file_start = i1 - offset_file[file_nr]; // Offset to first particle to read
+          HBTInt file_count = i2 - i1 + 1;               // Number of particles to read
+          assert(file_count > 0);
+          assert(file_start >= 0);
+          assert(file_start+file_count <= np_file[file_nr]);
+          ReadGroupParticles(file_nr, ParticleHosts.data()+particle_offset, file_start, file_count, FlagReadId);
+          particle_offset += file_count;
+        } 
+      } // Next file
+      assert(particle_offset==np_local); // Check we read the expected number of particles
+      reads_done += 1;
+    }
+    if(rank_within_node % nr_reading == nr_reading-1)MPI_Barrier(world.Communicator);
+  } // Next MPI rank within the node
 
-
-
+  // Every rank should have executed the reading code exactly once
+  assert(reads_done==1);
 
   //#define HALO_IO_TEST
 #ifdef HALO_IO_TEST
