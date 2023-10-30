@@ -176,11 +176,12 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   ReadAttribute(file, "Header", "NumPart_Total", H5T_NATIVE_UINT, NumPart_Total);
   unsigned int NumPart_Total_HighWord[NumPartTypes];
   ReadAttribute(file, "Header", "NumPart_Total_HighWord", H5T_NATIVE_UINT, NumPart_Total_HighWord);
-  for(int i=0;i<TypeMax;i++)
+  for(int i=0;i<TypeMax;i++) {
     if(i < NumPartTypes)
       Header.npartTotal[i]=(((unsigned long)NumPart_Total_HighWord[i])<<32)|NumPart_Total[i];
     else
       Header.npartTotal[i] = 0;
+  }
   H5Fclose(file);
 }
 
@@ -214,7 +215,7 @@ HBTInt SwiftSimReader_t::CompileFileOffsets(int nfiles)
 	hid_t file=OpenFile(ifile);
 	GetParticleCountInFile(file, np_this);
 	H5Fclose(file);
-	HBTInt np=accumulate(begin(np_this), end(np_this), (HBTInt)0);
+	HBTInt np=accumulate(begin(np_this), end(np_this), (HBTInt) 0);
 	
 	np_file.push_back(np);
 	offset+=np;
@@ -583,7 +584,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector <
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
 
   // Decide how many particles this MPI rank will read
-  HBTInt np_total = accumulate(np_file.begin(), np_file.end(), 0);
+  HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt) 0);
   HBTInt np_local = np_total / world.size();
   if(world.rank() < (np_total % world.size()))np_local += 1;
 #ifndef NDEBUG
@@ -700,7 +701,7 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector< Ha
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
 
   // Decide how many particles this MPI rank will read
-  HBTInt np_total = accumulate(np_file.begin(), np_file.end(), 0);
+  HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt) 0);
   HBTInt np_local = np_total / world.size();
   if(world.rank() < (np_total % world.size()))np_local += 1;
 #ifndef NDEBUG
