@@ -277,6 +277,12 @@ void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 
 void SubhaloSnapshot_t::Save(MpiWorker_t &world)
 {
+
+  // Decide how many ranks per node write simultaneously
+  int nr_nodes = (world.size() / world.MaxNodeSize);
+  int nr_writing = HBTConfig.MaxConcurrentIO / nr_nodes;
+  if(nr_writing < 1)nr_writing = 1; // Always at least one per node
+
   string subdir=GetSubDir();
   mkdir(subdir.c_str(), 0755);
     
@@ -284,19 +290,21 @@ void SubhaloSnapshot_t::Save(MpiWorker_t &world)
   MPI_Allreduce(&NumSubs, &NumSubsAll, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   
   if(world.rank()==0) cout<<"saving "<<NumSubsAll<<" subhalos to "<<subdir<<endl;
-  for(int i=0, ireader=0;i<world.size();i++, ireader++)
-  {
-	if(ireader==HBTConfig.MaxConcurrentIO) 
-	{
-	  ireader=0;//reset reader count
-	  MPI_Barrier(world.Communicator);//wait for every thread to arrive.
-	}
-	if(i==world.rank())//read
-	{
-	  WriteFile(world.rank(), world.size(), NumSubsAll);
-	}
+
+  // Allow a limited number of ranks per node to write simultaneously
+  int writes_done = 0;
+  for(int rank_within_node=0; rank_within_node < world.MaxNodeSize; rank_within_node+=1) {
+    if(rank_within_node == world.NodeRank) {
+      WriteFile(world.rank(), world.size(), NumSubsAll);
+      writes_done += 1;
+    }
+    if(rank_within_node % nr_writing == nr_writing-1)MPI_Barrier(world.Communicator);
   }
+
+  // Every rank should have executed the writing code exactly once
+  assert(writes_done==1);  
 }
+
 void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
 {
   string filename;
