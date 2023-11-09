@@ -370,8 +370,17 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
 #ifdef HAS_THERMAL_ENERGY
     if(itype==0)
       {
-        cout << "Reading internal energy from SWIFT not implemented yet!\n";
-        MPI_Abort(MPI_COMM_WORLD, 1);
+        HBTReal aexp;
+        ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
+        for(hsize_t offset=0; offset<read_count; offset+=chunksize)
+          {
+            hsize_t count = read_count - offset;
+            if(count > chunksize)count=chunksize;
+            vector <HBTReal> u(count);
+            ReadPartialDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data(), offset+read_offset, count);
+            for(hsize_t i=0; i<count; i+=1)
+              ParticlesToRead[offset+i].InternalEnergy=u[i]*Header.energy_conversion*pow(Header.ScaleFactor, aexp);
+          }
       }
 #endif
     {//type
@@ -527,8 +536,17 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
 #ifdef HAS_THERMAL_ENERGY
           if(itype==0)
             {
-              cout << "Reading internal energy from SWIFT not implemented yet!\n";
-              MPI_Abort(MPI_COMM_WORLD, 1);
+              HBTReal aexp;
+              ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
+              for(hsize_t offset=0; offset<read_count; offset+=chunksize)
+                {
+                  hsize_t count = read_count - offset;
+                  if(count > chunksize)count=chunksize;
+                  vector <HBTReal> u(count);
+                  ReadPartialDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data(), offset+read_offset, count);
+                  for(hsize_t i=0; i<count; i+=1)
+                    ParticlesToRead[offset+i].InternalEnergy=u[i]*Header.energy_conversion*pow(Header.ScaleFactor, aexp);
+                }
             }
 #endif
           {//type
