@@ -1,466 +1,497 @@
-//TODO: unify the reference frame for specificProperties...
+// TODO: unify the reference frame for specificProperties...
+#include <algorithm>
 #include <iostream>
 #include <new>
-#include <algorithm>
 #include <omp.h>
 
 #include "datatypes.h"
+#include "gravity_tree.h"
 #include "snapshot_number.h"
 #include "subhalo.h"
-#include "gravity_tree.h"
 
 struct ParticleEnergy_t
 {
   HBTInt pid;
   float E;
 };
-inline bool CompEnergy(const ParticleEnergy_t & a, const ParticleEnergy_t & b)
+inline bool CompEnergy(const ParticleEnergy_t &a, const ParticleEnergy_t &b)
 {
-  return (a.E<b.E);
+  return (a.E < b.E);
 };
-static HBTInt PartitionBindingEnergy(vector <ParticleEnergy_t> &Elist, const size_t len)
+static HBTInt PartitionBindingEnergy(vector<ParticleEnergy_t> &Elist, const size_t len)
 /*sort Elist to move unbound particles to the end*/
-{//similar to the C++ partition() func
-  if(len==0) return 0;
-  if(len==1) return Elist[0].E<0;
-  
-  ParticleEnergy_t Etmp=Elist[0]; 
-  auto iterforward=Elist.begin(), iterbackward=Elist.begin()+len;
-  while(true)
+{ // similar to the C++ partition() func
+  if (len == 0)
+    return 0;
+  if (len == 1)
+    return Elist[0].E < 0;
+
+  ParticleEnergy_t Etmp = Elist[0];
+  auto iterforward = Elist.begin(), iterbackward = Elist.begin() + len;
+  while (true)
   {
-	//iterforward is a void now, can be filled
-	while(true)
-	{
-	  iterbackward--;
-	  if(iterbackward==iterforward)
-	  {
-		*iterforward=Etmp;
-		if(Etmp.E<0) iterbackward++;
-		return iterbackward-Elist.begin();
-	  }
-	  if(iterbackward->E<0) break;
-	}
-	*iterforward=*iterbackward;
-	//iterbackward is a void now, can be filled
-	while(true)
-	{
-	  iterforward++;
-	  if(iterforward==iterbackward)
-	  {
-		*iterbackward=Etmp;
-		if(Etmp.E<0) iterbackward++;
-		return iterbackward-Elist.begin();
-	  }
-	  if(iterforward->E>0) break;
-	}
-	*iterbackward=*iterforward;
+    // iterforward is a void now, can be filled
+    while (true)
+    {
+      iterbackward--;
+      if (iterbackward == iterforward)
+      {
+        *iterforward = Etmp;
+        if (Etmp.E < 0)
+          iterbackward++;
+        return iterbackward - Elist.begin();
+      }
+      if (iterbackward->E < 0)
+        break;
+    }
+    *iterforward = *iterbackward;
+    // iterbackward is a void now, can be filled
+    while (true)
+    {
+      iterforward++;
+      if (iterforward == iterbackward)
+      {
+        *iterbackward = Etmp;
+        if (Etmp.E < 0)
+          iterbackward++;
+        return iterbackward - Elist.begin();
+      }
+      if (iterforward->E > 0)
+        break;
+    }
+    *iterbackward = *iterforward;
   }
 }
-static void PopMostBoundParticle(ParticleEnergy_t * Edata, const HBTInt Nbound)
+static void PopMostBoundParticle(ParticleEnergy_t *Edata, const HBTInt Nbound)
 {
-  HBTInt imin=0;
-  for(HBTInt i=1;i<Nbound;i++)
+  HBTInt imin = 0;
+  for (HBTInt i = 1; i < Nbound; i++)
   {
-	if(Edata[i].E<Edata[imin].E) imin=i;
+    if (Edata[i].E < Edata[imin].E)
+      imin = i;
   }
-  if(imin!=0) swap(Edata[imin], Edata[0]);
+  if (imin != 0)
+    swap(Edata[imin], Edata[0]);
 }
-class EnergySnapshot_t: public Snapshot_t
+class EnergySnapshot_t : public Snapshot_t
 {
   HBTInt GetParticle(HBTInt i) const
   {
-	return Elist[i].pid;
+    return Elist[i].pid;
   }
+
 public:
-  ParticleEnergy_t * Elist;
-  typedef vector <Particle_t> ParticleList_t;
+  ParticleEnergy_t *Elist;
+  typedef vector<Particle_t> ParticleList_t;
   HBTInt N;
-  const ParticleList_t & Particles;
+  const ParticleList_t &Particles;
   HBTReal MassFactor;
-  EnergySnapshot_t(ParticleEnergy_t *e, HBTInt n, const ParticleList_t &particles, const Snapshot_t & epoch): Elist(e), N(n), Particles(particles), MassFactor(1.)
+  EnergySnapshot_t(ParticleEnergy_t *e, HBTInt n, const ParticleList_t &particles, const Snapshot_t &epoch)
+    : Elist(e), N(n), Particles(particles), MassFactor(1.)
   {
-	Cosmology=epoch.Cosmology;
+    Cosmology = epoch.Cosmology;
   };
   void SetMassUnit(HBTReal mass_unit)
   {
-	MassFactor=mass_unit;
+    MassFactor = mass_unit;
   }
   HBTInt size() const
   {
-	return N;
+    return N;
   }
   HBTInt GetId(HBTInt i) const
   {
-	return Particles[GetParticle(i)].Id;
+    return Particles[GetParticle(i)].Id;
   }
   HBTReal GetMass(HBTInt i) const
   {
-	return Particles[GetParticle(i)].Mass*MassFactor;
+    return Particles[GetParticle(i)].Mass * MassFactor;
   }
-  const HBTxyz & GetPhysicalVelocity(HBTInt i) const
+  const HBTxyz &GetPhysicalVelocity(HBTInt i) const
   {
-	return Particles[GetParticle(i)].PhysicalVelocity;
+    return Particles[GetParticle(i)].PhysicalVelocity;
   }
-  const HBTxyz & GetComovingPosition(HBTInt i) const
+  const HBTxyz &GetComovingPosition(HBTInt i) const
   {
-	return Particles[GetParticle(i)].ComovingPosition;
+    return Particles[GetParticle(i)].ComovingPosition;
   }
-  double AverageVelocity(HBTxyz& CoV, HBTInt NumPart)
+  double AverageVelocity(HBTxyz &CoV, HBTInt NumPart)
   /*mass weighted average velocity*/
   {
-	HBTInt i,j;
-	double svx,svy,svz,msum;
-	
-	if(0==NumPart) return 0.;
-	if(1==NumPart) 
-	{
-	  copyHBTxyz(CoV, GetPhysicalVelocity(0));
-	  return GetMass(0);
-	}
-	
-	svx=svy=svz=0.;
-	msum=0.;
-	#pragma omp parallel for reduction(+:msum, svx, svy, svz) if(NumPart>100)
-	for(i=0;i<NumPart;i++)
-	{
-	  HBTReal m=GetMass(i);
-	  const HBTxyz &v=GetPhysicalVelocity(i);
-	  msum+=m;
-	  svx+=v[0]*m;
-	  svy+=v[1]*m;
-	  svz+=v[2]*m;
-	}
-	
-	CoV[0]=svx/msum;
-	CoV[1]=svy/msum;
-	CoV[2]=svz/msum;
-	return msum;
+    HBTInt i, j;
+    double svx, svy, svz, msum;
+
+    if (0 == NumPart)
+      return 0.;
+    if (1 == NumPart)
+    {
+      copyHBTxyz(CoV, GetPhysicalVelocity(0));
+      return GetMass(0);
+    }
+
+    svx = svy = svz = 0.;
+    msum = 0.;
+#pragma omp parallel for reduction(+ : msum, svx, svy, svz) if (NumPart > 100)
+    for (i = 0; i < NumPart; i++)
+    {
+      HBTReal m = GetMass(i);
+      const HBTxyz &v = GetPhysicalVelocity(i);
+      msum += m;
+      svx += v[0] * m;
+      svy += v[1] * m;
+      svz += v[2] * m;
+    }
+
+    CoV[0] = svx / msum;
+    CoV[1] = svy / msum;
+    CoV[2] = svz / msum;
+    return msum;
   }
-  double AveragePosition(HBTxyz& CoM, HBTInt NumPart)
+  double AveragePosition(HBTxyz &CoM, HBTInt NumPart)
   /*mass weighted average position*/
   {
-	HBTInt i,j;
-	double sx,sy,sz,origin[3],msum;
-	
-	if(0==NumPart) return 0.;
-	if(1==NumPart) 
-	{
-	  copyHBTxyz(CoM, GetComovingPosition(0));
-	  return GetMass(0);
-	}
-	
-	if(HBTConfig.PeriodicBoundaryOn)
-	  for(j=0;j<3;j++)
-		origin[j]=GetComovingPosition(0)[j];
-	
-	sx=sy=sz=0.;
-	msum=0.;
-	#pragma omp parallel for reduction(+:msum, sx, sy, sz) if(NumPart>100)
-	  for(i=0;i<NumPart;i++)
-	  {
-		HBTReal m=GetMass(i);
-		const HBTxyz &x=GetComovingPosition(i);
-		msum+=m;
-		if(HBTConfig.PeriodicBoundaryOn)
-		{
-		  sx+=NEAREST(x[0]-origin[0])*m;
-		  sy+=NEAREST(x[1]-origin[1])*m;
-		  sz+=NEAREST(x[2]-origin[2])*m;
-		}
-		else
-		{
-		  sx+=x[0]*m;
-		  sy+=x[1]*m;
-		  sz+=x[2]*m;
-		}
-	  }
-	  sx/=msum; sy/=msum; sz/=msum;
-	  if(HBTConfig.PeriodicBoundaryOn)
-	  {
-		sx+=origin[0];
-		sy+=origin[1];
-		sz+=origin[2];
-	  }
-	  CoM[0]=sx;
-	  CoM[1]=sy;
-	  CoM[2]=sz;
-	  return msum;
+    HBTInt i, j;
+    double sx, sy, sz, origin[3], msum;
+
+    if (0 == NumPart)
+      return 0.;
+    if (1 == NumPart)
+    {
+      copyHBTxyz(CoM, GetComovingPosition(0));
+      return GetMass(0);
+    }
+
+    if (HBTConfig.PeriodicBoundaryOn)
+      for (j = 0; j < 3; j++)
+        origin[j] = GetComovingPosition(0)[j];
+
+    sx = sy = sz = 0.;
+    msum = 0.;
+#pragma omp parallel for reduction(+ : msum, sx, sy, sz) if (NumPart > 100)
+    for (i = 0; i < NumPart; i++)
+    {
+      HBTReal m = GetMass(i);
+      const HBTxyz &x = GetComovingPosition(i);
+      msum += m;
+      if (HBTConfig.PeriodicBoundaryOn)
+      {
+        sx += NEAREST(x[0] - origin[0]) * m;
+        sy += NEAREST(x[1] - origin[1]) * m;
+        sz += NEAREST(x[2] - origin[2]) * m;
+      }
+      else
+      {
+        sx += x[0] * m;
+        sy += x[1] * m;
+        sz += x[2] * m;
+      }
+    }
+    sx /= msum;
+    sy /= msum;
+    sz /= msum;
+    if (HBTConfig.PeriodicBoundaryOn)
+    {
+      sx += origin[0];
+      sy += origin[1];
+      sz += origin[2];
+    }
+    CoM[0] = sx;
+    CoM[1] = sy;
+    CoM[2] = sz;
+    return msum;
   }
-  void AverageKinematics(float &SpecificPotentialEnergy, float &SpecificKineticEnergy, float SpecificAngularMomentum[3], HBTInt NumPart, const HBTxyz & refPos, const HBTxyz &refVel)
+  void AverageKinematics(float &SpecificPotentialEnergy, float &SpecificKineticEnergy, float SpecificAngularMomentum[3],
+                         HBTInt NumPart, const HBTxyz &refPos, const HBTxyz &refVel)
   /*obtain specific potential, kinetic energy, and angular momentum for the first NumPart particles
    * all quantities are physical
 
-   * Note there is a slight inconsistency in the energy since they were calculated from the previous unbinding loop, but the refVel has been updated.
+   * Note there is a slight inconsistency in the energy since they were calculated from the previous unbinding loop, but
+   the refVel has been updated.
    */
   {
-	if(NumPart<=1)
-	{
-	  SpecificPotentialEnergy=0.;
-	  SpecificKineticEnergy=0.;
-	  SpecificAngularMomentum[0]=SpecificAngularMomentum[1]=SpecificAngularMomentum[2]=0.;
-	  return;
-	}
-	double E=0., K=0., AMx=0., AMy=0., AMz=0., M=0.;
-	#pragma omp parallel for reduction(+:E, K, AMx, AMy, AMz, M) if(NumPart>100)
-	for(HBTInt i=0;i<NumPart;i++)
-	{
-	  HBTReal m=GetMass(i);
-	  E+=Elist[i].E*m;
-	  const HBTxyz & x=GetComovingPosition(i);
-	  const HBTxyz & v=GetPhysicalVelocity(i);
-	  double dx[3], dv[3];
-	  for(int j=0;j<3;j++)
-	  {
-		dx[j]=x[j]-refPos[j];
-		if(HBTConfig.PeriodicBoundaryOn) dx[j]=NEAREST(dx[j]);
-		dx[j]*=Cosmology.ScaleFactor; //physical
-		dv[j]=v[j]-refVel[j]+Cosmology.Hz*dx[j];
-		K+=dv[j]*dv[j]*m;
-	  }
-	  AMx+=(dx[1]*dv[2]-dx[2]*dv[1])*m;
-	  AMy+=(dx[2]*dv[0]-dx[0]*dv[2])*m;
-	  AMz+=(dx[0]*dv[1]-dx[1]*dv[0])*m;
-	  M+=m;
-	}
-	E/=M;
-	K*=0.5/M;
-	SpecificPotentialEnergy=E-K;
-	SpecificKineticEnergy=K;
-	SpecificAngularMomentum[0]=AMx/M;
-	SpecificAngularMomentum[1]=AMy/M;
-	SpecificAngularMomentum[2]=AMz/M;
+    if (NumPart <= 1)
+    {
+      SpecificPotentialEnergy = 0.;
+      SpecificKineticEnergy = 0.;
+      SpecificAngularMomentum[0] = SpecificAngularMomentum[1] = SpecificAngularMomentum[2] = 0.;
+      return;
+    }
+    double E = 0., K = 0., AMx = 0., AMy = 0., AMz = 0., M = 0.;
+#pragma omp parallel for reduction(+ : E, K, AMx, AMy, AMz, M) if (NumPart > 100)
+    for (HBTInt i = 0; i < NumPart; i++)
+    {
+      HBTReal m = GetMass(i);
+      E += Elist[i].E * m;
+      const HBTxyz &x = GetComovingPosition(i);
+      const HBTxyz &v = GetPhysicalVelocity(i);
+      double dx[3], dv[3];
+      for (int j = 0; j < 3; j++)
+      {
+        dx[j] = x[j] - refPos[j];
+        if (HBTConfig.PeriodicBoundaryOn)
+          dx[j] = NEAREST(dx[j]);
+        dx[j] *= Cosmology.ScaleFactor; // physical
+        dv[j] = v[j] - refVel[j] + Cosmology.Hz * dx[j];
+        K += dv[j] * dv[j] * m;
+      }
+      AMx += (dx[1] * dv[2] - dx[2] * dv[1]) * m;
+      AMy += (dx[2] * dv[0] - dx[0] * dv[2]) * m;
+      AMz += (dx[0] * dv[1] - dx[1] * dv[0]) * m;
+      M += m;
+    }
+    E /= M;
+    K *= 0.5 / M;
+    SpecificPotentialEnergy = E - K;
+    SpecificKineticEnergy = K;
+    SpecificAngularMomentum[0] = AMx / M;
+    SpecificAngularMomentum[1] = AMy / M;
+    SpecificAngularMomentum[2] = AMz / M;
   }
 };
-inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, GravityTree_t &tree, HBTxyz &RefPos, HBTxyz &RefVel)
-{//reorder the first Size particles according to their self-binding energy
-  auto &Elist=ESnap.Elist;
-  auto &Particles=ESnap.Particles;
+inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, GravityTree_t &tree, HBTxyz &RefPos,
+                                     HBTxyz &RefVel)
+{ // reorder the first Size particles according to their self-binding energy
+  auto &Elist = ESnap.Elist;
+  auto &Particles = ESnap.Particles;
   tree.Build(ESnap, Size);
-  vector <ParticleEnergy_t> Einner(Size);
-  #pragma omp parallel if(Size>100)
+  vector<ParticleEnergy_t> Einner(Size);
+#pragma omp parallel if (Size > 100)
   {
-	#pragma omp for
-	for(HBTInt i=0;i<Size;i++)
-	{
-	  HBTInt pid=Elist[i].pid;
-	  Einner[i].pid=i;
-	  Einner[i].E=tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].PhysicalVelocity, RefPos, RefVel, Particles[pid].Mass);
-	}
-	#pragma omp single
-	sort(Einner.begin(), Einner.end(), CompEnergy);
-	#pragma omp for
-	for(HBTInt i=0;i<Size;i++)
-	{
-	  Einner[i]=Elist[Einner[i].pid];
-	}
-	#pragma omp for
-	for(HBTInt i=0;i<Size;i++)
-	{
-	  Elist[i]=Einner[i];
-	}
+#pragma omp for
+    for (HBTInt i = 0; i < Size; i++)
+    {
+      HBTInt pid = Elist[i].pid;
+      Einner[i].pid = i;
+      Einner[i].E = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].PhysicalVelocity, RefPos, RefVel,
+                                       Particles[pid].Mass);
+    }
+#pragma omp single
+    sort(Einner.begin(), Einner.end(), CompEnergy);
+#pragma omp for
+    for (HBTInt i = 0; i < Size; i++)
+    {
+      Einner[i] = Elist[Einner[i].pid];
+    }
+#pragma omp for
+    for (HBTInt i = 0; i < Size; i++)
+    {
+      Elist[i] = Einner[i];
+    }
   }
 }
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
-{//the reference frame (pos and vel) should already be initialized before unbinding.
-  HBTInt MaxSampleSize=HBTConfig.MaxSampleSizeOfPotentialEstimate;
-  bool RefineMostboundParticle=(MaxSampleSize>0&&HBTConfig.RefineMostboundParticle);
-  HBTReal BoundMassPrecision=HBTConfig.BoundMassPrecision;
-  
-  if(Particles.size()<HBTConfig.MinNumPartOfSub)//not enough src particles, can be due to masking
+{ // the reference frame (pos and vel) should already be initialized before unbinding.
+  HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
+  bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
+  HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
+
+  if (Particles.size() < HBTConfig.MinNumPartOfSub) // not enough src particles, can be due to masking
   {
-      if(IsAlive())
-          SnapshotIndexOfDeath=epoch.GetSnapshotIndex();
+    if (IsAlive())
+      SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
   }
-  
-  if(Particles.size()==0)
+
+  if (Particles.size() == 0)
   {
-    Nbound=0;
+    Nbound = 0;
     CountParticles();
 #ifdef SAVE_BINDING_ENERGY
-	Energies.clear();
+    Energies.clear();
 #endif
     return;
   }
-  if(Particles.size()==1) 
+  if (Particles.size() == 1)
   {
-	Nbound=1;
-	CountParticles();
+    Nbound = 1;
+    CountParticles();
 #ifdef SAVE_BINDING_ENERGY
-	Energies.resize(1);
-	Energies[0]=0.;
+    Energies.resize(1);
+    Energies[0] = 0.;
 #endif
-	return;
+    return;
   }
   HBTxyz OldRefPos, OldRefVel;
-  auto &RefPos=ComovingAveragePosition;
-  auto &RefVel=PhysicalAverageVelocity;
-  
-  auto OldMostboundParticle=Particles[0];//backup 
+  auto &RefPos = ComovingAveragePosition;
+  auto &RefVel = PhysicalAverageVelocity;
+
+  auto OldMostboundParticle = Particles[0]; // backup
   GravityTree_t tree;
   tree.Reserve(Particles.size());
-  Nbound=Particles.size(); //start from full set
-  if(MaxSampleSize>0&&Nbound>MaxSampleSize) random_shuffle(Particles.begin(), Particles.end()); //shuffle for easy resampling later.
-  HBTInt Nlast; 
-  
-  vector <ParticleEnergy_t> Elist(Nbound);
-	for(HBTInt i=0;i<Nbound;i++)
-	  Elist[i].pid=i;
+  Nbound = Particles.size(); // start from full set
+  if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
+    random_shuffle(Particles.begin(), Particles.end()); // shuffle for easy resampling later.
+  HBTInt Nlast;
+
+  vector<ParticleEnergy_t> Elist(Nbound);
+  for (HBTInt i = 0; i < Nbound; i++)
+    Elist[i].pid = i;
   EnergySnapshot_t ESnap(Elist.data(), Elist.size(), Particles, epoch);
-  bool CorrectionLoop=false;
-	while(true)
-	{
-	  if(CorrectionLoop)
-	  {//correct the potential due to removed particles
-		HBTxyz RefVelDiff;
-		epoch.RelativeVelocity(OldRefPos, OldRefVel, RefPos, RefVel, RefVelDiff);
-		HBTReal dK=0.5*VecNorm(RefVelDiff);
-		EnergySnapshot_t ESnapCorrection(&Elist[Nbound], Nlast-Nbound, Particles, epoch); //point to freshly removed particles
-		tree.Build(ESnapCorrection); 
-		#pragma omp parallel for if(Nlast>100)
-		for(HBTInt i=0;i<Nbound;i++)
-		{
-		  HBTInt pid=Elist[i].pid;
-		  auto &x=Particles[pid].ComovingPosition;
-		  auto &v=Particles[pid].PhysicalVelocity;
-		  HBTxyz OldVel;
-		  epoch.RelativeVelocity(x,v,OldRefPos, OldRefVel, OldVel);
-		  Elist[i].E+=VecDot(OldVel, RefVelDiff)+dK-tree.EvaluatePotential(x, 0);;
-		}
-		Nlast=Nbound;
-	  }
-	  else
-	  {
-		Nlast=Nbound;
-		HBTInt np_tree=Nlast;
-		if(MaxSampleSize>0&&Nlast>MaxSampleSize)//downsample
-		{
-		  np_tree=MaxSampleSize;
-		  ESnap.SetMassUnit((HBTReal)Nlast/MaxSampleSize);
-		}
-		tree.Build(ESnap, np_tree);
-		#pragma omp parallel for if(Nlast>100)
-		for(HBTInt i=0;i<Nlast;i++)
-		{
-		  HBTInt pid=Elist[i].pid;
-		  HBTReal mass;
-		  if(i<np_tree)
-			mass=ESnap.GetMass(i); //to correct for self-gravity
-		  else
-			mass=0.;//not sampled in tree, no self gravity to correct
-		  Elist[i].E=tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].PhysicalVelocity, RefPos, RefVel, mass);
-		#ifdef UNBIND_WITH_THERMAL_ENERGY
-		  Elist[i].E+=Particles[pid].InternalEnergy;
-		#endif
-		}
-		ESnap.SetMassUnit(1.);//reset, no necessary
-	  }
-		Nbound=PartitionBindingEnergy(Elist, Nlast);//TODO: parallelize this.
-#ifdef NO_STRIPPING
-		Nbound=Nlast;
+  bool CorrectionLoop = false;
+  while (true)
+  {
+    if (CorrectionLoop)
+    { // correct the potential due to removed particles
+      HBTxyz RefVelDiff;
+      epoch.RelativeVelocity(OldRefPos, OldRefVel, RefPos, RefVel, RefVelDiff);
+      HBTReal dK = 0.5 * VecNorm(RefVelDiff);
+      EnergySnapshot_t ESnapCorrection(&Elist[Nbound], Nlast - Nbound, Particles,
+                                       epoch); // point to freshly removed particles
+      tree.Build(ESnapCorrection);
+#pragma omp parallel for if (Nlast > 100)
+      for (HBTInt i = 0; i < Nbound; i++)
+      {
+        HBTInt pid = Elist[i].pid;
+        auto &x = Particles[pid].ComovingPosition;
+        auto &v = Particles[pid].PhysicalVelocity;
+        HBTxyz OldVel;
+        epoch.RelativeVelocity(x, v, OldRefPos, OldRefVel, OldVel);
+        Elist[i].E += VecDot(OldVel, RefVelDiff) + dK - tree.EvaluatePotential(x, 0);
+        ;
+      }
+      Nlast = Nbound;
+    }
+    else
+    {
+      Nlast = Nbound;
+      HBTInt np_tree = Nlast;
+      if (MaxSampleSize > 0 && Nlast > MaxSampleSize) // downsample
+      {
+        np_tree = MaxSampleSize;
+        ESnap.SetMassUnit((HBTReal)Nlast / MaxSampleSize);
+      }
+      tree.Build(ESnap, np_tree);
+#pragma omp parallel for if (Nlast > 100)
+      for (HBTInt i = 0; i < Nlast; i++)
+      {
+        HBTInt pid = Elist[i].pid;
+        HBTReal mass;
+        if (i < np_tree)
+          mass = ESnap.GetMass(i); // to correct for self-gravity
+        else
+          mass = 0.; // not sampled in tree, no self gravity to correct
+        Elist[i].E =
+          tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].PhysicalVelocity, RefPos, RefVel, mass);
+#ifdef UNBIND_WITH_THERMAL_ENERGY
+        Elist[i].E += Particles[pid].InternalEnergy;
 #endif
-		if(Nbound<HBTConfig.MinNumPartOfSub)//disruption
-		{
-		  Nbound=1;
-		  Nlast=1;
-		  if(IsAlive())
-		    SnapshotIndexOfDeath=epoch.GetSnapshotIndex();
-		  for(auto &&p: Particles)
-		  {
-			if(p.Id==OldMostboundParticle.Id)
-			{
-			  swap(p, Particles[0]);//restore old most-bound to beginning
-			  break;
-			}
-		  }
-		  copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
-		  copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
-		  Mbound=Particles[0].Mass;
-		  break;
-		}
-		else
-		{
-		  sort(Elist.begin()+Nbound, Elist.begin()+Nlast, CompEnergy); //only sort the unbound part
-		  HBTInt Ndiff=Nlast-Nbound;
-		  if(Ndiff<Nbound)
-		  {
-			if(MaxSampleSize<=0||Ndiff<MaxSampleSize)
-			{
-			  CorrectionLoop=true;
-			  copyHBTxyz(OldRefPos, RefPos);
-			  copyHBTxyz(OldRefVel, RefVel);
-			}
-		  }
-		  Mbound=ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
-		  ESnap.AveragePosition(ComovingAveragePosition, Nbound);
-		  if(Nbound>=Nlast*BoundMassPrecision)//converge
-		  {
-			if(!IsAlive())
-			  SnapshotIndexOfDeath=SpecialConst::NullSnapshotId;//clear death snapshot
-			if(IsTrapped())
-			{
-			  SnapshotIndexOfSink=SpecialConst::NullSnapshotId;
-			  SinkTrackId=SpecialConst::NullTrackId;//clear sinktrack as well
-			}
-			//update particle list
-			sort(Elist.begin(), Elist.begin()+Nbound, CompEnergy); //sort the self-bound part
-			if(RefineMostboundParticle&&Nbound>MaxSampleSize)//refine most-bound particle, not necessary usually..
-			  RefineBindingEnergyOrder(ESnap, MaxSampleSize, tree, RefPos, RefVel);
-			//todo: optimize this with in-place permutation, to avoid mem alloc and copying.
-			ParticleList_t p(Particles.size());
-			for(HBTInt i=0;i<Particles.size();i++)
-			{
-			  p[i]=Particles[Elist[i].pid];
-			  Elist[i].pid=i;//update particle index in Elist as well.
-			}
-			Particles.swap(p);
-			//update mostbound coordinate
-			copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
-			copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
-			break;
-		  }
-		}
-	}
-	ESnap.AverageKinematics(SpecificSelfPotentialEnergy, SpecificSelfKineticEnergy, SpecificAngularMomentum, Nbound, RefPos, RefVel);//only use CoM frame when unbinding and calculating Kinematics
-	CountParticleTypes();
+      }
+      ESnap.SetMassUnit(1.); // reset, no necessary
+    }
+    Nbound = PartitionBindingEnergy(Elist, Nlast); // TODO: parallelize this.
+#ifdef NO_STRIPPING
+    Nbound = Nlast;
+#endif
+    if (Nbound < HBTConfig.MinNumPartOfSub) // disruption
+    {
+      Nbound = 1;
+      Nlast = 1;
+      if (IsAlive())
+        SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
+      for (auto &&p : Particles)
+      {
+        if (p.Id == OldMostboundParticle.Id)
+        {
+          swap(p, Particles[0]); // restore old most-bound to beginning
+          break;
+        }
+      }
+      copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
+      copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
+      Mbound = Particles[0].Mass;
+      break;
+    }
+    else
+    {
+      sort(Elist.begin() + Nbound, Elist.begin() + Nlast, CompEnergy); // only sort the unbound part
+      HBTInt Ndiff = Nlast - Nbound;
+      if (Ndiff < Nbound)
+      {
+        if (MaxSampleSize <= 0 || Ndiff < MaxSampleSize)
+        {
+          CorrectionLoop = true;
+          copyHBTxyz(OldRefPos, RefPos);
+          copyHBTxyz(OldRefVel, RefVel);
+        }
+      }
+      Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
+      ESnap.AveragePosition(ComovingAveragePosition, Nbound);
+      if (Nbound >= Nlast * BoundMassPrecision) // converge
+      {
+        if (!IsAlive())
+          SnapshotIndexOfDeath = SpecialConst::NullSnapshotId; // clear death snapshot
+        if (IsTrapped())
+        {
+          SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
+          SinkTrackId = SpecialConst::NullTrackId; // clear sinktrack as well
+        }
+        // update particle list
+        sort(Elist.begin(), Elist.begin() + Nbound, CompEnergy); // sort the self-bound part
+        if (RefineMostboundParticle && Nbound > MaxSampleSize)   // refine most-bound particle, not necessary usually..
+          RefineBindingEnergyOrder(ESnap, MaxSampleSize, tree, RefPos, RefVel);
+        // todo: optimize this with in-place permutation, to avoid mem alloc and copying.
+        ParticleList_t p(Particles.size());
+        for (HBTInt i = 0; i < Particles.size(); i++)
+        {
+          p[i] = Particles[Elist[i].pid];
+          Elist[i].pid = i; // update particle index in Elist as well.
+        }
+        Particles.swap(p);
+        // update mostbound coordinate
+        copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
+        copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
+        break;
+      }
+    }
+  }
+  ESnap.AverageKinematics(SpecificSelfPotentialEnergy, SpecificSelfKineticEnergy, SpecificAngularMomentum, Nbound,
+                          RefPos, RefVel); // only use CoM frame when unbinding and calculating Kinematics
+  CountParticleTypes();
 #ifdef SAVE_BINDING_ENERGY
-	Energies.resize(Nbound);
-#pragma omp paralle for if(Nbound>100)
-	for(HBTInt i=0;i<Nbound;i++)
-	  Energies[i]=Elist[i].E;
+  Energies.resize(Nbound);
+#pragma omp paralle for if (Nbound > 100)
+  for (HBTInt i = 0; i < Nbound; i++)
+    Energies[i] = Elist[i].E;
 #endif
 }
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 {
-  bool is_orphan=(Nbound<=1);
+  bool is_orphan = (Nbound <= 1);
   ParticleList_t particle_backup;
-  if(is_orphan)	particle_backup=Particles;//orphans do not participate
-  for(HBTInt i=0;i<NestedSubhalos.size();i++)
+  if (is_orphan)
+    particle_backup = Particles; // orphans do not participate
+  for (HBTInt i = 0; i < NestedSubhalos.size(); i++)
   {
-    auto subid=NestedSubhalos[i];
-	auto &subhalo=Subhalos[subid];
-	subhalo.RecursiveUnbind(Subhalos, snap);
-        Particles.insert(Particles.end(), subhalo.Particles.begin()+subhalo.Nbound, subhalo.Particles.end());//the mostbound particle of orphan is treated as bound and thus does not feed to its host subhalo. However, it can still be collected by the central subhalo as it is not masked out from the fof particles.
+    auto subid = NestedSubhalos[i];
+    auto &subhalo = Subhalos[subid];
+    subhalo.RecursiveUnbind(Subhalos, snap);
+    Particles.insert(Particles.end(), subhalo.Particles.begin() + subhalo.Nbound,
+                     subhalo.Particles.end()); // the mostbound particle of orphan is treated as bound and thus does not
+                                               // feed to its host subhalo. However, it can still be collected by the
+                                               // central subhalo as it is not masked out from the fof particles.
   }
-  if(is_orphan)	Particles.swap(particle_backup);//restore to single particle for unbinding
+  if (is_orphan)
+    Particles.swap(particle_backup); // restore to single particle for unbinding
   Unbind(snap);
-  if(is_orphan)	Particles.swap(particle_backup);//set to extended list, to feed to its host
+  if (is_orphan)
+    Particles.swap(particle_backup); // set to extended list, to feed to its host
 }
 
 void Subhalo_t::TruncateSource()
 {
   HBTInt Nsource;
-  if(Nbound<=1) 
-	Nsource=Nbound;
+  if (Nbound <= 1)
+    Nsource = Nbound;
   else
-	Nsource=Nbound*HBTConfig.SourceSubRelaxFactor;
-  if(Nsource>Particles.size()) Nsource=Particles.size();
+    Nsource = Nbound * HBTConfig.SourceSubRelaxFactor;
+  if (Nsource > Particles.size())
+    Nsource = Particles.size();
   Particles.resize(Nsource);
 }
 
 void SubhaloSnapshot_t::RefineParticles()
-{//it's more expensive to build an exclusive list. so do inclusive here. 
-  //TODO: ensure the inclusive unbinding is stable (contaminating particles from big subhaloes may hurdle the unbinding
-  
+{ // it's more expensive to build an exclusive list. so do inclusive here.
+  // TODO: ensure the inclusive unbinding is stable (contaminating particles from big subhaloes may hurdle the unbinding
+
 /*#ifdef _OPENMP
  if(ParallelizeHaloes) cout<<"Unbinding with HaloPara...\n";
  else cout<<"Unbinding with ParticlePara...\n";
@@ -468,49 +499,50 @@ void SubhaloSnapshot_t::RefineParticles()
  cout<<"Unbinding..."<<endl;
 #endif*/
 #ifdef INCLUSIVE_MASS
-  #pragma omp parallel for schedule(dynamic,1) if(ParallelizeHaloes)
-  for(HBTInt subid=0;subid<Subhalos.size();subid++)
+#pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
+  for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
-	    Subhalos[subid].Unbind(*this);
-	    Subhalos[subid].TruncateSource();
+    Subhalos[subid].Unbind(*this);
+    Subhalos[subid].TruncateSource();
   }
-#else 
-  HBTInt NumHalos=MemberTable.SubGroups.size();
-  #pragma omp parallel for schedule(dynamic,1) if(ParallelizeHaloes)
-    for(HBTInt haloid=0;haloid<NumHalos;haloid++)
-    {
-	  auto &subgroup=MemberTable.SubGroups[haloid];
-	  if(subgroup.size()==0) continue;
-	  //add new satellites to central's NestedSubhalos
-	  auto &central=Subhalos[subgroup[0]];
-	  auto &nests=central.NestedSubhalos;
-	  auto old_membercount=nests.size();
-	  auto &heads=MemberTable.SubGroupsOfHeads[haloid];
-	  //update central member list (append other heads except itself)
-	  nests.insert(nests.end(), heads.begin()+1, heads.end());
-	  central.RecursiveUnbind(Subhalos, *this);
-	  nests.resize(old_membercount);//restore old satellite list
-    }
-  //unbind field subs  
-  #pragma omp parallel
+#else
+  HBTInt NumHalos = MemberTable.SubGroups.size();
+#pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
+  for (HBTInt haloid = 0; haloid < NumHalos; haloid++)
   {
-      HBTInt NumField=MemberTable.SubGroups[-1].size();
-    #pragma omp for schedule(dynamic,1) nowait
-      for(HBTInt i=0; i<NumField;i++)
-      {
-	    HBTInt subid=MemberTable.SubGroups[-1][i];
-	    Subhalos[subid].Unbind(*this);
-      }
-    //unbind new-born subs
-    HBTInt NumSubOld=MemberTable.AllMembers.size(), NumSub=Subhalos.size();
-    #pragma omp for schedule(dynamic,1) 
-      for(HBTInt i=NumSubOld;i<NumSub;i++)
-      {
-	    Subhalos[i].Unbind(*this);
-      }    
-    #pragma omp for schedule(dynamic,1) 
-      for(HBTInt i=0;i<NumSub;i++)
-	    Subhalos[i].TruncateSource();
+    auto &subgroup = MemberTable.SubGroups[haloid];
+    if (subgroup.size() == 0)
+      continue;
+    // add new satellites to central's NestedSubhalos
+    auto &central = Subhalos[subgroup[0]];
+    auto &nests = central.NestedSubhalos;
+    auto old_membercount = nests.size();
+    auto &heads = MemberTable.SubGroupsOfHeads[haloid];
+    // update central member list (append other heads except itself)
+    nests.insert(nests.end(), heads.begin() + 1, heads.end());
+    central.RecursiveUnbind(Subhalos, *this);
+    nests.resize(old_membercount); // restore old satellite list
+  }
+// unbind field subs
+#pragma omp parallel
+  {
+    HBTInt NumField = MemberTable.SubGroups[-1].size();
+#pragma omp for schedule(dynamic, 1) nowait
+    for (HBTInt i = 0; i < NumField; i++)
+    {
+      HBTInt subid = MemberTable.SubGroups[-1][i];
+      Subhalos[subid].Unbind(*this);
+    }
+    // unbind new-born subs
+    HBTInt NumSubOld = MemberTable.AllMembers.size(), NumSub = Subhalos.size();
+#pragma omp for schedule(dynamic, 1)
+    for (HBTInt i = NumSubOld; i < NumSub; i++)
+    {
+      Subhalos[i].Unbind(*this);
+    }
+#pragma omp for schedule(dynamic, 1)
+    for (HBTInt i = 0; i < NumSub; i++)
+      Subhalos[i].TruncateSource();
   }
 #endif
 }

@@ -1,34 +1,35 @@
-#include <iostream>
 #include <cstring>
+#include <iostream>
 
 typedef int HBTInt;
 
 template <class T>
 class List_t
-{ 
+{
   HBTInt N;
+
 public:
-  T * Data;
-  List_t(HBTInt n=0, T *data=NULL)
+  T *Data;
+  List_t(HBTInt n = 0, T *data = NULL)
   {
-	N=n;
-	if(data)//memory can be shared, not always allocated. ToDo: implement shared_ptr?
-	  Data=data;
-	else
-	  Data=new T[n];
+    N = n;
+    if (data) // memory can be shared, not always allocated. ToDo: implement shared_ptr?
+      Data = data;
+    else
+      Data = new T[n];
   }
-  T & operator [](HBTInt i)
+  T &operator[](HBTInt i)
   {
-	return Data[i];
+    return Data[i];
   }
   HBTInt size()
   {
-	return N;
+    return N;
   }
-  void clear()//the user is responsible for cleaning up.
+  void clear() // the user is responsible for cleaning up.
   {
-	delete [] Data;
-	N=0;
+    delete[] Data;
+    N = 0;
   }
 };
 struct ParticleReference_t
@@ -37,17 +38,16 @@ struct ParticleReference_t
   HBTInt Index;
 };
 template <class T>
-class ParticleList_t: public List_t <T>
+class ParticleList_t : public List_t<T>
 {
 public:
-  T & operator [](ParticleReference_t ref) //overload for reference
+  T &operator[](ParticleReference_t ref) // overload for reference
   {
-	return List_t <T>::Data[ref.Index]; //or this->Data could also work; but Data along is unqualified.
+    return List_t<T>::Data[ref.Index]; // or this->Data could also work; but Data along is unqualified.
   }
 };
 int main()
 {
-  List_t <ParticleReference_t> L(10);
-  std::cout<<L.size()<<std::endl;
+  List_t<ParticleReference_t> L(10);
+  std::cout << L.size() << std::endl;
 }
-
