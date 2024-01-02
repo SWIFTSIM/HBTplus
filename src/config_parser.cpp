@@ -14,34 +14,63 @@ void Parameter_t::SetParameterValue(const string &line)
   stringstream ss(line);
   string name;
   ss >> name;
-//   transform(name.begin(),name.end(),name.begin(),::tolower);
+  //   transform(name.begin(),name.end(),name.begin(),::tolower);
+
 #define TrySetPar(var, i)                                                                                              \
   if (name == #var)                                                                                                    \
   {                                                                                                                    \
     ss >> var;                                                                                                         \
     IsSet[i] = true;                                                                                                   \
   }
-  TrySetPar(SnapshotPath, 0) else TrySetPar(HaloPath, 1) else TrySetPar(SubhaloPath, 2) else TrySetPar(
-    SnapshotFileBase, 3) else TrySetPar(MaxSnapshotIndex, 4) else TrySetPar(BoxSize, 5) else TrySetPar(SofteningHalo, 6)
+
+  TrySetPar(SnapshotPath, 0);
+  else TrySetPar(HaloPath, 1);
+  else TrySetPar(SubhaloPath, 2);
+  else TrySetPar(SnapshotFileBase, 3);
+  else TrySetPar(MaxSnapshotIndex, 4);
+  else TrySetPar(BoxSize, 5);
+  else TrySetPar(SofteningHalo, 6);
 #undef TrySetPar
+
 #define TrySetPar(var)                                                                                                 \
   if (name == #var)                                                                                                    \
     ss >> var;
-    else TrySetPar(SnapshotDirBase) else TrySetPar(SnapshotFormat) else TrySetPar(GroupFileFormat) else TrySetPar(
-      MaxConcurrentIO) else TrySetPar(MinSnapshotIndex) else TrySetPar(MinNumPartOfSub)
-    //   else TrySetPar(GroupParticleIdMask)
-    else if (name == "GroupParticleIdMask")
+
+  else TrySetPar(SnapshotDirBase);
+  else TrySetPar(SnapshotFormat);
+  else TrySetPar(GroupFileFormat);
+  else TrySetPar(MaxConcurrentIO);
+  else TrySetPar(MinSnapshotIndex);
+  else TrySetPar(MinNumPartOfSub);
+  //   else TrySetPar(GroupParticleIdMask);
+  else if (name == "GroupParticleIdMask")
   {
     ss >> hex >> GroupParticleIdMask >> dec;
     cout << "GroupParticleIdMask = " << hex << GroupParticleIdMask << dec << endl;
   }
-  else TrySetPar(MassInMsunh) else TrySetPar(LengthInMpch) else TrySetPar(VelInKmS) else TrySetPar(
-    PeriodicBoundaryOn) else TrySetPar(SnapshotHasIdBlock)
-    //   else TrySetPar(SnapshotNoMassBlock)
-    else TrySetPar(ParticleIdRankStyle) else TrySetPar(ParticleIdNeedHash) else TrySetPar(SnapshotIdUnsigned) else TrySetPar(SaveSubParticleProperties) else TrySetPar(MergeTrappedSubhalos) else TrySetPar(MajorProgenitorMassRatio) else TrySetPar(BoundMassPrecision) else TrySetPar(
-      SourceSubRelaxFactor) else TrySetPar(SubCoreSizeFactor) else TrySetPar(SubCoreSizeMin) else TrySetPar(TreeAllocFactor) else TrySetPar(TreeNodeOpenAngle) else TrySetPar(TreeMinNumOfCells) else TrySetPar(MaxSampleSizeOfPotentialEstimate) else TrySetPar(RefineMostboundParticle)
+  else TrySetPar(MassInMsunh);
+  else TrySetPar(LengthInMpch);
+  else TrySetPar(VelInKmS);
+  else TrySetPar(PeriodicBoundaryOn);
+  else TrySetPar(SnapshotHasIdBlock);
+  //   else TrySetPar(SnapshotNoMassBlock);
+  else TrySetPar(ParticleIdRankStyle);
+  else TrySetPar(ParticleIdNeedHash);
+  else TrySetPar(SnapshotIdUnsigned);
+  else TrySetPar(SaveSubParticleProperties);
+  else TrySetPar(MergeTrappedSubhalos);
+  else TrySetPar(MajorProgenitorMassRatio);
+  else TrySetPar(BoundMassPrecision);
+  else TrySetPar(SourceSubRelaxFactor);
+  else TrySetPar(SubCoreSizeFactor);
+  else TrySetPar(SubCoreSizeMin);
+  else TrySetPar(TreeAllocFactor);
+  else TrySetPar(TreeNodeOpenAngle);
+  else TrySetPar(TreeMinNumOfCells);
+  else TrySetPar(MaxSampleSizeOfPotentialEstimate);
+  else TrySetPar(RefineMostboundParticle);
 #undef TrySetPar
-      else if ("SnapshotIdList" == name)
+  else if ("SnapshotIdList" == name)
   {
     for (int i; ss >> i;)
       SnapshotIdList.push_back(i);
@@ -252,28 +281,51 @@ void Parameter_t::DumpParameters()
     exit(1);
   }
   version_file << "#VERSION " << HBT_VERSION << endl;
+
 #define DumpPar(var) version_file << #var << "  " << var << endl;
 #define DumpComment(var)                                                                                               \
   {                                                                                                                    \
     version_file << "#";                                                                                               \
     DumpPar(var);                                                                                                      \
   }
-  DumpPar(SnapshotPath) DumpPar(HaloPath) DumpPar(SubhaloPath) DumpPar(SnapshotFileBase) DumpPar(MaxSnapshotIndex)
-      DumpPar(BoxSize) DumpPar(SofteningHalo)
 
-    /*optional*/
-    DumpPar(SnapshotDirBase) DumpPar(SnapshotFormat) DumpPar(GroupFileFormat) DumpPar(MaxConcurrentIO)
-      DumpPar(MinSnapshotIndex) DumpPar(MinNumPartOfSub) if (GroupParticleIdMask) version_file
-    << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;
-  DumpPar(MassInMsunh) DumpPar(LengthInMpch) DumpPar(VelInKmS) DumpPar(PeriodicBoundaryOn) DumpPar(SnapshotHasIdBlock)
-    DumpPar(ParticleIdRankStyle) DumpPar(ParticleIdNeedHash) DumpPar(SnapshotIdUnsigned)
-      DumpPar(SaveSubParticleProperties) DumpPar(MergeTrappedSubhalos) if (SnapshotIdList.size())
+  DumpPar(SnapshotPath);
+  DumpPar(HaloPath);
+  DumpPar(SubhaloPath);
+  DumpPar(SnapshotFileBase);
+  DumpPar(MaxSnapshotIndex) DumpPar(BoxSize);
+  DumpPar(SofteningHalo);
+
+  /*optional*/
+  DumpPar(SnapshotDirBase);
+  DumpPar(SnapshotFormat);
+  DumpPar(GroupFileFormat);
+  DumpPar(MaxConcurrentIO);
+  DumpPar(MinSnapshotIndex);
+  DumpPar(MinNumPartOfSub);
+
+  if (GroupParticleIdMask)
+    version_file << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;
+
+  DumpPar(MassInMsunh);
+  DumpPar(LengthInMpch);
+  DumpPar(VelInKmS);
+  DumpPar(PeriodicBoundaryOn);
+  DumpPar(SnapshotHasIdBlock);
+  DumpPar(ParticleIdRankStyle);
+  DumpPar(ParticleIdNeedHash);
+  DumpPar(SnapshotIdUnsigned);
+  DumpPar(SaveSubParticleProperties);
+  DumpPar(MergeTrappedSubhalos);
+
+  if (SnapshotIdList.size())
   {
     version_file << "SnapshotIdList";
     for (auto &&i : SnapshotIdList)
       version_file << " " << i;
     version_file << endl;
   }
+
   if (SnapshotNameList.size())
   {
     version_file << "#SnapshotNameList";
@@ -282,15 +334,19 @@ void Parameter_t::DumpParameters()
     version_file << endl;
   }
 
-  DumpPar(MajorProgenitorMassRatio) DumpPar(BoundMassPrecision) DumpPar(SourceSubRelaxFactor) DumpPar(SubCoreSizeFactor)
-    DumpPar(SubCoreSizeMin)
+  DumpPar(MajorProgenitorMassRatio);
+  DumpPar(BoundMassPrecision);
+  DumpPar(SourceSubRelaxFactor);
+  DumpPar(SubCoreSizeFactor);
+  DumpPar(SubCoreSizeMin);
+  DumpPar(TreeAllocFactor);
+  DumpPar(TreeNodeOpenAngle);
+  DumpPar(TreeMinNumOfCells);
+  DumpPar(MaxSampleSizeOfPotentialEstimate);
+  DumpPar(RefineMostboundParticle);
+  DumpComment(GroupLoadedFullParticle);
 
-      DumpPar(TreeAllocFactor) DumpPar(TreeNodeOpenAngle) DumpPar(TreeMinNumOfCells)
-
-        DumpPar(MaxSampleSizeOfPotentialEstimate) DumpPar(RefineMostboundParticle)
-
-          DumpComment(GroupLoadedFullParticle)
 #undef DumpPar
 #undef DumpComment
-            version_file.close();
+  version_file.close();
 }
