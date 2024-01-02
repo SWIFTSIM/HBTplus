@@ -258,12 +258,12 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
 	  int rank=GlobalHostIds[subid].Rank;
 	  auto & Particles=Subhalos[subid].Particles;
 	  MPI_Aint p;
-	  MPI_Address(Particles.data(),&p);
+	  MPI_Get_address(Particles.data(),&p);
 	  SendBuffers[rank].push_back(p);
 	  SendSizes[rank].push_back(Particles.size());
 	  
 	  auto & Nest=Subhalos[subid].NestedSubhalos;
-	  MPI_Address(Nest.data(),&p);
+	  MPI_Get_address(Nest.data(),&p);
 	  SendNestBuffers[rank].push_back(p);
 	  SendNestSizes[rank].push_back(Nest.size());
 	}
@@ -308,7 +308,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
 	  auto &Particles=NewSubhalos[i].Particles;
 	  Particles.resize(ReceiveSize[i]);
 	  MPI_Aint p;
-	  MPI_Address(Particles.data(),&p);
+	  MPI_Get_address(Particles.data(),&p);
 	  ReceiveBuffer[i]=p;
 	}
 	MPI_Datatype ReceiveType;
@@ -327,7 +327,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
 	  auto &Nest=NewSubhalos[i].NestedSubhalos;
 	  Nest.resize(ReceiveNestSize[i]);
 	  MPI_Aint p;
-	  MPI_Address(Nest.data(),&p);
+	  MPI_Get_address(Nest.data(),&p);
 	  ReceiveNestBuffer[i]=p;
 	}
 	MPI_Datatype ReceiveNestType;

@@ -11,9 +11,10 @@
 #include "datatypes.h"
 #include "mymath.h"
 
-//fix deprecated MPI_Address function
-#if defined MPI_VERSION && MPI_VERSION >= 2 
-    #define MPI_Address(a,b) MPI_Get_address(a,b)
+// Workaround fix for deprecated MPI_Address function if an old version of MPI
+// is used.
+#if defined MPI_VERSION && MPI_VERSION < 2 
+    #define MPI_Get_address(a,b) MPI_Address(a,b)
 #endif
 
 class MpiWorker_t
@@ -101,11 +102,11 @@ void VectorAllToAll(MpiWorker_t &world, vector < vector<T> > &SendVecs, vector <
   for(int i=0;i<world.size();i++)
   {
 	MPI_Aint p;
-	MPI_Address(SendVecs[i].data(), &p);
+	MPI_Get_address(SendVecs[i].data(), &p);
 	MPI_Type_create_hindexed(1, &SendSizes[i], &p, dtype, &SendTypes[i]);
 	MPI_Type_commit(&SendTypes[i]);
 	
-	MPI_Address(ReceiveVecs[i].data(), &p);
+	MPI_Get_address(ReceiveVecs[i].data(), &p);
 	MPI_Type_create_hindexed(1, &ReceiveSizes[i], &p, dtype, &ReceiveTypes[i]);
 	MPI_Type_commit(&ReceiveTypes[i]);
   }
