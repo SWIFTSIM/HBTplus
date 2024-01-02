@@ -1,1 +1,6 @@
 clang_formatting_env
+CMakeFiles
+CMakeCache.txt
+cmake_install.cmake
+**/*.o
+**/__pycache__
