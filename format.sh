@@ -17,7 +17,6 @@ then
   ./clang_formatting_env/bin/python3 -m pip install clang-format
 fi
 
-
 # Formatting command
 clang=${CLANG_FORMAT_CMD:="clang-format"}
 cmd="$clang -style=file $(git ls-files '*.c' '*.h' '*.cpp')"
@@ -32,7 +31,7 @@ fi
 
 # Print the help
 function show_help {
-    echo -e "This script formats HBTPlus according to Google style"
+    echo -e "This script formats HBTPlus according to Microsoft style"
     echo -e "  -h, --help \t Show this help"
     echo -e "  -t, --test \t Test if HBTPlus is well formatted"
     echo -e "  -c, --clean \t Remove formatting venv"
