@@ -2,7 +2,7 @@
 #define HDF_WRAPPER_INCLUDED
 
 #include "hdf5.h"
-#include "hdf5_hl.h"	
+#include "hdf5_hl.h"
 // #include "H5Cpp.h"
 #include <iostream>
 
@@ -13,25 +13,26 @@
 #endif
 #ifdef HBT_INT8
 #define H5T_HBTInt H5T_NATIVE_LONG
-#else 
+#else
 #define H5T_HBTInt H5T_NATIVE_INT
 #endif
 
-extern void writeHDFmatrix(hid_t file, const void * buf, const char * name, hsize_t ndim, const hsize_t *dims, hid_t dtype, hid_t dtype_file);
+extern void writeHDFmatrix(hid_t file, const void *buf, const char *name, hsize_t ndim, const hsize_t *dims,
+                           hid_t dtype, hid_t dtype_file);
 
 inline int GetDatasetDims(hid_t dset, hsize_t dims[])
 {
-  hid_t dspace=H5Dget_space(dset);
-  int ndim=H5Sget_simple_extent_dims(dspace, dims, NULL);
+  hid_t dspace = H5Dget_space(dset);
+  int ndim = H5Sget_simple_extent_dims(dspace, dims, NULL);
   H5Sclose(dspace);
   return ndim;
 }
-inline herr_t ReclaimVlenData(hid_t dset, hid_t dtype, void * buf)
+inline herr_t ReclaimVlenData(hid_t dset, hid_t dtype, void *buf)
 {
   herr_t status;
-  hid_t dspace=H5Dget_space(dset);
-  status=H5Dvlen_reclaim(dtype, dspace, H5P_DEFAULT, buf);
-  status=H5Sclose(dspace);
+  hid_t dspace = H5Dget_space(dset);
+  status = H5Dvlen_reclaim(dtype, dspace, H5P_DEFAULT, buf);
+  status = H5Sclose(dspace);
   return status;
 }
 inline herr_t ReadDataset(hid_t file, const char *name, hid_t dtype, void *buf)
@@ -39,15 +40,17 @@ inline herr_t ReadDataset(hid_t file, const char *name, hid_t dtype, void *buf)
  * dtype specifies the datatype of buf; it does not need to be the same as the storage type in file*/
 {
   herr_t status;
-  hid_t dset=H5Dopen2(file, name, H5P_DEFAULT);
-  status=H5Dread(dset, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
-  if(status<0)
+  hid_t dset = H5Dopen2(file, name, H5P_DEFAULT);
+  status = H5Dread(dset, dtype, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf);
+  if (status < 0)
   {
-    const int bufsize=1024;
-    char grpname[bufsize],filename[bufsize];
+    const int bufsize = 1024;
+    char grpname[bufsize], filename[bufsize];
     H5Iget_name(file, grpname, bufsize);
     H5Fget_name(file, filename, bufsize);
-    std::cerr<<"####ERROR READING "<<grpname<<"/"<<name<<" from "<<filename<<", error number "<<status<<std::endl<<std::flush;
+    std::cerr << "####ERROR READING " << grpname << "/" << name << " from " << filename << ", error number " << status
+              << std::endl
+              << std::flush;
   }
   H5Dclose(dset);
   return status;
@@ -59,7 +62,7 @@ inline herr_t ReadPartialDataset(hid_t file, const char *name, hid_t dtype, void
  * offset and count specify the range of elements in the first dimension to read */
 {
   herr_t status;
-  hid_t dset=H5Dopen2(file, name, H5P_DEFAULT);
+  hid_t dset = H5Dopen2(file, name, H5P_DEFAULT);
 
   /* Get dataspace in the file */
   hid_t file_space_id = H5Dget_space(dset);
@@ -79,22 +82,24 @@ inline herr_t ReadPartialDataset(hid_t file, const char *name, hid_t dtype, void
   hsize_t count_arr[max_dims];
   start_arr[0] = offset;
   count_arr[0] = count;
-  for(int i=1; i<rank; i+=1)
-    {
-      start_arr[i] = 0;        
-      count_arr[i] = dims[i];
-    }
+  for (int i = 1; i < rank; i += 1)
+  {
+    start_arr[i] = 0;
+    count_arr[i] = dims[i];
+  }
   H5Sselect_hyperslab(file_space_id, H5S_SELECT_SET, start_arr, NULL, count_arr, NULL);
 
   /* Read the data */
-  status=H5Dread(dset, dtype, mem_space_id, file_space_id, H5P_DEFAULT, buf);
-  if(status<0)
+  status = H5Dread(dset, dtype, mem_space_id, file_space_id, H5P_DEFAULT, buf);
+  if (status < 0)
   {
-    const int bufsize=1024;
-    char grpname[bufsize],filename[bufsize];
+    const int bufsize = 1024;
+    char grpname[bufsize], filename[bufsize];
     H5Iget_name(file, grpname, bufsize);
     H5Fget_name(file, filename, bufsize);
-    std::cerr<<"####ERROR READING "<<grpname<<"/"<<name<<" from "<<filename<<", error number "<<status<<std::endl<<std::flush;
+    std::cerr << "####ERROR READING " << grpname << "/" << name << " from " << filename << ", error number " << status
+              << std::endl
+              << std::flush;
   }
   H5Dclose(dset);
   H5Sclose(mem_space_id);
@@ -108,9 +113,9 @@ inline herr_t ReadAttribute(hid_t loc_id, const char *obj_name, const char *attr
  * dtype specifies the datatype of buf; it does not need to be the same as the storage type in file*/
 {
   herr_t status;
-  hid_t attr=H5Aopen_by_name(loc_id, obj_name, attr_name, H5P_DEFAULT, H5P_DEFAULT);
-  status=H5Aread(attr, dtype, buf);
-  status=H5Aclose(attr);
+  hid_t attr = H5Aopen_by_name(loc_id, obj_name, attr_name, H5P_DEFAULT, H5P_DEFAULT);
+  status = H5Aread(attr, dtype, buf);
+  status = H5Aclose(attr);
   return status;
 }
 
@@ -128,13 +133,13 @@ inline herr_t ReadAttribute(hid_t loc_id, const char *obj_name, const char *attr
   char readbuf[maxlen];
   hid_t mem_type = H5Tcreate(H5T_STRING, maxlen);
   H5Tset_strpad(mem_type, H5T_STR_NULLTERM);
-  
+
   // Read the attribute
-  status=H5Aread(attr, mem_type, readbuf);
+  status = H5Aread(attr, mem_type, readbuf);
 
   // Assign value to the output string
   buf = readbuf;
-  
+
   H5Tclose(dtype);
   H5Tclose(mem_type);
   H5Aclose(attr);
@@ -142,8 +147,8 @@ inline herr_t ReadAttribute(hid_t loc_id, const char *obj_name, const char *attr
   return status;
 }
 
-
-inline void writeHDFmatrix(hid_t file, const void * buf, const char * name, hsize_t ndim, const hsize_t *dims, hid_t dtype)
+inline void writeHDFmatrix(hid_t file, const void *buf, const char *name, hsize_t ndim, const hsize_t *dims,
+                           hid_t dtype)
 {
   writeHDFmatrix(file, buf, name, ndim, dims, dtype, dtype);
 }

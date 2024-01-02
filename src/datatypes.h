@@ -1,8 +1,8 @@
 #ifndef DATATYPES_INCLUDED
 
+#include <cstring>
 #include <iostream>
 #include <iterator>
-#include <cstring>
 using namespace std;
 #include <array>
 #include <vector>
@@ -45,12 +45,12 @@ typedef float HBTReal;
 #define MPI_HBT_REAL MPI_FLOAT
 #endif
 
-// the user should ganrantee that HBTInt can at least hold NP_DM 
+// the user should ganrantee that HBTInt can at least hold NP_DM
 #ifdef HBT_INT8
-typedef long HBTInt;  
+typedef long HBTInt;
 #define HBTIFMT "%ld"
 #define MPI_HBT_INT MPI_LONG
-#else 
+#else
 typedef int HBTInt;
 #define HBTIFMT "%d"
 #define MPI_HBT_INT MPI_INT
@@ -61,45 +61,45 @@ typedef int HBTInt;
 {
   memcpy(dest, src, sizeof(HBTxyz));
 }*/
-typedef array <HBTReal, 3> HBTxyz;
+typedef array<HBTReal, 3> HBTxyz;
 inline void copyHBTxyz(HBTxyz &dest, const HBTxyz &src)
 {
   /*copy for std:arr implementation*/
-  dest=src;
+  dest = src;
 }
 template <class T>
 inline void copyHBTxyz(HBTxyz &dest, const T src[3])
 {
-  dest[0]=src[0];
-  dest[1]=src[1];
-  dest[2]=src[2];
+  dest[0] = src[0];
+  dest[1] = src[1];
+  dest[2] = src[2];
 }
 template <class T1, class T2>
-inline void copyXYZ(T1 & dest, const T2 src)
+inline void copyXYZ(T1 &dest, const T2 src)
 {
-  dest[0]=src[0];
-  dest[1]=src[1];
-  dest[2]=src[2];
+  dest[0] = src[0];
+  dest[1] = src[1];
+  dest[2] = src[2];
 }
 
 namespace SpecialConst
 {
-  const HBTInt NullParticleId=-1;//reserved special id, should not be used by input simulation data
-  const HBTInt NullSnapshotId=-1;
-  const HBTInt NullHaloId=-1;//do not change this.
-  const HBTInt NullSubhaloId=-1;
-  const HBTInt NullTrackId=-1;
-    
-  const HBTxyz NullCoordinate={0.,0.,0.};
+const HBTInt NullParticleId = -1; // reserved special id, should not be used by input simulation data
+const HBTInt NullSnapshotId = -1;
+const HBTInt NullHaloId = -1; // do not change this.
+const HBTInt NullSubhaloId = -1;
+const HBTInt NullTrackId = -1;
+
+const HBTxyz NullCoordinate = {0., 0., 0.};
 //   const Particle_t NullParticle(NullParticleId, NullParticleId, NullCoordinate, NullCoordinate);
-};
+}; // namespace SpecialConst
 
 struct IdRank_t
 {
   HBTInt Id;
   int Rank;
   IdRank_t(){};
-  IdRank_t(HBTInt id, int rank): Id(id), Rank(rank)
+  IdRank_t(HBTInt id, int rank) : Id(id), Rank(rank)
   {
   }
 };
@@ -110,7 +110,7 @@ struct IdRank_t
 #endif
 inline bool CompareRank(const IdRank_t &a, const IdRank_t &b)
 {
-  return (a.Rank<b.Rank);
+  return (a.Rank < b.Rank);
 }
 
 template <class T>
@@ -118,70 +118,70 @@ class VectorView_t
 /* similar to vector, but never actively manage memory; only bind to existing memory*/
 {
 public:
-  typedef T * iterator;
+  typedef T *iterator;
   HBTInt N;
-  T * Data; //this is only copied. never allocated by itself.
-  VectorView_t(): N(0), Data(nullptr)
+  T *Data; // this is only copied. never allocated by itself.
+  VectorView_t() : N(0), Data(nullptr)
   {
   }
-  VectorView_t(const HBTInt n, T * const data): N(n), Data(data)
+  VectorView_t(const HBTInt n, T *const data) : N(n), Data(data)
   {
   }
-  void Bind(const HBTInt n, T * const data)
+  void Bind(const HBTInt n, T *const data)
   {
-	N=n;
-	Data=data;
+    N = n;
+    Data = data;
   }
-  void Bind(T * const data)
+  void Bind(T *const data)
   {
-	Data=data;
+    Data = data;
   }
   void ReBind(const HBTInt n)
   {
-	N=n;
+    N = n;
   }
   void IncrementBind()
   {
-	N++; 
+    N++;
   }
-  T * data() const
+  T *data() const
   {
-	return Data;
+    return Data;
   }
-  T & operator [](const HBTInt index) const
+  T &operator[](const HBTInt index) const
   {
-	return Data[index];
+    return Data[index];
   }
   HBTInt size() const
   {
-	return N;
+    return N;
   }
   void PushBack(T x)
   /*memory is never reallocated*/
   {
-	Data[N]=x;
-	N++;
+    Data[N] = x;
+    N++;
   }
-  T * begin()
+  T *begin()
   {
-	return Data;
+    return Data;
   }
-  T* end()
+  T *end()
   {
-	return Data+N;
+    return Data + N;
   }
-  T & back()
+  T &back()
   {
-	return Data[N-1];
+    return Data[N - 1];
   }
 };
 
-enum ParticleType_t:int
+enum ParticleType_t : int
 {
-  TypeGas=0,
+  TypeGas = 0,
   TypeDM,
   TypeDisk,
-  TypeBulge	,
+  TypeBulge,
   TypeStar,
   TypeBndry,
   TypeMax
@@ -190,26 +190,27 @@ enum ParticleType_t:int
 struct LocatedParticle_t
 {
   HBTInt index;
-  HBTReal d2; //distance**2
+  HBTReal d2; // distance**2
   LocatedParticle_t(){};
-  LocatedParticle_t(HBTInt index, HBTReal d2):index(index),d2(d2)
-  {}
+  LocatedParticle_t(HBTInt index, HBTReal d2) : index(index), d2(d2)
+  {
+  }
 };
 inline bool CompLocatedDistance(const LocatedParticle_t &a, const LocatedParticle_t &b)
 {
-  return a.d2<b.d2;
+  return a.d2 < b.d2;
 }
 class ParticleCollector_t
 {
 public:
-  virtual void Collect(HBTInt index, HBTReal d2)=0;
+  virtual void Collect(HBTInt index, HBTReal d2) = 0;
 };
-class LocatedParticleCollector_t: public ParticleCollector_t
-//a simple collector that appends all found particles to a vector.
+class LocatedParticleCollector_t : public ParticleCollector_t
+// a simple collector that appends all found particles to a vector.
 {
 public:
-  vector <LocatedParticle_t> Founds;
-  LocatedParticleCollector_t(HBTInt n_reserve=0): Founds()
+  vector<LocatedParticle_t> Founds;
+  LocatedParticleCollector_t(HBTInt n_reserve = 0) : Founds()
   {
     Founds.reserve(n_reserve);
   }
@@ -222,25 +223,26 @@ public:
     Founds.clear();
   }
 };
-class NearestNeighbourCollector_t: public ParticleCollector_t
-//a collector for nearest neighbour search. keeps the nearest neighbour particle.
+class NearestNeighbourCollector_t : public ParticleCollector_t
+// a collector for nearest neighbour search. keeps the nearest neighbour particle.
 {
 public:
   HBTInt Index;
-  HBTReal D2;//distance squared
-  NearestNeighbourCollector_t():Index(0), D2(-1)
-  {}
+  HBTReal D2; // distance squared
+  NearestNeighbourCollector_t() : Index(0), D2(-1)
+  {
+  }
   void Collect(HBTInt index, HBTReal d2)
   {
-    if(d2<D2)
+    if (d2 < D2)
     {
-      D2=d2;
-      Index=index;
+      D2 = d2;
+      Index = index;
     }
   }
   bool IsEmpty()
   {
-    return D2<0.;
+    return D2 < 0.;
   }
 };
 #define DATATYPES_INCLUDED
