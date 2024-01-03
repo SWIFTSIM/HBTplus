@@ -384,14 +384,27 @@ void Parameter_t::DumpParameters()
     version_file << endl;
   }
 
-  DumpPar(MajorProgenitorMassRatio) DumpPar(BoundMassPrecision) DumpPar(SourceSubRelaxFactor) DumpPar(SubCoreSizeFactor)
-    DumpPar(SubCoreSizeMin)
+  if (TracerParticleTypes.size())
+  {
+    version_file << "TracerParticleTypes";
+    for (auto &&i : TracerParticleTypes)
+      version_file << " " << i;
+    version_file << endl;
+  }
 
-      DumpPar(TreeAllocFactor) DumpPar(TreeNodeOpenAngle) DumpPar(TreeMinNumOfCells)
+  DumpPar(MajorProgenitorMassRatio);
+  DumpPar(BoundMassPrecision);
+  DumpPar(SourceSubRelaxFactor);
+  DumpPar(SubCoreSizeFactor);
+  DumpPar(SubCoreSizeMin);
+  DumpPar(TreeAllocFactor);
+  DumpPar(TreeNodeOpenAngle);
+  DumpPar(TreeMinNumOfCells);
+  DumpPar(MaxSampleSizeOfPotentialEstimate);
+  DumpPar(RefineMostboundParticle);
+  DumpComment(GroupLoadedFullParticle);
 
-        DumpPar(MaxSampleSizeOfPotentialEstimate) DumpPar(RefineMostboundParticle) DumpPar(TracerParticleBitMask);
-  DumpComment(GroupLoadedFullParticle)
 #undef DumpPar
 #undef DumpComment
-    version_file.close();
+  version_file.close();
 }
