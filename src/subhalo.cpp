@@ -301,9 +301,9 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
 #pragma omp for
     for (HBTInt i = 0; i < Nbound; i++)
     {
-      if (prof[i].r < HBTConfig.SofteningHalo)
-        prof[i].r = HBTConfig.SofteningHalo; // resolution
-      prof[i].v = prof[i].m / prof[i].r;     // v**2
+      if (prof[i].r < HBTConfig.GetCurrentSoftening(epoch.Cosmology.ScaleFactor))
+        prof[i].r = HBTConfig.GetCurrentSoftening(epoch.Cosmology.ScaleFactor); // resolution
+      prof[i].v = prof[i].m / prof[i].r;                                        // v**2
     }
   }
   auto maxprof = max_element(prof.begin(), prof.end(), CompProfVel);
