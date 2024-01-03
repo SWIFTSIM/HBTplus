@@ -128,6 +128,9 @@ public:
   }
   void DumpParameters();
 
+  // Decides whether to use comoving or max. physical softening (if defined).
+  HBTReal GetCurrentSoftening(HBTReal ScaleFactor); // NOTE: perhaps makes more sense to include in gravity tree...
+
 private:
   bool TryCompulsoryParameterValue(string ParameterName, stringstream &ParameterValue);
   bool TrySingleValueParameter(string ParameterName, stringstream &ParameterValue);

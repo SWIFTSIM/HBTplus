@@ -387,3 +387,13 @@ void Parameter_t::DumpParameters()
 #undef DumpComment
   version_file.close();
 }
+
+HBTReal Parameter_t::GetCurrentSoftening(HBTReal ScaleFactor)
+{
+  // Only one softening defined, use comoving
+  if (MaxPhysicalSofteningHalo == -1)
+    return SofteningHalo;
+
+  // If two are defined, choose the one with the smallest value
+  return min(SofteningHalo, MaxPhysicalSofteningHalo / ScaleFactor);
+}
