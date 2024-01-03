@@ -340,38 +340,25 @@ void Parameter_t::DumpParameters()
     version_file << "#";                                                                                               \
     DumpPar(var);                                                                                                      \
   }
+#define DumpHeader(title)                                                                                              \
+  {                                                                                                                    \
+    version_file << endl;                                                                                              \
+    version_file << "[" << title << "]" << endl;                                                                       \
+  }
 
+  DumpHeader("File paths");
   DumpPar(SnapshotPath);
   DumpPar(HaloPath);
   DumpPar(SubhaloPath);
   DumpPar(SnapshotFileBase);
-  DumpPar(MaxSnapshotIndex);
-  DumpPar(BoxSize);
-  DumpPar(SofteningHalo);
-
-  /*optional*/
   DumpPar(SnapshotDirBase);
+
+  DumpHeader("File IO");
   DumpPar(SnapshotFormat);
   DumpPar(GroupFileFormat);
   DumpPar(MaxConcurrentIO);
   DumpPar(MinSnapshotIndex);
-  DumpPar(MinNumPartOfSub);
-  DumpPar(MaxPhysicalSofteningHalo);
-
-  if (GroupParticleIdMask)
-    version_file << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;
-
-  DumpPar(MassInMsunh);
-  DumpPar(LengthInMpch);
-  DumpPar(VelInKmS);
-  DumpPar(PeriodicBoundaryOn);
-  DumpPar(SnapshotHasIdBlock);
-  DumpPar(ParticleIdRankStyle);
-  DumpPar(ParticleIdNeedHash);
-  DumpPar(SnapshotIdUnsigned);
-  DumpPar(SaveSubParticleProperties);
-  DumpPar(MergeTrappedSubhalos);
-
+  DumpPar(MaxSnapshotIndex);
   if (SnapshotIdList.size())
   {
     version_file << "SnapshotIdList";
@@ -388,6 +375,44 @@ void Parameter_t::DumpParameters()
     version_file << endl;
   }
 
+  DumpHeader("Particle Properties");
+  DumpComment(GroupLoadedFullParticle);
+  DumpPar(SnapshotHasIdBlock);
+  DumpPar(ParticleIdRankStyle);
+  DumpPar(ParticleIdNeedHash);
+  DumpPar(SnapshotIdUnsigned);
+  DumpPar(SaveSubParticleProperties);
+  if (GroupParticleIdMask)
+    version_file << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;
+
+  DumpHeader("Units");
+  DumpPar(MassInMsunh);
+  DumpPar(LengthInMpch);
+  DumpPar(VelInKmS);
+
+  DumpHeader("Gravity tree");
+  DumpPar(TreeAllocFactor);
+  DumpPar(TreeNodeOpenAngle);
+  DumpPar(TreeMinNumOfCells);
+
+  DumpHeader("Gravity softening");
+  DumpPar(SofteningHalo);
+  DumpPar(MaxPhysicalSofteningHalo);
+
+  DumpHeader("Simulation Box");
+  DumpPar(BoxSize);
+  DumpPar(PeriodicBoundaryOn);
+
+  DumpHeader("Subhalo Unbinding");
+  DumpPar(SubCoreSizeMin);
+  DumpPar(SubCoreSizeFactor);
+  DumpPar(BoundMassPrecision);
+  DumpPar(SourceSubRelaxFactor);
+  DumpPar(RefineMostboundParticle);
+  DumpPar(MaxSampleSizeOfPotentialEstimate);
+
+  DumpHeader("Subhalo Tracking");
+  DumpPar(MinNumPartOfSub);
   if (TracerParticleTypes.size())
   {
     version_file << "TracerParticleTypes";
@@ -395,20 +420,11 @@ void Parameter_t::DumpParameters()
       version_file << " " << i;
     version_file << endl;
   }
-
+  DumpPar(MergeTrappedSubhalos);
   DumpPar(MajorProgenitorMassRatio);
-  DumpPar(BoundMassPrecision);
-  DumpPar(SourceSubRelaxFactor);
-  DumpPar(SubCoreSizeFactor);
-  DumpPar(SubCoreSizeMin);
-  DumpPar(TreeAllocFactor);
-  DumpPar(TreeNodeOpenAngle);
-  DumpPar(TreeMinNumOfCells);
-  DumpPar(MaxSampleSizeOfPotentialEstimate);
-  DumpPar(RefineMostboundParticle);
-  DumpComment(GroupLoadedFullParticle);
 
 #undef DumpPar
+#undef DumpHeader
 #undef DumpComment
   version_file.close();
 }
