@@ -67,6 +67,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(VelInKmS);
   TrySetPar(PeriodicBoundaryOn);
   TrySetPar(SnapshotHasIdBlock);
+  TrySetPar(MaxPhysicalSofteningHalo);
 
 #undef TrySetPar
 
@@ -246,6 +247,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncAtom(MaxSnapshotIndex, MPI_INT);
   _SyncReal(BoxSize);
   _SyncReal(SofteningHalo);
+  _SyncReal(MaxPhysicalSofteningHalo);
   _SyncVecBool(IsSet);
 
   _SyncVec(SnapshotDirBase, MPI_CHAR);
@@ -337,6 +339,7 @@ void Parameter_t::DumpParameters()
   DumpPar(MaxConcurrentIO);
   DumpPar(MinSnapshotIndex);
   DumpPar(MinNumPartOfSub);
+  DumpPar(MaxPhysicalSofteningHalo);
 
   if (GroupParticleIdMask)
     version_file << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;

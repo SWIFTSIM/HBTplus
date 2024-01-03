@@ -31,6 +31,7 @@ public:
   int MaxSnapshotIndex;
   HBTReal BoxSize; // to check the unit of snapshot according to the BoxSize in header
   HBTReal SofteningHalo;
+  HBTReal MaxPhysicalSofteningHalo;
   vector<bool> IsSet;
 
   /*optional*/
@@ -112,6 +113,7 @@ public:
     MaxSampleSizeOfPotentialEstimate = 1000; // set to 0 to disable sampling
     RefineMostboundParticle = true;
     GroupLoadedFullParticle = false;
+    MaxPhysicalSofteningHalo = -1; // Indicates no max. physical softening is used.
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
