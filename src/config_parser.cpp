@@ -9,78 +9,112 @@ HBTReal H0;
 
 Parameter_t HBTConfig;
 
+bool Parameter_t::TryCompulsoryParameterValue(string ParameterName, stringstream &ParameterValue)
+{
+#define TrySetPar(var, i)                                                                                              \
+  if (ParameterName == #var)                                                                                           \
+  {                                                                                                                    \
+    ParameterValue >> var;                                                                                             \
+    IsSet[i] = true;                                                                                                   \
+    return true; /* Signals to not continue looking for matching parameter names */                                    \
+  }
+
+  TrySetPar(SnapshotPath, 0);
+  TrySetPar(HaloPath, 1);
+  TrySetPar(SubhaloPath, 2);
+  TrySetPar(SnapshotFileBase, 3);
+  TrySetPar(MaxSnapshotIndex, 4);
+  TrySetPar(BoxSize, 5);
+  TrySetPar(SofteningHalo, 6);
+
+#undef TrySetPar
+
+  return false; // This signals to continue looking for valid parameter names
+}
+
+bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &ParameterValue)
+{
+#define TrySetPar(var)                                                                                                 \
+  if (ParameterName == #var)                                                                                           \
+  {                                                                                                                    \
+    ParameterValue >> var;                                                                                             \
+    return true; /* Signals to not continue looking for matching parameter names */                                    \
+  }
+
+  TrySetPar(SnapshotDirBase);
+  TrySetPar(SnapshotFormat);
+  TrySetPar(GroupFileFormat);
+  TrySetPar(MaxConcurrentIO);
+  TrySetPar(MinSnapshotIndex);
+  TrySetPar(MinNumPartOfSub);
+  TrySetPar(ParticleIdRankStyle);
+  TrySetPar(ParticleIdNeedHash);
+  TrySetPar(SnapshotIdUnsigned);
+  TrySetPar(SaveSubParticleProperties);
+  TrySetPar(MergeTrappedSubhalos);
+  TrySetPar(MajorProgenitorMassRatio);
+  TrySetPar(BoundMassPrecision);
+  TrySetPar(SourceSubRelaxFactor);
+  TrySetPar(SubCoreSizeFactor);
+  TrySetPar(SubCoreSizeMin);
+  TrySetPar(TreeAllocFactor);
+  TrySetPar(TreeNodeOpenAngle);
+  TrySetPar(TreeMinNumOfCells);
+  TrySetPar(MaxSampleSizeOfPotentialEstimate);
+  TrySetPar(RefineMostboundParticle);
+  TrySetPar(MassInMsunh);
+  TrySetPar(LengthInMpch);
+  TrySetPar(VelInKmS);
+  TrySetPar(PeriodicBoundaryOn);
+  TrySetPar(SnapshotHasIdBlock);
+
+#undef TrySetPar
+
+  if (ParameterName == "GroupParticleIdMask")
+  {
+    ParameterValue >> hex >> GroupParticleIdMask >> dec;
+    cout << "GroupParticleIdMask = " << hex << GroupParticleIdMask << dec << endl;
+    return true;
+  }
+
+  return false; // This signals to continue looking for valid parameter names
+}
+
+bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &ParameterValues)
+{
+
+  if (ParameterName == "SnapshotIdList")
+  {
+    for (int i; ParameterValues >> i;)
+      SnapshotIdList.push_back(i);
+    return true;
+  }
+
+  return false; // This signals to continue looking for valid parameter names
+}
+
 void Parameter_t::SetParameterValue(const string &line)
 {
+  /* Get the name of the parameter */
   stringstream ss(line);
   string name;
   ss >> name;
   //   transform(name.begin(),name.end(),name.begin(),::tolower);
 
-#define TrySetPar(var, i)                                                                                              \
-  if (name == #var)                                                                                                    \
-  {                                                                                                                    \
-    ss >> var;                                                                                                         \
-    IsSet[i] = true;                                                                                                   \
-  }
+  /* We will try matching the name of the input parameter to those which have
+   * been defined in the code. If we find a match, we assign its value. First
+   * we try compulsory parameters, and then optional ones */
+  if (TryCompulsoryParameterValue(name, ss))
+    return;
+  if (TrySingleValueParameter(name, ss))
+    return;
+  if (TryMultipleValueParameter(name, ss))
+    return;
 
-  TrySetPar(SnapshotPath, 0);
-  else TrySetPar(HaloPath, 1);
-  else TrySetPar(SubhaloPath, 2);
-  else TrySetPar(SnapshotFileBase, 3);
-  else TrySetPar(MaxSnapshotIndex, 4);
-  else TrySetPar(BoxSize, 5);
-  else TrySetPar(SofteningHalo, 6);
-#undef TrySetPar
-
-#define TrySetPar(var)                                                                                                 \
-  if (name == #var)                                                                                                    \
-    ss >> var;
-
-  else TrySetPar(SnapshotDirBase);
-  else TrySetPar(SnapshotFormat);
-  else TrySetPar(GroupFileFormat);
-  else TrySetPar(MaxConcurrentIO);
-  else TrySetPar(MinSnapshotIndex);
-  else TrySetPar(MinNumPartOfSub);
-  //   else TrySetPar(GroupParticleIdMask);
-  else if (name == "GroupParticleIdMask")
-  {
-    ss >> hex >> GroupParticleIdMask >> dec;
-    cout << "GroupParticleIdMask = " << hex << GroupParticleIdMask << dec << endl;
-  }
-  else TrySetPar(MassInMsunh);
-  else TrySetPar(LengthInMpch);
-  else TrySetPar(VelInKmS);
-  else TrySetPar(PeriodicBoundaryOn);
-  else TrySetPar(SnapshotHasIdBlock);
-  //   else TrySetPar(SnapshotNoMassBlock);
-  else TrySetPar(ParticleIdRankStyle);
-  else TrySetPar(ParticleIdNeedHash);
-  else TrySetPar(SnapshotIdUnsigned);
-  else TrySetPar(SaveSubParticleProperties);
-  else TrySetPar(MergeTrappedSubhalos);
-  else TrySetPar(MajorProgenitorMassRatio);
-  else TrySetPar(BoundMassPrecision);
-  else TrySetPar(SourceSubRelaxFactor);
-  else TrySetPar(SubCoreSizeFactor);
-  else TrySetPar(SubCoreSizeMin);
-  else TrySetPar(TreeAllocFactor);
-  else TrySetPar(TreeNodeOpenAngle);
-  else TrySetPar(TreeMinNumOfCells);
-  else TrySetPar(MaxSampleSizeOfPotentialEstimate);
-  else TrySetPar(RefineMostboundParticle);
-#undef TrySetPar
-  else if ("SnapshotIdList" == name)
-  {
-    for (int i; ss >> i;)
-      SnapshotIdList.push_back(i);
-  }
-  else
-  {
-    stringstream msg;
-    msg << "unrecognized configuration entry: " << name << endl;
-    throw runtime_error(msg.str());
-  }
+  /* No matching parameter name has been found, throw an error message */
+  stringstream error_message;
+  error_message << "Unrecognized configuration entry: " << name << endl;
+  throw runtime_error(error_message.str());
 }
 
 void Parameter_t::ParseConfigFile(const char *param_file)

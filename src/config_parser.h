@@ -125,6 +125,11 @@ public:
     world.SyncAtom(snapshot_end, MPI_INT, root);
   }
   void DumpParameters();
+
+private:
+  bool TryCompulsoryParameterValue(string ParameterName, stringstream &ParameterValue);
+  bool TrySingleValueParameter(string ParameterName, stringstream &ParameterValue);
+  bool TryMultipleValueParameter(string ParameterName, stringstream &ParameterValues);
 };
 
 extern Parameter_t HBTConfig;
