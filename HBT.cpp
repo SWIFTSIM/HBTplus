@@ -59,6 +59,12 @@ int main(int argc, char **argv)
     HaloSnapshot_t halosnap;
     halosnap.Load(world, isnap);
 
+    /* For SWIFT-based outputs, we load parameters directly from the snapshots.
+     * This means that the inital call to DumpParameters (potentially) used
+     * outdated values. This extra call will save the correct ones. */
+    if (HBTConfig.SnapshotFormat == "swiftsim" && (isnap == snapshot_start))
+      HBTConfig.DumpParameters();
+
     timer.Tick(world.Communicator);
     // 	cout<<"updating halo particles...\n";
     halosnap.UpdateParticles(world, partsnap);
