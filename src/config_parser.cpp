@@ -94,6 +94,7 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
   {
     /* Store as a vector first to output in Params.log in a human-readable
      * format */
+    TracerParticleTypes.clear(); // To remove default values
     for (int i; ParameterValues >> i;)
       TracerParticleTypes.push_back(i);
 
@@ -102,6 +103,7 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
     TracerParticleBitMask = 0;
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
+    return true;
   }
   return false; // This signals to continue looking for valid parameter names
 }
