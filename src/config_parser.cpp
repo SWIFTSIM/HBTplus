@@ -92,11 +92,11 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
   }
   if (ParameterName == "TracerParticleTypes")
   {
-    /* Store as a vector first to output in Params.log in a human-readable 
+    /* Store as a vector first to output in Params.log in a human-readable
      * format */
     for (int i; ParameterValues >> i;)
       TracerParticleTypes.push_back(i);
-    
+
     /* Create a bitmask, to be used internally by the code to identify valid
      * tracer particle types*/
     TracerParticleBitMask = 0;
@@ -304,8 +304,8 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
 
   _SyncBool(GroupLoadedFullParticle);
   _SyncAtom(TracerParticleBitMask, MPI_INT);
-  //---------------end sync params-------------------------//	
-  
+  //---------------end sync params-------------------------//
+
   _SyncReal(PhysicalConst::G);
   _SyncReal(PhysicalConst::H0);
 
@@ -381,22 +381,15 @@ void Parameter_t::DumpParameters()
       version_file << " " << i;
     version_file << endl;
   }
-  
-  DumpPar(MajorProgenitorMassRatio) 
-  DumpPar(BoundMassPrecision)
-  DumpPar(SourceSubRelaxFactor)
-  DumpPar(SubCoreSizeFactor) 
-  DumpPar(SubCoreSizeMin)
-  
-  DumpPar(TreeAllocFactor)
-  DumpPar(TreeNodeOpenAngle)
-  DumpPar(TreeMinNumOfCells)
-  
-  DumpPar(MaxSampleSizeOfPotentialEstimate)
-  DumpPar(RefineMostboundParticle)
-  DumpPar(TracerParticleBitMask);
+
+  DumpPar(MajorProgenitorMassRatio) DumpPar(BoundMassPrecision) DumpPar(SourceSubRelaxFactor) DumpPar(SubCoreSizeFactor)
+    DumpPar(SubCoreSizeMin)
+
+      DumpPar(TreeAllocFactor) DumpPar(TreeNodeOpenAngle) DumpPar(TreeMinNumOfCells)
+
+        DumpPar(MaxSampleSizeOfPotentialEstimate) DumpPar(RefineMostboundParticle) DumpPar(TracerParticleBitMask);
   DumpComment(GroupLoadedFullParticle)
 #undef DumpPar
 #undef DumpComment
-  version_file.close();
+    version_file.close();
 }

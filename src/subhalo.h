@@ -32,7 +32,7 @@ public:
 #ifndef DM_ONLY
   HBTInt NboundType[TypeMax];
   float MboundType[TypeMax];
-#endif  
+#endif
   HBTInt TracerIndex; // Index of the most bound collisionless particle, used as tracer.
   HBTInt HostHaloId;
   HBTInt Rank; // 0 for central and field subs, >0 for satellites
