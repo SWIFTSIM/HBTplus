@@ -68,6 +68,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(PeriodicBoundaryOn);
   TrySetPar(SnapshotHasIdBlock);
   TrySetPar(MaxPhysicalSofteningHalo);
+  TrySetPar(TracerParticleBitMask);
 
 #undef TrySetPar
 
@@ -90,7 +91,21 @@ bool Parameter_t::TryMultipleValueParameter(string ParameterName, stringstream &
       SnapshotIdList.push_back(i);
     return true;
   }
+  if (ParameterName == "TracerParticleTypes")
+  {
+    /* Store as a vector first to output in Params.log in a human-readable
+     * format */
+    TracerParticleTypes.clear(); // To remove default values
+    for (int i; ParameterValues >> i;)
+      TracerParticleTypes.push_back(i);
 
+    /* Create a bitmask, to be used internally by the code to identify valid
+     * tracer particle types*/
+    TracerParticleBitMask = 0;
+    for (int i : TracerParticleTypes)
+      TracerParticleBitMask += 1 << i;
+    return true;
+  }
   return false; // This signals to continue looking for valid parameter names
 }
 
@@ -292,6 +307,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncReal(BoxHalf);
 
   _SyncBool(GroupLoadedFullParticle);
+  _SyncAtom(TracerParticleBitMask, MPI_INT);
   //---------------end sync params-------------------------//
 
   _SyncReal(PhysicalConst::G);
@@ -367,6 +383,14 @@ void Parameter_t::DumpParameters()
   {
     version_file << "#SnapshotNameList";
     for (auto &&i : SnapshotNameList)
+      version_file << " " << i;
+    version_file << endl;
+  }
+
+  if (TracerParticleTypes.size())
+  {
+    version_file << "TracerParticleTypes";
+    for (auto &&i : TracerParticleTypes)
       version_file << " " << i;
     version_file << endl;
   }

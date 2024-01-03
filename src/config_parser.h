@@ -55,6 +55,7 @@ public:
   bool SaveSubParticleProperties;
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
   vector<int> SnapshotIdList;
+  vector<int> TracerParticleTypes;
   vector<string> SnapshotNameList;
 
   HBTReal MajorProgenitorMassRatio;
@@ -71,6 +72,8 @@ public:
   bool RefineMostboundParticle; // whether to further improve mostbound particle accuracy in case a
                                 // MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but
                                 // leads to more accuracy mostbound particle
+
+  int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
 
   /*derived parameters; do not require user input*/
   HBTReal TreeNodeOpenAngleSquare;
@@ -114,6 +117,14 @@ public:
     RefineMostboundParticle = true;
     GroupLoadedFullParticle = false;
     MaxPhysicalSofteningHalo = -1; // Indicates no max. physical softening is used.
+
+    /* Tracer-related parameters. If unset, only use collisionless particles (DM
+     * + Stars) as tracer. Here we assume they correspond to particle types 1
+     * and 4, respectively. */
+    TracerParticleTypes = vector<int>{1, 4};
+    TracerParticleBitMask = 0;
+    for (int i : TracerParticleTypes)
+      TracerParticleBitMask += 1 << i;
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);

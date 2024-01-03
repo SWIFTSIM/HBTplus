@@ -285,6 +285,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
   HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
 
+  /* Need to initialise here, since orphans/disrupted objects do not call the
+   * function used to set the value of TracerIndex (CountParticleTypes). This
+   * prevents accessing entries beyond the corresponding particle array. */
+  TracerIndex = 0;
+
   if (Particles.size() < HBTConfig.MinNumPartOfSub) // not enough src particles, can be due to masking
   {
     if (IsAlive())

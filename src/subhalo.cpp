@@ -427,7 +427,7 @@ void Subhalo_t::CountParticleTypes()
     {
       vector<HBTInt> nboundtype(TypeMax, 0);
       vector<float> mboundtype(TypeMax, 0.);
-#pragma omp for
+#pragma omp for reduction(min : TracerIndex)
       for (HBTInt i = 0; i < Nbound; i++)
       {
         auto &p = Particles[i];
@@ -435,6 +435,13 @@ void Subhalo_t::CountParticleTypes()
         int itype = p.Type;
         nboundtype[itype]++;
         mboundtype[itype] += p.Mass;
+
+        /* Check whether we found a collisionless particle for the first time,
+         * indicating we have reached the tentative most bound collisionless
+         * tracer */
+        if (TracerIndex > Nbound)
+          if ((1 << itype) & HBTConfig.TracerParticleBitMask)
+            TracerIndex = i;
       }
 #pragma omp critical
       for (int i = 0; i < TypeMax; i++)
@@ -446,6 +453,10 @@ void Subhalo_t::CountParticleTypes()
   }
   else
   {
+    /* Initialise large value in this case, since OMP reduction operation
+     * handled that part in the other case. */
+    TracerIndex = Nbound + 1;
+
     auto end = Particles.begin() + Nbound;
     for (auto it = Particles.begin(); it != end; ++it)
     {
@@ -455,8 +466,18 @@ void Subhalo_t::CountParticleTypes()
       int itype = p.Type;
       NboundType[itype]++;
       MboundType[itype] += p.Mass;
+
+      /* Check whether we found a collisionless particle for the first time,
+       * indicating we have reached the most bound collisionless tracer */
+      if (TracerIndex > Nbound)
+        if ((1 << itype) & HBTConfig.TracerParticleBitMask)
+          TracerIndex = it - Particles.begin();
     }
   }
+
+  /* We found no collisionless tracer in this subgroup. Use most bound particle
+   * instead. */
+  TracerIndex = (TracerIndex > Nbound) ? 0 : TracerIndex;
 #endif
 }
 
