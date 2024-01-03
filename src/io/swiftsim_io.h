@@ -32,6 +32,10 @@ struct SwiftSimHeader_t
   double velocity_conversion;
   double energy_conversion;
   int NullGroupId;
+  double DM_comoving_softening;
+  double DM_maximum_physical_softening;
+  double baryon_comoving_softening;         // NOTE: currently being loaded but unused
+  double baryon_maximum_physical_softening; // NOTE: currently being loaded but unused
 };
 
 void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype);

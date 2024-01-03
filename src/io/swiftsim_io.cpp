@@ -181,6 +181,22 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
       Header.npartTotal[i] = (((unsigned long)NumPart_Total_HighWord[i]) << 32) | NumPart_Total[i];
     else
       Header.npartTotal[i] = 0;
+
+  /* Read softening values used by SWIFT and convert them to internal HBT units */
+  // NOTE: Whenever reading "Parameters", we need to use a string to load into.
+
+  // DM softening
+  ReadAttribute(file, "Parameters", "Gravity:comoving_DM_softening", buf);
+  Header.DM_comoving_softening = stof(buf) * Header.length_conversion;
+  ReadAttribute(file, "Parameters", "Gravity:max_physical_DM_softening", buf);
+  Header.DM_maximum_physical_softening = stof(buf) * Header.length_conversion;
+
+  // Baryonic softening
+  ReadAttribute(file, "Parameters", "Gravity:comoving_baryon_softening", buf);
+  Header.baryon_comoving_softening = stof(buf) * Header.length_conversion;
+  ReadAttribute(file, "Parameters", "Gravity:max_physical_baryon_softening", buf);
+  Header.baryon_maximum_physical_softening = stof(buf) * Header.length_conversion;
+
   H5Fclose(file);
 }
 
@@ -562,6 +578,10 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
 
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
+
+  /* Use the softening values we read in from the Header */
+  HBTConfig.SofteningHalo = Header.DM_comoving_softening;
+  HBTConfig.MaxPhysicalSofteningHalo = Header.DM_maximum_physical_softening;
 
   HBTInt nfiles_skip, nfiles_end;
   AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
