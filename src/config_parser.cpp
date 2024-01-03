@@ -345,7 +345,8 @@ void Parameter_t::DumpParameters()
   DumpPar(HaloPath);
   DumpPar(SubhaloPath);
   DumpPar(SnapshotFileBase);
-  DumpPar(MaxSnapshotIndex) DumpPar(BoxSize);
+  DumpPar(MaxSnapshotIndex);
+  DumpPar(BoxSize);
   DumpPar(SofteningHalo);
 
   /*optional*/
