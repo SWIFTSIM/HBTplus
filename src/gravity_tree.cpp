@@ -95,10 +95,11 @@ double GravityTree_t::EvaluatePotential(const HBTxyz &targetPos, const HBTReal t
   pos_y = targetPos[1];
   pos_z = targetPos[2];
 
-  h = 2.8 * HBTConfig.SofteningHalo;
+  h = 2.8 * HBTConfig.GetCurrentSoftening(Snapshot->Cosmology.ScaleFactor);
   h_inv = 1.0 / h;
 
-  pot = targetMass / HBTConfig.SofteningHalo; // to cancle out the self-potential added during tree walk.
+  pot = targetMass / HBTConfig.GetCurrentSoftening(
+                       Snapshot->Cosmology.ScaleFactor); // to cancle out the self-potential added during tree walk.
 
   no = NumberOfParticles; // start from root node
 
