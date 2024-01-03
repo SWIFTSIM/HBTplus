@@ -13,10 +13,11 @@ outputs, and was originally forked from the [following branch](https://github.co
 Since then, a number of additions enhancing the capabilities of HBT, as well as how it 
 interfaces with SWIFT-based data outputs have been added.
 
-Summary of additions:
+Summary of additions/changes:
 
 - Ability to specify which particle types to use as tracers of which FoF group hosts a subgroup/track, via the *TracerTypeParticles* parameter.
 - Ability to specify two different gravitational softening values, reflecting the commonplace use in cosmological simulations of a comoving and maximum physical softening values: *SofteningHalo* and *MaxPhysicalSofteningHalo*, respectively.
 - Automatic reading of gravitational softenings from SWIFT outputs, preventing the accidental use of incorrect values.
+- Parameters.log file now groups the values of related parameters together.
 
 **NOTE**: these are currently under development, and so caution is advised.
