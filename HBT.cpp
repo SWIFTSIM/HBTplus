@@ -48,8 +48,9 @@ int main(int argc, char **argv)
   if (world.rank() == 0)
   {
     time_log.open(HBTConfig.SubhaloPath + "/timing.log", fstream::out | fstream::app);
-    time_log << fixed << setprecision(1); //<<setw(8);
+    time_log << fixed << setprecision(3);
   }
+
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
   {
     timer.Tick(world.Communicator);
@@ -93,7 +94,7 @@ int main(int argc, char **argv)
     timer.Tick(world.Communicator);
     if (world.rank() == 0)
     {
-      time_log << isnap;
+      time_log << isnap << "\t" << subsnap.GetSnapshotId();
       for (int i = 1; i < timer.Size(); i++)
         time_log << "\t" << timer.GetSeconds(i);
       time_log << endl;
