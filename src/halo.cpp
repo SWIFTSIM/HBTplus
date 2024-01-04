@@ -38,11 +38,13 @@ void create_MPI_Halo_Id_type(MPI_Datatype &MPI_HBTHalo_Id_t)
     blockcounts[i] = count;                                                                                            \
     i++;                                                                                                               \
   }
-  RegisterAttr(HaloId, MPI_HBT_INT, 1) RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3)
-    RegisterAttr(PhysicalAverageVelocity[0], MPI_HBT_REAL, 3) RegisterAttr(Mass, MPI_HBT_REAL, 1)
+  RegisterAttr(HaloId, MPI_HBT_INT, 1);
+  RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3);
+  RegisterAttr(PhysicalAverageVelocity[0], MPI_HBT_REAL, 3);
+  RegisterAttr(Mass, MPI_HBT_REAL, 1);
 // assert(offsets[i-1]-offsets[i-2]==sizeof(HBTReal)*3);//to make sure HBTxyz is stored locally.
 #undef RegisterAttr
-      assert(i == NumAttr);
+  assert(i == NumAttr);
 
   MPI_Type_create_struct(i, blockcounts, offsets, oldtypes,
                          &MPI_HBTHalo_Id_t); // some padding is added automatically by MPI as well

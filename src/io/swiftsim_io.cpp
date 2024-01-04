@@ -40,15 +40,21 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
     blockcounts[i] = count;                                                                                            \
     i++;                                                                                                               \
   }
-  RegisterAttr(NumberOfFiles, MPI_INT, 1) RegisterAttr(BoxSize, MPI_DOUBLE, 1) RegisterAttr(ScaleFactor, MPI_DOUBLE, 1)
-    RegisterAttr(OmegaM0, MPI_DOUBLE, 1) RegisterAttr(OmegaLambda0, MPI_DOUBLE, 1) RegisterAttr(h, MPI_DOUBLE, 1)
-      RegisterAttr(mass, MPI_DOUBLE, TypeMax) RegisterAttr(npart[0], MPI_INT, TypeMax)
-        RegisterAttr(npartTotal[0], MPI_HBT_INT, TypeMax) RegisterAttr(length_conversion, MPI_DOUBLE, 1)
-          RegisterAttr(mass_conversion, MPI_DOUBLE, 1) RegisterAttr(velocity_conversion, MPI_DOUBLE, 1)
-            RegisterAttr(energy_conversion, MPI_DOUBLE, 1) RegisterAttr(NullGroupId, MPI_INTEGER, 1)
+  RegisterAttr(NumberOfFiles, MPI_INT, 1);
+  RegisterAttr(BoxSize, MPI_DOUBLE, 1);
+  RegisterAttr(ScaleFactor, MPI_DOUBLE, 1) RegisterAttr(OmegaM0, MPI_DOUBLE, 1);
+  RegisterAttr(OmegaLambda0, MPI_DOUBLE, 1);
+  RegisterAttr(h, MPI_DOUBLE, 1) RegisterAttr(mass, MPI_DOUBLE, TypeMax);
+  RegisterAttr(npart[0], MPI_INT, TypeMax);
+  RegisterAttr(npartTotal[0], MPI_HBT_INT, TypeMax);
+  RegisterAttr(length_conversion, MPI_DOUBLE, 1);
+  RegisterAttr(mass_conversion, MPI_DOUBLE, 1);
+  RegisterAttr(velocity_conversion, MPI_DOUBLE, 1);
+  RegisterAttr(energy_conversion, MPI_DOUBLE, 1);
+  RegisterAttr(NullGroupId, MPI_INTEGER, 1);
 
 #undef RegisterAttr
-              assert(i <= NumAttr);
+  assert(i <= NumAttr);
 
   MPI_Type_create_struct(i, blockcounts, offsets, oldtypes, &dtype);
   MPI_Type_create_resized(dtype, (MPI_Aint)0, extent, &dtype);

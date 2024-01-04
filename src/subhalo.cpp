@@ -139,41 +139,56 @@ void SubhaloSnapshot_t::BuildMPIDataType()
     blockcounts[NumAttr] = count;                                                                                      \
     NumAttr++;                                                                                                         \
   }
-  RegisterAttr(TrackId, MPI_HBT_INT, 1) RegisterAttr(Nbound, MPI_HBT_INT, 1) RegisterAttr(Mbound, MPI_FLOAT, 1)
+  RegisterAttr(TrackId, MPI_HBT_INT, 1);
+  RegisterAttr(Nbound, MPI_HBT_INT, 1);
+  RegisterAttr(Mbound, MPI_FLOAT, 1);
 #ifndef DM_ONLY
-    RegisterAttr(NboundType, MPI_HBT_INT, TypeMax) RegisterAttr(MboundType, MPI_HBT_INT, TypeMax)
+  RegisterAttr(NboundType, MPI_HBT_INT, TypeMax);
+  RegisterAttr(MboundType, MPI_HBT_INT, TypeMax);
 #endif
-      RegisterAttr(HostHaloId, MPI_HBT_INT, 1) RegisterAttr(Rank, MPI_HBT_INT, 1) RegisterAttr(Depth, MPI_INT, 1)
-        RegisterAttr(LastMaxMass, MPI_FLOAT, 1) RegisterAttr(SnapshotIndexOfLastMaxMass, MPI_INT, 1)
-          RegisterAttr(SnapshotIndexOfLastIsolation, MPI_INT, 1) RegisterAttr(SnapshotIndexOfBirth, MPI_INT, 1)
-            RegisterAttr(SnapshotIndexOfDeath, MPI_INT, 1) RegisterAttr(SnapshotIndexOfSink, MPI_INT, 1)
-              RegisterAttr(RmaxComoving, MPI_FLOAT, 1) RegisterAttr(VmaxPhysical, MPI_FLOAT, 1)
-                RegisterAttr(LastMaxVmaxPhysical, MPI_FLOAT, 1) RegisterAttr(SnapshotIndexOfLastMaxVmax, MPI_INT, 1)
-                  RegisterAttr(R2SigmaComoving, MPI_FLOAT, 1) RegisterAttr(RHalfComoving, MPI_FLOAT, 1)
-                    RegisterAttr(BoundR200CritComoving, MPI_FLOAT, 1)
-    // RegisterAttr(R200MeanComoving, MPI_FLOAT, 1)
-    // RegisterAttr(RVirComoving, MPI_FLOAT, 1)
-    RegisterAttr(BoundM200Crit, MPI_FLOAT, 1)
-    // RegisterAttr(M200Mean, MPI_FLOAT, 1)
-    // RegisterAttr(MVir, MPI_FLOAT, 1)
-    RegisterAttr(SpecificSelfPotentialEnergy, MPI_FLOAT, 1) RegisterAttr(SpecificSelfKineticEnergy, MPI_FLOAT, 1)
-      RegisterAttr(SpecificAngularMomentum[0], MPI_FLOAT, 3)
-// RegisterAttr(SpinPeebles[0], MPI_FLOAT, 3)
-// RegisterAttr(SpinBullock[0], MPI_FLOAT, 3)
+  RegisterAttr(HostHaloId, MPI_HBT_INT, 1);
+  RegisterAttr(Rank, MPI_HBT_INT, 1);
+  RegisterAttr(Depth, MPI_INT, 1);
+  RegisterAttr(LastMaxMass, MPI_FLOAT, 1);
+  RegisterAttr(SnapshotIndexOfLastMaxMass, MPI_INT, 1);
+  RegisterAttr(SnapshotIndexOfLastIsolation, MPI_INT, 1);
+  RegisterAttr(SnapshotIndexOfBirth, MPI_INT, 1);
+  RegisterAttr(SnapshotIndexOfDeath, MPI_INT, 1);
+  RegisterAttr(SnapshotIndexOfSink, MPI_INT, 1);
+  RegisterAttr(RmaxComoving, MPI_FLOAT, 1);
+  RegisterAttr(VmaxPhysical, MPI_FLOAT, 1);
+  RegisterAttr(LastMaxVmaxPhysical, MPI_FLOAT, 1);
+  RegisterAttr(SnapshotIndexOfLastMaxVmax, MPI_INT, 1);
+  RegisterAttr(R2SigmaComoving, MPI_FLOAT, 1);
+  RegisterAttr(RHalfComoving, MPI_FLOAT, 1);
+  RegisterAttr(BoundR200CritComoving, MPI_FLOAT, 1);
+  // RegisterAttr(R200MeanComoving, MPI_FLOAT, 1);
+  // RegisterAttr(RVirComoving, MPI_FLOAT, 1);
+  RegisterAttr(BoundM200Crit, MPI_FLOAT, 1);
+  // RegisterAttr(M200Mean, MPI_FLOAT, 1);
+  // RegisterAttr(MVir, MPI_FLOAT, 1);
+  RegisterAttr(SpecificSelfPotentialEnergy, MPI_FLOAT, 1);
+  RegisterAttr(SpecificSelfKineticEnergy, MPI_FLOAT, 1);
+  RegisterAttr(SpecificAngularMomentum[0], MPI_FLOAT, 3);
+// RegisterAttr(SpinPeebles[0], MPI_FLOAT, 3);
+// RegisterAttr(SpinBullock[0], MPI_FLOAT, 3);
 #ifdef HAS_GSL
-        RegisterAttr(InertialEigenVector[0], MPI_FLOAT, 9) RegisterAttr(InertialEigenVectorWeighted[0], MPI_FLOAT, 9)
+  RegisterAttr(InertialEigenVector[0], MPI_FLOAT, 9);
+  RegisterAttr(InertialEigenVectorWeighted[0], MPI_FLOAT, 9);
 #endif
-          RegisterAttr(InertialTensor[0], MPI_FLOAT, 6) RegisterAttr(InertialTensorWeighted[0], MPI_FLOAT, 6)
+  RegisterAttr(InertialTensor[0], MPI_FLOAT, 6);
+  RegisterAttr(InertialTensorWeighted[0], MPI_FLOAT, 6);
+  RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3);
+  RegisterAttr(PhysicalAverageVelocity[0], MPI_HBT_REAL, 3);
+  RegisterAttr(ComovingMostBoundPosition[0], MPI_HBT_REAL, 3);
+  RegisterAttr(PhysicalMostBoundVelocity[0], MPI_HBT_REAL, 3);
 
-            RegisterAttr(ComovingAveragePosition[0], MPI_HBT_REAL, 3)
-              RegisterAttr(PhysicalAverageVelocity[0], MPI_HBT_REAL, 3)
-                RegisterAttr(ComovingMostBoundPosition[0], MPI_HBT_REAL, 3)
-                  RegisterAttr(PhysicalMostBoundVelocity[0], MPI_HBT_REAL, 3)
-                    assert(offsets[NumAttr - 1] - offsets[NumAttr - 2] ==
-                           sizeof(HBTReal) * 3); // to make sure HBTxyz is stored locally.
-  RegisterAttr(MostBoundParticleId, MPI_HBT_INT, 1) RegisterAttr(SinkTrackId, MPI_HBT_INT, 1)
+  assert(offsets[NumAttr - 1] - offsets[NumAttr - 2] == sizeof(HBTReal) * 3); // to make sure HBTxyz is stored locally.
+
+  RegisterAttr(MostBoundParticleId, MPI_HBT_INT, 1);
+  RegisterAttr(SinkTrackId, MPI_HBT_INT, 1);
 #undef RegisterAttr
-    assert(NumAttr <= MaxNumAttr);
+  assert(NumAttr <= MaxNumAttr);
 
   MPI_Type_create_struct(NumAttr, blockcounts, offsets, oldtypes, &MPI_HBT_SubhaloShell_t);
   MPI_Type_create_resized(MPI_HBT_SubhaloShell_t, (MPI_Aint)0, extent, &MPI_HBT_SubhaloShell_t);

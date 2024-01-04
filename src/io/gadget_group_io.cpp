@@ -331,12 +331,15 @@ struct FileAssignment_t
     blockcounts[i] = count;                                                                                            \
     i++;                                                                                                               \
   }
-    RegisterAttr(ifile_begin, MPI_INT, 1) RegisterAttr(ifile_end, MPI_INT, 1)
-      RegisterAttr(firstfile_begin_part, MPI_HBT_INT, 1) RegisterAttr(lastfile_end_part, MPI_HBT_INT, 1)
-        RegisterAttr(npart, MPI_HBT_INT, 1) RegisterAttr(haloid_begin, MPI_HBT_INT, 1)
-          RegisterAttr(nhalo, MPI_HBT_INT, 1)
+    RegisterAttr(ifile_begin, MPI_INT, 1);
+    RegisterAttr(ifile_end, MPI_INT, 1);
+    RegisterAttr(firstfile_begin_part, MPI_HBT_INT, 1);
+    RegisterAttr(lastfile_end_part, MPI_HBT_INT, 1);
+    RegisterAttr(npart, MPI_HBT_INT, 1);
+    RegisterAttr(haloid_begin, MPI_HBT_INT, 1);
+    RegisterAttr(nhalo, MPI_HBT_INT, 1);
 #undef RegisterAttr
-            assert(i == NumAttr);
+    assert(i == NumAttr);
 
     MPI_Type_create_struct(NumAttr, blockcounts, offsets, oldtypes, &dtype);
     MPI_Type_create_resized(dtype, (MPI_Aint)0, extent, &dtype);

@@ -36,13 +36,21 @@ void GadgetHeader_t::create_MPI_type(MPI_Datatype &dtype)
     blockcounts[i] = count;                                                                                            \
     i++;                                                                                                               \
   }
-  RegisterAttr(npart, MPI_INT, TypeMax) RegisterAttr(mass, MPI_DOUBLE, TypeMax) RegisterAttr(ScaleFactor, MPI_DOUBLE, 1)
-    RegisterAttr(redshift, MPI_DOUBLE, 1) RegisterAttr(flag_sfr, MPI_INT, 1) RegisterAttr(flag_feedback, MPI_INT, 1)
-      RegisterAttr(npartTotal, MPI_UNSIGNED, 1) RegisterAttr(flag_cooling, MPI_INT, 1)
-        RegisterAttr(num_files, MPI_INT, 1) RegisterAttr(BoxSize, MPI_DOUBLE, 1) RegisterAttr(OmegaM0, MPI_DOUBLE, 1)
-          RegisterAttr(OmegaLambda0, MPI_DOUBLE, 1) RegisterAttr(HubbleParam, MPI_DOUBLE, 1)
+  RegisterAttr(npart, MPI_INT, TypeMax);
+  RegisterAttr(mass, MPI_DOUBLE, TypeMax);
+  RegisterAttr(ScaleFactor, MPI_DOUBLE, 1);
+  RegisterAttr(redshift, MPI_DOUBLE, 1);
+  RegisterAttr(flag_sfr, MPI_INT, 1);
+  RegisterAttr(flag_feedback, MPI_INT, 1);
+  RegisterAttr(npartTotal, MPI_UNSIGNED, 1);
+  RegisterAttr(flag_cooling, MPI_INT, 1);
+  RegisterAttr(num_files, MPI_INT, 1);
+  RegisterAttr(BoxSize, MPI_DOUBLE, 1);
+  RegisterAttr(OmegaM0, MPI_DOUBLE, 1);
+  RegisterAttr(OmegaLambda0, MPI_DOUBLE, 1);
+  RegisterAttr(HubbleParam, MPI_DOUBLE, 1);
 #undef RegisterAttr
-            assert(i == NumAttr);
+  assert(i == NumAttr);
 
   MPI_Type_create_struct(NumAttr, blockcounts, offsets, oldtypes, &dtype);
   MPI_Type_create_resized(dtype, (MPI_Aint)0, extent, &dtype);

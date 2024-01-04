@@ -23,17 +23,19 @@ void create_Mpi_RemoteParticleType(MPI_Datatype &dtype)
     blockcounts[i] = count;                                                                                            \
     i++;                                                                                                               \
   }
-  RegisterAttr(Id, MPI_HBT_INT, 1) RegisterAttr(ComovingPosition, MPI_HBT_REAL, 3)
-    RegisterAttr(PhysicalVelocity, MPI_HBT_REAL, 3) RegisterAttr(Mass, MPI_HBT_REAL, 1)
+  RegisterAttr(Id, MPI_HBT_INT, 1);
+  RegisterAttr(ComovingPosition, MPI_HBT_REAL, 3);
+  RegisterAttr(PhysicalVelocity, MPI_HBT_REAL, 3);
+  RegisterAttr(Mass, MPI_HBT_REAL, 1);
 #ifndef DM_ONLY
 #ifdef HAS_THERMAL_ENERGY
-      RegisterAttr(InternalEnergy, MPI_HBT_REAL, 1)
+  RegisterAttr(InternalEnergy, MPI_HBT_REAL, 1);
 #endif
-        RegisterAttr(Type, MPI_INT, 1)
+  RegisterAttr(Type, MPI_INT, 1);
 #endif
-          RegisterAttr(Order, MPI_HBT_INT, 1)
+  RegisterAttr(Order, MPI_HBT_INT, 1);
 #undef RegisterAttr
-            assert(i <= NumAttr);
+  assert(i <= NumAttr);
 
   MPI_Type_create_struct(i, blockcounts, offsets, oldtypes, &dtype);
   MPI_Type_create_resized(dtype, (MPI_Aint)0, extent, &dtype);

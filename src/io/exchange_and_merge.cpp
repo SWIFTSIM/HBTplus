@@ -42,10 +42,12 @@ static void create_MPI_HaloInfo_t(MPI_Datatype &dtype)
     blockcounts[i] = count;                                                                                            \
     i++;                                                                                                               \
   }
-  RegisterAttr(id, MPI_HBT_INT, 1) RegisterAttr(m, MPI_HBT_REAL, 1) RegisterAttr(x[0], MPI_HBT_REAL, 3)
-    RegisterAttr(order, MPI_INT, 1)
+  RegisterAttr(id, MPI_HBT_INT, 1);
+  RegisterAttr(m, MPI_HBT_REAL, 1);
+  RegisterAttr(x[0], MPI_HBT_REAL, 3);
+  RegisterAttr(order, MPI_INT, 1);
 #undef RegisterAttr
-      assert(i <= NumAttr);
+  assert(i <= NumAttr);
 
   MPI_Type_create_struct(i, blockcounts, offsets, oldtypes, &dtype);
   MPI_Type_create_resized(dtype, (MPI_Aint)0, extent, &dtype);

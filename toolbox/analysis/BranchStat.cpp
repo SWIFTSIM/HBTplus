@@ -54,10 +54,12 @@ void ParticleBranch_t::create_MPI_dtype(MPI_Datatype &MPI_dtype)
     blockcounts[i] = count;                                                                                            \
     i++;                                                                                                               \
   }
-  RegisterAttr(ParticleId, MPI_HBT_INT, 1) RegisterAttr(BranchId, MPI_BranchIdType, 1) RegisterAttr(Index, MPI_INT, 1)
-    RegisterAttr(Index0, MPI_INT, 1)
+  RegisterAttr(ParticleId, MPI_HBT_INT, 1);
+  RegisterAttr(BranchId, MPI_BranchIdType, 1);
+  RegisterAttr(Index, MPI_INT, 1);
+  RegisterAttr(Index0, MPI_INT, 1);
 #undef RegisterAttr
-      assert(i == NumAttr);
+  assert(i == NumAttr);
 
   MPI_Type_create_struct(NumAttr, blockcounts, offsets, oldtypes,
                          &MPI_dtype); // some padding is added automatically by MPI as well
