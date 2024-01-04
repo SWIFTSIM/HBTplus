@@ -43,6 +43,7 @@ int main(int argc, char **argv)
 
   subsnap.Load(world, snapshot_start - 1, SubReaderDepth_t::SrcParticles);
 
+  /* Create the timing log file */
   Timer_t timer;
   ofstream time_log;
   if (world.rank() == 0)
@@ -51,6 +52,7 @@ int main(int argc, char **argv)
     time_log << fixed << setprecision(3);
   }
 
+  /* Main loop, iterate over chosen data outputs */
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
   {
     timer.Tick(world.Communicator);
@@ -67,10 +69,8 @@ int main(int argc, char **argv)
       HBTConfig.DumpParameters();
 
     timer.Tick(world.Communicator);
-    // 	cout<<"updating halo particles...\n";
     halosnap.UpdateParticles(world, partsnap);
     timer.Tick(world.Communicator);
-    // 	if(world.rank()==0) cout<<"updateing subsnap particles...\n";
     subsnap.UpdateParticles(world, partsnap);
 
     timer.Tick(world.Communicator);
@@ -92,6 +92,8 @@ int main(int argc, char **argv)
     subsnap.Save(world);
 
     timer.Tick(world.Communicator);
+
+    /* Save measured timing information */
     if (world.rank() == 0)
     {
       time_log << isnap << "\t" << subsnap.GetSnapshotId();
