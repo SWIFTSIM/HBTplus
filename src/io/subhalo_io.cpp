@@ -29,7 +29,8 @@ void SubhaloSnapshot_t::BuildHDFDataType()
 #endif
   H5Tclose(H5T_HBTIntArray_TypeMax);
   H5Tclose(H5T_FloatArray_TypeMax);
-  
+
+  InsertMember(TracerIndex, H5T_HBTInt);
   InsertMember(HostHaloId, H5T_HBTInt);
   InsertMember(Rank, H5T_HBTInt);
   InsertMember(Depth, H5T_NATIVE_INT);
