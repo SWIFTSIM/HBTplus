@@ -610,7 +610,7 @@ void SubhaloSnapshot_t::PurgeMostBoundParticles()
             if (&p != &subhalo.Particles[0])
             {
               copyHBTxyz(subhalo.ComovingMostBoundPosition, p.ComovingPosition);
-              copyHBTxyz(subhalo.PhysicalMostBoundVelocity, p.PhysicalVelocity);
+              copyHBTxyz(subhalo.PhysicalMostBoundVelocity, p.GetPhysicalVelocity());
               swap(subhalo.Particles[0], p);
               break;
             }
@@ -619,6 +619,28 @@ void SubhaloSnapshot_t::PurgeMostBoundParticles()
         for (auto &&p : subhalo.Particles)
           ExclusionList.insert(p.Id); // alternative: only filter most-bounds
       }
+    }
+  }
+}
+
+void SubhaloSnapshot_t::SetNestedParentIds()
+{
+
+  TrackKeyList_t Ids(*this);
+  MappedIndexTable_t<HBTInt, HBTInt> TrackHash;
+  TrackHash.Fill(Ids, SpecialConst::NullTrackId);
+
+  // Initialize all subhalos to no parent
+  for (auto &&subhalo : Subhalos)
+    subhalo.NestedParentTrackId = SpecialConst::NullTrackId;
+
+  // Use nesting info to set parent trackid
+  for (auto &&subhalo : Subhalos)
+  {
+    for (auto &nested_trackid : subhalo.NestedSubhalos)
+    {
+      HBTInt child_index = TrackHash.GetIndex(nested_trackid);
+      Subhalos[child_index].NestedParentTrackId = subhalo.TrackId;
     }
   }
 }
@@ -931,6 +953,7 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
         Subhalos[i].HostHaloId = halo_snap.Halos[HostId].HaloId; // restore global haloid
     }
     GlobalizeTrackReferences();
+    SetNestedParentIds();
   }
 #pragma omp parallel for if (ParallelizeHaloes)
   for (HBTInt i = 0; i < Subhalos.size(); i++)

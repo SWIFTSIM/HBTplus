@@ -76,7 +76,7 @@ public:
   {
     return Halos[index].ComovingAveragePosition;
   }
-  const HBTxyz &GetPhysicalVelocity(HBTInt index) const
+  const HBTxyz GetPhysicalVelocity(HBTInt index) const
   {
     return Halos[index].PhysicalAverageVelocity;
   }

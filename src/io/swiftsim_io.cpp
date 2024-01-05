@@ -1,6 +1,7 @@
 using namespace std;
 #include <iostream>
 #include <numeric>
+#include <cassert>
 // #include <iomanip>
 #include <assert.h>
 #include <chrono>
@@ -183,10 +184,12 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   unsigned int NumPart_Total_HighWord[NumPartTypes];
   ReadAttribute(file, "Header", "NumPart_Total_HighWord", H5T_NATIVE_UINT, NumPart_Total_HighWord);
   for (int i = 0; i < TypeMax; i++)
+  {
     if (i < NumPartTypes)
       Header.npartTotal[i] = (((unsigned long)NumPart_Total_HighWord[i]) << 32) | NumPart_Total[i];
     else
       Header.npartTotal[i] = 0;
+  }
 
   /* Read softening values used by SWIFT and convert them to internal HBT units */
   // NOTE: Whenever reading "Parameters", we need to use a string to load into.
@@ -255,7 +258,7 @@ static void check_id_size(hid_t loc)
   H5Dclose(dset);
 }
 
-void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
+void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count)
 {
   hid_t file = OpenFile(ifile);
   vector<int> np_this(TypeMax);
@@ -264,24 +267,41 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
   CompileOffsets(np_this, offset_this);
 
   HBTReal boxsize = Header.BoxSize;
+  auto ParticlesToRead = ParticlesInFile;
   for (int itype = 0; itype < TypeMax; itype++)
   {
-    int np = np_this[itype];
-    if (np == 0)
+
+    // Find the range of offsets in the file for particles of this type
+    HBTInt type_first_offset = offset_this[itype];
+    HBTInt type_last_offset = type_first_offset + np_this[itype] - 1;
+
+    // Find the range of offsets in the file we actually want to read
+    HBTInt read_first_offset = file_start;
+    HBTInt read_last_offset = file_start + file_count - 1;
+
+    // The overlap of these two ranges contains the particles we will read now.
+    HBTInt i1 = type_first_offset;
+    if (read_first_offset > i1)
+      i1 = read_first_offset;
+    HBTInt i2 = type_last_offset;
+    if (read_last_offset < i2)
+      i2 = read_last_offset;
+
+    // Compute range of particles of this type to read from this file
+    HBTInt read_offset = i1 - offset_this[itype];
+    HBTInt read_count = i2 - i1 + 1;
+    if (read_count <= 0)
       continue;
-    auto ParticlesThisType = ParticlesInFile + offset_this[itype];
+    assert(read_offset >= 0);
+    assert(read_offset + read_count <= np_this[itype]);
+
+    // Open the HDF5 group for this type
     stringstream grpname;
     grpname << "PartType" << itype;
-    const std::string &tmp = grpname.str();
-    const char *group_name = tmp.c_str();
-    if (!H5Lexists(file, group_name, H5P_DEFAULT))
-      continue;
-
     hid_t particle_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
     check_id_size(particle_data);
 
     const hsize_t chunksize = 10 * 1024 * 1024;
-    const hsize_t nr = (hsize_t)np;
 
     // Positions
     {
@@ -295,14 +315,14 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
       }
 
       // Read data in chunks to minimize memory overhead
-      for (hsize_t offset = 0; offset < nr; offset += chunksize)
+      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
       {
         // Read the next chunk
-        hsize_t count = nr - offset;
+        hsize_t count = read_count - offset; // number left to read
         if (count > chunksize)
           count = chunksize;
         vector<HBTxyz> x(count);
-        ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset, count);
+        ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset + read_offset, count);
         // Convert to HBT units
         for (hsize_t i = 0; i < count; i++)
           for (int j = 0; j < 3; j++)
@@ -317,7 +337,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
         // Store the particle positions
         for (hsize_t i = 0; i < count; i += 1)
           for (int j = 0; j < 3; j += 1)
-            ParticlesThisType[offset + i].ComovingPosition[j] = x[i][j];
+            ParticlesToRead[offset + i].ComovingPosition[j] = x[i][j];
       }
     }
 
@@ -327,33 +347,33 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
       ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
 
       // Read data in chunks to minimize memory overhead
-      for (hsize_t offset = 0; offset < nr; offset += chunksize)
+      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
       {
         // Read the next chunk
-        hsize_t count = nr - offset;
+        hsize_t count = read_count - offset;
         if (count > chunksize)
           count = chunksize;
         vector<HBTxyz> v(count);
-        ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset, count);
+        ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset + read_offset, count);
         // Convert units and store the particle velocities
         for (hsize_t i = 0; i < count; i += 1)
           for (int j = 0; j < 3; j += 1)
-            ParticlesThisType[offset + i].PhysicalVelocity[j] =
+            ParticlesToRead[offset + i].PhysicalVelocity[j] =
               v[i][j] * Header.velocity_conversion * pow(Header.ScaleFactor, aexp);
       }
     }
 
     // Ids
     {
-      for (hsize_t offset = 0; offset < nr; offset += chunksize)
+      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
       {
-        hsize_t count = nr - offset;
+        hsize_t count = read_count - offset;
         if (count > chunksize)
           count = chunksize;
         vector<HBTInt> id(count);
-        ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset, count);
+        ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset + read_offset, count);
         for (hsize_t i = 0; i < count; i += 1)
-          ParticlesThisType[offset + i].Id = id[i];
+          ParticlesToRead[offset + i].Id = id[i];
       }
     }
 
@@ -366,15 +386,15 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
       else
         name = "Masses";
       ReadAttribute(particle_data, name.c_str(), "a-scale exponent", H5T_HBTReal, &aexp);
-      for (hsize_t offset = 0; offset < nr; offset += chunksize)
+      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
       {
-        hsize_t count = nr - offset;
+        hsize_t count = read_count - offset;
         if (count > chunksize)
           count = chunksize;
         vector<HBTReal> m(count);
-        ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset, count);
+        ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset + read_offset, count);
         for (hsize_t i = 0; i < count; i += 1)
-          ParticlesThisType[offset + i].Mass = m[i] * Header.mass_conversion * pow(Header.ScaleFactor, aexp);
+          ParticlesToRead[offset + i].Mass = m[i] * Header.mass_conversion * pow(Header.ScaleFactor, aexp);
       }
     }
 
@@ -383,22 +403,36 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile)
 #ifdef HAS_THERMAL_ENERGY
     if (itype == 0)
     {
-      cout << "Reading internal energy from SWIFT not implemented yet!\n";
-      MPI_Abort(MPI_COMM_WORLD, 1);
+      HBTReal aexp;
+      ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
+      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
+      {
+        hsize_t count = read_count - offset;
+        if (count > chunksize)
+          count = chunksize;
+        vector<HBTReal> u(count);
+        ReadPartialDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data(), offset + read_offset, count);
+        for (hsize_t i = 0; i < count; i += 1)
+          ParticlesToRead[offset + i].InternalEnergy = u[i] * Header.energy_conversion * pow(Header.ScaleFactor, aexp);
+      }
     }
 #endif
     { // type
       ParticleType_t t = static_cast<ParticleType_t>(itype);
-      for (int i = 0; i < np; i++)
-        ParticlesThisType[i].Type = t;
+      for (hsize_t i = 0; i < read_count; i++)
+        ParticlesToRead[i].Type = t;
     }
 #endif
+
+    // Advance to next particle type
     H5Gclose(particle_data);
+    ParticlesToRead += read_count;
   }
   H5Fclose(file);
 }
 
-void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *ParticlesInFile, bool FlagReadParticleId)
+void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *ParticlesInFile, HBTInt file_start,
+                                          HBTInt file_count, bool FlagReadParticleId)
 {
   hid_t file = OpenFile(ifile);
   vector<int> np_this(TypeMax);
@@ -407,20 +441,39 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
   CompileOffsets(np_this, offset_this);
 
   HBTReal boxsize = Header.BoxSize;
+  auto ParticlesToRead = ParticlesInFile;
   for (int itype = 0; itype < TypeMax; itype++)
   {
-    int np = np_this[itype];
-    if (np == 0)
+    // Find the range of offsets in the file for particles of this type
+    HBTInt type_first_offset = offset_this[itype];
+    HBTInt type_last_offset = type_first_offset + np_this[itype] - 1;
+
+    // Find the range of offsets in the file we actually want to read
+    HBTInt read_first_offset = file_start;
+    HBTInt read_last_offset = file_start + file_count - 1;
+
+    // The overlap of these two ranges contains the particles we will read now.
+    HBTInt i1 = type_first_offset;
+    if (read_first_offset > i1)
+      i1 = read_first_offset;
+    HBTInt i2 = type_last_offset;
+    if (read_last_offset < i2)
+      i2 = read_last_offset;
+
+    // Compute range of particles of this type to read from this file
+    HBTInt read_offset = i1 - offset_this[itype];
+    HBTInt read_count = i2 - i1 + 1;
+    if (read_count <= 0)
       continue;
-    auto ParticlesThisType = ParticlesInFile + offset_this[itype];
+    assert(read_offset >= 0);
+    assert(read_offset + read_count <= np_this[itype]);
+
+    // Open the HDF5 group for this particle type
     stringstream grpname;
     grpname << "PartType" << itype;
-    if (!H5Lexists(file, grpname.str().c_str(), H5P_DEFAULT))
-      continue;
     hid_t particle_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
 
     const hsize_t chunksize = 10 * 1024 * 1024;
-    const hsize_t nr = (hsize_t)np;
 
     if (FlagReadParticleId)
     {
@@ -437,14 +490,14 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
         }
 
         // Read data in chunks to minimize memory overhead
-        for (hsize_t offset = 0; offset < nr; offset += chunksize)
+        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
         {
           // Read the next chunk
-          hsize_t count = nr - offset;
+          hsize_t count = read_count - offset;
           if (count > chunksize)
             count = chunksize;
           vector<HBTxyz> x(count);
-          ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset, count);
+          ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset + read_offset, count);
           // Convert to HBT units
           for (hsize_t i = 0; i < count; i++)
             for (int j = 0; j < 3; j++)
@@ -459,7 +512,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
           // Store the particle positions
           for (hsize_t i = 0; i < count; i += 1)
             for (int j = 0; j < 3; j += 1)
-              ParticlesThisType[offset + i].ComovingPosition[j] = x[i][j];
+              ParticlesToRead[offset + i].ComovingPosition[j] = x[i][j];
         }
       }
 
@@ -469,33 +522,33 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
         ReadAttribute(particle_data, "Velocities", "a-scale exponent", H5T_HBTReal, &aexp);
 
         // Read data in chunks to minimize memory overhead
-        for (hsize_t offset = 0; offset < nr; offset += chunksize)
+        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
         {
           // Read the next chunk
-          hsize_t count = nr - offset;
+          hsize_t count = read_count - offset;
           if (count > chunksize)
             count = chunksize;
           vector<HBTxyz> v(count);
-          ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset, count);
+          ReadPartialDataset(particle_data, "Velocities", H5T_HBTReal, v.data(), offset + read_offset, count);
           // Convert units and store the particle velocities
           for (hsize_t i = 0; i < count; i += 1)
             for (int j = 0; j < 3; j += 1)
-              ParticlesThisType[offset + i].PhysicalVelocity[j] =
+              ParticlesToRead[offset + i].PhysicalVelocity[j] =
                 v[i][j] * Header.velocity_conversion * pow(Header.ScaleFactor, aexp);
         }
       }
 
       // Ids
       {
-        for (hsize_t offset = 0; offset < nr; offset += chunksize)
+        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
         {
-          hsize_t count = nr - offset;
+          hsize_t count = read_count - offset;
           if (count > chunksize)
             count = chunksize;
           vector<HBTInt> id(count);
-          ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset, count);
+          ReadPartialDataset(particle_data, "ParticleIDs", H5T_HBTInt, id.data(), offset + read_offset, count);
           for (hsize_t i = 0; i < count; i += 1)
-            ParticlesThisType[offset + i].Id = id[i];
+            ParticlesToRead[offset + i].Id = id[i];
         }
       }
 
@@ -508,15 +561,15 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
         else
           name = "Masses";
         ReadAttribute(particle_data, name.c_str(), "a-scale exponent", H5T_HBTReal, &aexp);
-        for (hsize_t offset = 0; offset < nr; offset += chunksize)
+        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
         {
-          hsize_t count = nr - offset;
+          hsize_t count = read_count - offset;
           if (count > chunksize)
             count = chunksize;
           vector<HBTReal> m(count);
-          ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset, count);
+          ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset + read_offset, count);
           for (hsize_t i = 0; i < count; i += 1)
-            ParticlesThisType[offset + i].Mass = m[i] * Header.mass_conversion * pow(Header.ScaleFactor, aexp);
+            ParticlesToRead[offset + i].Mass = m[i] * Header.mass_conversion * pow(Header.ScaleFactor, aexp);
         }
       }
 
@@ -525,32 +578,44 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *Partic
 #ifdef HAS_THERMAL_ENERGY
       if (itype == 0)
       {
-        cout << "Reading internal energy from SWIFT not implemented yet!\n";
-        MPI_Abort(MPI_COMM_WORLD, 1);
+        HBTReal aexp;
+        ReadAttribute(particle_data, "InternalEnergies", "a-scale exponent", H5T_HBTReal, &aexp);
+        for (hsize_t offset = 0; offset < read_count; offset += chunksize)
+        {
+          hsize_t count = read_count - offset;
+          if (count > chunksize)
+            count = chunksize;
+          vector<HBTReal> u(count);
+          ReadPartialDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data(), offset + read_offset, count);
+          for (hsize_t i = 0; i < count; i += 1)
+            ParticlesToRead[offset + i].InternalEnergy =
+              u[i] * Header.energy_conversion * pow(Header.ScaleFactor, aexp);
+        }
       }
 #endif
       { // type
         ParticleType_t t = static_cast<ParticleType_t>(itype);
-        for (int i = 0; i < np; i++)
-          ParticlesThisType[i].Type = t;
+        for (int i = 0; i < read_count; i++)
+          ParticlesToRead[i].Type = t;
       }
 #endif
     }
 
     // Hostid
     {
-      for (hsize_t offset = 0; offset < nr; offset += chunksize)
+      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
       {
-        hsize_t count = nr - offset;
+        hsize_t count = read_count - offset;
         if (count > chunksize)
           count = chunksize;
         vector<HBTInt> id(count);
-        ReadPartialDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data(), offset, count);
+        ReadPartialDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data(), offset + read_offset, count);
         for (hsize_t i = 0; i < count; i += 1)
-          ParticlesThisType[offset + i].HostId =
-            (id[i] < 0 ? Header.NullGroupId : id[i]); // negative means outside fof but within Rv
+          ParticlesToRead[offset + i].HostId = id[i];
       }
     }
+    // Advance to next particle type
+    ParticlesToRead += read_count;
     H5Gclose(particle_data);
   }
   H5Fclose(file);
@@ -561,6 +626,12 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
 {
 
   MPI_Barrier(world.Communicator);
+
+  // Decide how many ranks per node read simultaneously
+  int nr_nodes = (world.size() / world.MaxNodeSize);
+  int nr_reading = HBTConfig.MaxConcurrentIO / nr_nodes;
+  if (nr_reading < 1)
+    nr_reading = 1; // Always at least one per node
 
   SetSnapshot(snapshotId);
 
@@ -578,6 +649,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
     cout << "Conversion factor from SWIFT velocity units to " << HBTConfig.VelInKmS
          << " km/s = " << Header.velocity_conversion << endl;
     cout << "Null group ID is " << Header.NullGroupId << endl;
+    cout << "Number of ranks per node reading simultaneously is " << nr_reading << endl;
   }
   MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
@@ -589,31 +661,122 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   HBTConfig.SofteningHalo = Header.DM_comoving_softening;
   HBTConfig.MaxPhysicalSofteningHalo = Header.DM_maximum_physical_softening;
 
-  HBTInt nfiles_skip, nfiles_end;
-  AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
-  {
-    HBTInt np = 0;
-    np = accumulate(np_file.begin() + nfiles_skip, np_file.begin() + nfiles_end, np);
-    Particles.resize(np);
-  }
+  // Decide how many particles this MPI rank will read
+  HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt)0);
+  HBTInt np_local = np_total / world.size();
+  if (world.rank() < (np_total % world.size()))
+    np_local += 1;
+#ifndef NDEBUG
+  HBTInt np_check;
+  MPI_Allreduce(&np_local, &np_check, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  assert(np_check == np_total);
+#endif
 
-  for (int i = 0, ireader = 0; i < world.size(); i++, ireader++)
+  // Determine offset to the first and last particle this rank will read
+  HBTInt local_first_offset;
+  MPI_Scan(&np_local, &local_first_offset, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  local_first_offset -= np_local;
+  HBTInt local_last_offset = local_first_offset + np_local - 1;
+  assert(local_first_offset >= 0);
+  assert(local_last_offset < np_total);
+
+  // Allocate storage for the particles
+  Particles.resize(np_local);
+
+  // Allow a limited number of ranks per node to read simultaneously
+  int reads_done = 0;
+  for (int rank_within_node = 0; rank_within_node < world.MaxNodeSize; rank_within_node += 1)
   {
-    if (ireader == HBTConfig.MaxConcurrentIO)
+    if (rank_within_node == world.NodeRank)
     {
-      ireader = 0;                     // reset reader count
-      MPI_Barrier(world.Communicator); // wait for every thread to arrive.
-    }
-    if (i == world.rank()) // read
-    {
-      for (int iFile = nfiles_skip; iFile < nfiles_end; iFile++)
+
+      // Loop over all files
+      HBTInt particle_offset = 0;
+      for (int file_nr = 0; file_nr < Header.NumberOfFiles; file_nr += 1)
       {
-        ReadSnapshot(iFile, Particles.data() + offset_file[iFile] - offset_file[nfiles_skip]);
-      }
-    }
-  }
 
-  MPI_Barrier(world.Communicator);
+        // Determine global offset of first particle to read from this file:
+        // This is the larger of the offset of the first particle in the file
+        // and the offset of the first particle this rank is to read.
+        HBTInt i1 = offset_file[file_nr];
+        if (local_first_offset > i1)
+          i1 = local_first_offset;
+
+        // Determine global offset of last particle to read from this file:
+        // This is the smaller of the offset to the last particle in this file
+        // and the offset of the last particle this rank is to read.
+        HBTInt i2 = offset_file[file_nr] + np_file[file_nr] - 1;
+        if (local_last_offset < i2)
+          i2 = local_last_offset;
+
+        if (i2 >= i1)
+        {
+          // We have particles to read from this file.
+          HBTInt file_start = i1 - offset_file[file_nr]; // Offset to first particle to read
+          HBTInt file_count = i2 - i1 + 1;               // Number of particles to read
+          assert(file_count > 0);
+          assert(file_start >= 0);
+          assert(file_start + file_count <= np_file[file_nr]);
+          ReadSnapshot(file_nr, Particles.data() + particle_offset, file_start, file_count);
+          particle_offset += file_count;
+        }
+      }                                    // Next file
+      assert(particle_offset == np_local); // Check we read the expected number of particles
+      reads_done += 1;
+    }
+    if (rank_within_node % nr_reading == nr_reading - 1)
+      MPI_Barrier(world.Communicator);
+  } // Next MPI rank within the node
+
+  // Every rank should have executed the reading code exactly once
+  assert(reads_done == 1);
+
+  // #define SNAPSHOT_IO_TEST
+#ifdef SNAPSHOT_IO_TEST
+  // For testing: dump the snapshot to a new set of files
+  // Generate test file name for this MPI  rank
+  stringstream formatter1;
+  formatter1 << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << snapshotId << "/"
+             << "test_" << setw(3) << setfill('0') << snapshotId << "." << world.rank() << ".hdf5";
+  string tfilename = formatter1.str();
+  // Create array of coordinates
+  double *pos = (double *)malloc(3 * sizeof(double) * np_local);
+  for (size_t i = 0; i < np_local; i += 1)
+  {
+    pos[3 * i + 0] = Particles[i].ComovingPosition[0];
+    pos[3 * i + 1] = Particles[i].ComovingPosition[1];
+    pos[3 * i + 2] = Particles[i].ComovingPosition[2];
+  }
+  // Create array of IDs
+  long long *ids = (long long *)malloc(sizeof(long long) * np_local);
+  for (size_t i = 0; i < np_local; i += 1)
+    ids[i] = Particles[i].Id;
+  // Create array of types
+  int *type = (int *)malloc(sizeof(int) * np_local);
+  for (size_t i = 0; i < np_local; i += 1)
+    type[i] = Particles[i].Type;
+
+  // Create the file
+  hid_t tfile = H5Fcreate(tfilename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  // Write out the data
+  hsize_t ndims;
+  hsize_t dims[2];
+  ndims = 2;
+  dims[0] = np_local;
+  dims[1] = 3;
+  writeHDFmatrix(tfile, pos, "Coordinates", ndims, dims, H5T_NATIVE_DOUBLE);
+  ndims = 1;
+  writeHDFmatrix(tfile, ids, "ParticleIDs", ndims, dims, H5T_NATIVE_LLONG);
+  writeHDFmatrix(tfile, type, "Types", ndims, dims, H5T_NATIVE_INT);
+
+  // Tidy up
+  H5Fclose(tfile);
+  free(pos);
+  free(ids);
+  free(type);
+
+#endif
 }
 
 inline bool CompParticleHost(const SwiftParticleHost_t &a, const SwiftParticleHost_t &b)
@@ -625,6 +788,12 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
 { // read in particle properties at the same time, to avoid particle look-up at later stage.
   SetSnapshot(snapshotId);
 
+  // Decide how many ranks per node read simultaneously
+  int nr_nodes = (world.size() / world.MaxNodeSize);
+  int nr_reading = HBTConfig.MaxConcurrentIO / nr_nodes;
+  if (nr_reading < 1)
+    nr_reading = 1; // Always at least one per node
+
   const int root = 0;
   if (world.rank() == root)
   {
@@ -635,30 +804,137 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
 
+  // Decide how many particles this MPI rank will read
+  HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt)0);
+  HBTInt np_local = np_total / world.size();
+  if (world.rank() < (np_total % world.size()))
+    np_local += 1;
+#ifndef NDEBUG
+  HBTInt np_check;
+  MPI_Allreduce(&np_local, &np_check, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  assert(np_check == np_total);
+#endif
+
+  // Determine offset to the first and last particle this rank will read
+  HBTInt local_first_offset;
+  MPI_Scan(&np_local, &local_first_offset, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+  local_first_offset -= np_local;
+  HBTInt local_last_offset = local_first_offset + np_local - 1;
+  assert(local_first_offset >= 0);
+  assert(local_last_offset < np_total);
+
+  // Allocate storage for the particles
   vector<SwiftParticleHost_t> ParticleHosts;
-  HBTInt nfiles_skip, nfiles_end;
-  AssignTasks(world.rank(), world.size(), Header.NumberOfFiles, nfiles_skip, nfiles_end);
-  {
-    HBTInt np = 0;
-    np = accumulate(np_file.begin() + nfiles_skip, np_file.begin() + nfiles_end, np);
-    ParticleHosts.resize(np);
-  }
+  ParticleHosts.resize(np_local);
+
   bool FlagReadId = true; //! HBTConfig.GroupLoadedIndex;
 
-  for (int i = 0, ireader = 0; i < world.size(); i++, ireader++)
+  // Allow a limited number of ranks per node to read simultaneously
+  int reads_done = 0;
+  for (int rank_within_node = 0; rank_within_node < world.MaxNodeSize; rank_within_node += 1)
   {
-    if (ireader == HBTConfig.MaxConcurrentIO)
+    if (rank_within_node == world.NodeRank)
     {
-      ireader = 0;                     // reset reader count
-      MPI_Barrier(world.Communicator); // wait for every thread to arrive.
-    }
-    if (i == world.rank()) // read
-    {
-      for (int iFile = nfiles_skip; iFile < nfiles_end; iFile++)
-        ReadGroupParticles(iFile, ParticleHosts.data() + offset_file[iFile] - offset_file[nfiles_skip], FlagReadId);
-    }
-  }
 
+      // Loop over all files
+      HBTInt particle_offset = 0;
+      for (int file_nr = 0; file_nr < Header.NumberOfFiles; file_nr += 1)
+      {
+
+        // Determine global offset of first particle to read from this file:
+        // This is the larger of the offset of the first particle in the file
+        // and the offset of the first particle this rank is to read.
+        HBTInt i1 = offset_file[file_nr];
+        if (local_first_offset > i1)
+          i1 = local_first_offset;
+
+        // Determine global offset of last particle to read from this file:
+        // This is the smaller of the offset to the last particle in this file
+        // and the offset of the last particle this rank is to read.
+        HBTInt i2 = offset_file[file_nr] + np_file[file_nr] - 1;
+        if (local_last_offset < i2)
+          i2 = local_last_offset;
+
+        if (i2 >= i1)
+        {
+          // We have particles to read from this file.
+          HBTInt file_start = i1 - offset_file[file_nr]; // Offset to first particle to read
+          HBTInt file_count = i2 - i1 + 1;               // Number of particles to read
+          assert(file_count > 0);
+          assert(file_start >= 0);
+          assert(file_start + file_count <= np_file[file_nr]);
+          ReadGroupParticles(file_nr, ParticleHosts.data() + particle_offset, file_start, file_count, FlagReadId);
+          particle_offset += file_count;
+        }
+      }                                    // Next file
+      assert(particle_offset == np_local); // Check we read the expected number of particles
+      reads_done += 1;
+    }
+    if (rank_within_node % nr_reading == nr_reading - 1)
+      MPI_Barrier(world.Communicator);
+  } // Next MPI rank within the node
+
+  // Every rank should have executed the reading code exactly once
+  assert(reads_done == 1);
+
+  // #define HALO_IO_TEST
+#ifdef HALO_IO_TEST
+  //
+  // For testing: dump the snapshot to a new set of files
+  //
+  // Generate test file name for this MPI  rank
+  stringstream formatter1;
+  formatter1 << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << snapshotId << "/"
+             << "test_halo_" << setw(3) << setfill('0') << snapshotId << "." << world.rank() << ".hdf5";
+  string tfilename = formatter1.str();
+  // Create array of coordinates
+  double *pos = (double *)malloc(3 * sizeof(double) * np_local);
+  for (size_t i = 0; i < np_local; i += 1)
+  {
+    pos[3 * i + 0] = ParticleHosts[i].ComovingPosition[0];
+    pos[3 * i + 1] = ParticleHosts[i].ComovingPosition[1];
+    pos[3 * i + 2] = ParticleHosts[i].ComovingPosition[2];
+  }
+  // Create array of IDs
+  long long *ids = (long long *)malloc(sizeof(long long) * np_local);
+  for (size_t i = 0; i < np_local; i += 1)
+    ids[i] = ParticleHosts[i].Id;
+  // Create array of types
+  int *type = (int *)malloc(sizeof(int) * np_local);
+  for (size_t i = 0; i < np_local; i += 1)
+    type[i] = ParticleHosts[i].Type;
+  // Create array of group indexes
+  int *fofnr = (int *)malloc(sizeof(int) * np_local);
+  for (size_t i = 0; i < np_local; i += 1)
+    fofnr[i] = ParticleHosts[i].HostId;
+
+  // Create the file
+  hid_t tfile = H5Fcreate(tfilename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  // Write out the data
+  hsize_t ndims;
+  hsize_t dims[2];
+  ndims = 2;
+  dims[0] = np_local;
+  dims[1] = 3;
+  writeHDFmatrix(tfile, pos, "Coordinates", ndims, dims, H5T_NATIVE_DOUBLE);
+  ndims = 1;
+  writeHDFmatrix(tfile, ids, "ParticleIDs", ndims, dims, H5T_NATIVE_LLONG);
+  writeHDFmatrix(tfile, type, "Types", ndims, dims, H5T_NATIVE_INT);
+  writeHDFmatrix(tfile, fofnr, "FoFNr", ndims, dims, H5T_NATIVE_INT);
+
+  // Tidy up
+  H5Fclose(tfile);
+  free(pos);
+  free(ids);
+  free(type);
+  free(fofnr);
+  //
+  // END OF TEST CODE
+  //
+#endif
+
+  // Sort particles by host
   sort(ParticleHosts.begin(), ParticleHosts.end(), CompParticleHost);
   if (!ParticleHosts.empty())
   {
@@ -709,17 +985,6 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
   VectorFree(ParticleHosts);
 
   ExchangeAndMerge(world, Halos);
-
-  //   cout<<Halos.size()<<" groups loaded";
-  //   if(Halos.size()) cout<<" : "<<Halos[0].Particles.size();
-  //   if(Halos.size()>1) cout<<","<<Halos[1].Particles.size()<<"...";
-  //   cout<<endl;
-
-  //   HBTInt np=0;
-  //   for(auto &&h: Halos)
-  //     np+=h.Particles.size();
-  //   MPI_Allreduce(MPI_IN_PLACE, &np, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
-  //   return np;
 
   HBTConfig.GroupLoadedFullParticle = true;
 }

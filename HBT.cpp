@@ -36,6 +36,12 @@ int main(int argc, char **argv)
     cout << ", each with " << omp_get_num_threads() << " threads";
 #endif
     cout << endl;
+    cout << "Configured with the following data type sizes (bytes):" << endl;
+    cout << "  Real quantities    : " << sizeof(HBTReal) << endl;
+    cout << "  Integer quantities : " << sizeof(HBTInt) << endl;
+    cout << "  Particle velocities: " << sizeof(HBTVelType) << endl;
+    cout << "  Particle masses    : " << sizeof(HBTMassType) << endl;
+    cout << "  Size of Particle_t : " << sizeof(Particle_t) << endl;
   }
   HBTConfig.BroadCast(world, 0, snapshot_start, snapshot_end);
 
@@ -72,6 +78,10 @@ int main(int argc, char **argv)
     halosnap.UpdateParticles(world, partsnap);
     timer.Tick(world.Communicator);
     subsnap.UpdateParticles(world, partsnap);
+    subsnap.UpdateMostBoundPosition(world, partsnap);
+
+    // Don't need the particle data after this point, so save memory
+    partsnap.ClearParticles();
 
     timer.Tick(world.Communicator);
     subsnap.AssignHosts(world, halosnap, partsnap);

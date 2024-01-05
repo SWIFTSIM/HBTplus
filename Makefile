@@ -43,6 +43,7 @@ src/particle_exchanger.o: src/snapshot.h src/particle_exchanger.h
 src/particle_exchanger.o: src/datatypes.h src/mymath.h src/mpi_wrapper.h
 src/particle_exchanger.o: src/halo_particle_iterator.h src/subhalo.h
 src/particle_exchanger.o: src/hash_remote.tpp src/hash.h src/hash.tpp
+src/subhalo_update_mostbound.o: src/datatypes.h src/subhalo.h src/particle_exchanger.h src/snapshot.h
 src/snapshot.o: src/snapshot.h src/mymath.h src/datatypes.h
 src/linkedlist.o: src/linkedlist.h src/mymath.h src/datatypes.h
 src/linkedlist.o: src/linkedlist_base.h src/snapshot.h
@@ -77,7 +78,7 @@ src/io/snapshot_io.o: src/snapshot.h src/config_parser.h
 src/io/snapshot_io.o: src/snapshot_number.h src/hash.h src/hash.tpp
 src/io/snapshot_io.o: src/mpi_wrapper.h src/mymath.h src/io/gadget_io.h
 src/io/snapshot_io.o: src/io/apostle_io.h src/hdf_wrapper.h src/halo.h
-src/io/snapshot_io.o: src/snapshot.h src/swiftsim_io.h
+src/io/snapshot_io.o: src/snapshot.h src/io/swiftsim_io.h
 src/io/gadget_io.o: src/snapshot.h src/datatypes.h src/mymath.h
 src/io/gadget_io.o: src/config_parser.h src/snapshot_number.h src/hash.h
 src/io/gadget_io.o: src/hash.tpp src/mpi_wrapper.h src/mymath.h

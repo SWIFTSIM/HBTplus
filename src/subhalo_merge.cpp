@@ -91,7 +91,7 @@ void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
   if (1 == sub.Nbound)
   {
     PhysicalSigmaV = 0.;
-    copyHBTxyz(PhysicalVelocity, sub.Particles[0].PhysicalVelocity);
+    copyHBTxyz(PhysicalVelocity, sub.Particles[0].GetPhysicalVelocity());
     return;
   }
 

@@ -54,8 +54,8 @@ struct Particle_t
 {
   HBTInt Id;
   HBTxyz ComovingPosition;
-  HBTxyz PhysicalVelocity;
-  HBTReal Mass;
+  HBTvel PhysicalVelocity;
+  HBTMassType Mass;
 #ifndef DM_ONLY
 #ifdef HAS_THERMAL_ENERGY
   HBTReal InternalEnergy;
@@ -71,6 +71,12 @@ struct Particle_t
   {
     return Id == other.Id;
   }
+  HBTxyz GetPhysicalVelocity() const
+  {
+    HBTxyz vel;
+    copyXYZ(vel, PhysicalVelocity);
+    return vel;
+  }
 };
 extern ostream &operator<<(ostream &o, Particle_t &p);
 
@@ -85,7 +91,7 @@ public:
     return index;
   }
   virtual const HBTxyz &GetComovingPosition(const HBTInt index) const = 0;
-  virtual const HBTxyz &GetPhysicalVelocity(const HBTInt index) const = 0;
+  virtual const HBTxyz GetPhysicalVelocity(const HBTInt index) const = 0;
   virtual HBTReal GetMass(const HBTInt index) const = 0;
   virtual HBTReal GetInternalEnergy(HBTInt index) const
   {
@@ -144,7 +150,7 @@ public:
   {
     return Snapshot.GetMass(Ids[i]);
   }
-  const HBTxyz &GetPhysicalVelocity(HBTInt i) const
+  const HBTxyz GetPhysicalVelocity(HBTInt i) const
   {
     return Snapshot.GetPhysicalVelocity(Ids[i]);
   }
@@ -190,6 +196,7 @@ public:
   }
   void FillParticleHash();
   void ClearParticleHash();
+  void ClearParticles();
 
   HBTInt size() const;
   HBTInt GetId(HBTInt index) const;
@@ -198,7 +205,7 @@ public:
   template <class ParticleIdList_t>
   void GetIndices(ParticleIdList_t &particles) const;
   const HBTxyz &GetComovingPosition(HBTInt index) const;
-  const HBTxyz &GetPhysicalVelocity(HBTInt index) const;
+  const HBTxyz GetPhysicalVelocity(HBTInt index) const;
   HBTReal GetMass(HBTInt index) const;
   HBTReal GetInternalEnergy(HBTInt index) const;
   ParticleType_t GetParticleType(HBTInt index) const;
@@ -233,9 +240,9 @@ inline const HBTxyz &ParticleSnapshot_t::GetComovingPosition(HBTInt index) const
 {
   return Particles[index].ComovingPosition;
 }
-inline const HBTxyz &ParticleSnapshot_t::GetPhysicalVelocity(HBTInt index) const
+inline const HBTxyz ParticleSnapshot_t::GetPhysicalVelocity(HBTInt index) const
 {
-  return Particles[index].PhysicalVelocity;
+  return Particles[index].GetPhysicalVelocity();
 }
 inline HBTReal ParticleSnapshot_t::GetMass(HBTInt index) const
 {

@@ -25,8 +25,8 @@ void create_Mpi_RemoteParticleType(MPI_Datatype &dtype)
   }
   RegisterAttr(Id, MPI_HBT_INT, 1);
   RegisterAttr(ComovingPosition, MPI_HBT_REAL, 3);
-  RegisterAttr(PhysicalVelocity, MPI_HBT_REAL, 3);
-  RegisterAttr(Mass, MPI_HBT_REAL, 1);
+  RegisterAttr(PhysicalVelocity, MPI_HBT_VEL, 3);
+  RegisterAttr(Mass, MPI_HBT_MASS, 1);
 #ifndef DM_ONLY
 #ifdef HAS_THERMAL_ENERGY
   RegisterAttr(InternalEnergy, MPI_HBT_REAL, 1);

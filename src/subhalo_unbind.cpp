@@ -107,9 +107,9 @@ public:
   {
     return Particles[GetParticle(i)].Mass * MassFactor;
   }
-  const HBTxyz &GetPhysicalVelocity(HBTInt i) const
+  const HBTxyz GetPhysicalVelocity(HBTInt i) const
   {
-    return Particles[GetParticle(i)].PhysicalVelocity;
+    return Particles[GetParticle(i)].GetPhysicalVelocity();
   }
   const HBTxyz &GetComovingPosition(HBTInt i) const
   {
@@ -135,7 +135,7 @@ public:
     for (i = 0; i < NumPart; i++)
     {
       HBTReal m = GetMass(i);
-      const HBTxyz &v = GetPhysicalVelocity(i);
+      const HBTxyz v = GetPhysicalVelocity(i);
       msum += m;
       svx += v[0] * m;
       svy += v[1] * m;
@@ -223,7 +223,7 @@ public:
       HBTReal m = GetMass(i);
       E += Elist[i].E * m;
       const HBTxyz &x = GetComovingPosition(i);
-      const HBTxyz &v = GetPhysicalVelocity(i);
+      const HBTxyz v = GetPhysicalVelocity(i);
       double dx[3], dv[3];
       for (int j = 0; j < 3; j++)
       {
@@ -262,8 +262,8 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
     {
       HBTInt pid = Elist[i].pid;
       Einner[i].pid = i;
-      Einner[i].E = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].PhysicalVelocity, RefPos, RefVel,
-                                       Particles[pid].Mass);
+      Einner[i].E = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
+                                       RefVel, Particles[pid].Mass);
     }
 #pragma omp single
     sort(Einner.begin(), Einner.end(), CompEnergy);
@@ -347,7 +347,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       {
         HBTInt pid = Elist[i].pid;
         auto &x = Particles[pid].ComovingPosition;
-        auto &v = Particles[pid].PhysicalVelocity;
+        auto v = Particles[pid].GetPhysicalVelocity();
         HBTxyz OldVel;
         epoch.RelativeVelocity(x, v, OldRefPos, OldRefVel, OldVel);
         Elist[i].E += VecDot(OldVel, RefVelDiff) + dK - tree.EvaluatePotential(x, 0);
@@ -374,8 +374,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           mass = ESnap.GetMass(i); // to correct for self-gravity
         else
           mass = 0.; // not sampled in tree, no self gravity to correct
-        Elist[i].E =
-          tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].PhysicalVelocity, RefPos, RefVel, mass);
+        Elist[i].E = tree.BindingEnergy(Particles[pid].ComovingPosition, Particles[pid].GetPhysicalVelocity(), RefPos,
+                                        RefVel, mass);
 #ifdef UNBIND_WITH_THERMAL_ENERGY
         Elist[i].E += Particles[pid].InternalEnergy;
 #endif
@@ -443,7 +443,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         Particles.swap(p);
         // update mostbound coordinate
         copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
-        copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
+        copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
         break;
       }
     }

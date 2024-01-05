@@ -162,8 +162,8 @@ void Particle_t::create_MPI_type(MPI_Datatype &dtype)
   }
   RegisterAttr(Id, MPI_HBT_INT, 1);
   RegisterAttr(ComovingPosition, MPI_HBT_REAL, 3);
-  RegisterAttr(PhysicalVelocity, MPI_HBT_REAL, 3);
-  RegisterAttr(Mass, MPI_HBT_REAL, 1);
+  RegisterAttr(PhysicalVelocity, MPI_HBT_VEL, 3);
+  RegisterAttr(Mass, MPI_HBT_MASS, 1);
 #ifndef DM_ONLY
 #ifdef HAS_THERMAL_ENERGY
   RegisterAttr(InternalEnergy, MPI_HBT_REAL, 1);
@@ -229,7 +229,7 @@ double AverageVelocity(HBTxyz &CoV, const Particle_t Particles[], HBTInt NumPart
     return 0.;
   if (1 == NumPart)
   {
-    copyHBTxyz(CoV, Particles[0].PhysicalVelocity);
+    copyHBTxyz(CoV, Particles[0].GetPhysicalVelocity());
     return Particles[0].Mass;
   }
 
@@ -240,8 +240,9 @@ double AverageVelocity(HBTxyz &CoV, const Particle_t Particles[], HBTInt NumPart
   {
     HBTReal m = Particles[i].Mass;
     msum += m;
+    HBTxyz vel = Particles[i].GetPhysicalVelocity();
     for (j = 0; j < 3; j++)
-      sv[j] += Particles[i].PhysicalVelocity[j] * m;
+      sv[j] += vel[j] * m;
   }
 
   for (j = 0; j < 3; j++)
@@ -360,8 +361,8 @@ void Snapshot_t::HaloVirialFactors(HBTReal &virialF_tophat, HBTReal &virialF_b20
   virialF_b200 = 200. * Cosmology.OmegaZ; // virialF w.r.t contemporary critical density
 }
 
-void ParticleSnapshot_t::Clear()
-/*reset to empty*/
+void ParticleSnapshot_t::ClearParticles()
+/*this allows us to clear the particle data when it's no longer needed*/
 {
 #define RESET(x, T)                                                                                                    \
   {                                                                                                                    \
@@ -369,6 +370,12 @@ void ParticleSnapshot_t::Clear()
   }
   RESET(Particles, Particle_t);
 #undef RESET
+}
+
+void ParticleSnapshot_t::Clear()
+/*reset to empty*/
+{
+  ClearParticles();
   ClearParticleHash(); // even if you don't do this, the destructor will still clean up the memory.
   //   cout<<NumberOfParticles<<" particles cleared from snapshot "<<SnapshotIndex<<endl;
   NumberOfParticlesOnAllNodes = 0;

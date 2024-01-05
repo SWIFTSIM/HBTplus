@@ -87,7 +87,8 @@ public:
   HBTInt MostBoundParticleId; // a shortcut to the first particle in Particles, for easier IO in GALFORM
 
   // for merging
-  HBTInt SinkTrackId; // the trackId it sinked to, -1 if it hasn't sunk.
+  HBTInt SinkTrackId;         // the trackId it sinked to, -1 if it hasn't sunk.
+  HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
 
   ParticleList_t Particles;
 #ifdef SAVE_BINDING_ENERGY
@@ -224,6 +225,7 @@ private:
   void FillDepthRecursive(HBTInt subid, int depth);
   void FillDepth();
   void MergeRecursive(HBTInt subid);
+  void SetNestedParentIds();
 
 public:
   SubhaloList_t Subhalos;
@@ -242,8 +244,11 @@ public:
   }
   ~SubhaloSnapshot_t()
   {
-    H5Tclose(H5T_SubhaloInDisk);
-    H5Tclose(H5T_SubhaloInMem);
+    // This destructor may be called after HDF5 and MPI have shut down
+    if (H5Iis_valid(H5T_SubhaloInDisk))
+      H5Tclose(H5T_SubhaloInDisk);
+    if (H5Iis_valid(H5T_SubhaloInMem))
+      H5Tclose(H5T_SubhaloInMem);
     My_Type_free(&MPI_HBT_SubhaloShell_t);
   }
   string GetSubDir();
@@ -257,6 +262,7 @@ public:
   }
   void UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snapshot);
   //   void ParticleIndexToId();
+  void UpdateMostBoundPosition(MpiWorker_t &world, const ParticleSnapshot_t &part_snap);
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
@@ -274,7 +280,7 @@ public:
   {
     return Subhalos[index].ComovingMostBoundPosition;
   }
-  const HBTxyz &GetPhysicalVelocity(HBTInt index) const
+  const HBTxyz GetPhysicalVelocity(HBTInt index) const
   {
     return Subhalos[index].PhysicalAverageVelocity;
   }

@@ -187,6 +187,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
 
   RegisterAttr(MostBoundParticleId, MPI_HBT_INT, 1);
   RegisterAttr(SinkTrackId, MPI_HBT_INT, 1);
+  RegisterAttr(NestedParentTrackId, MPI_HBT_INT, 1);
 #undef RegisterAttr
   assert(NumAttr <= MaxNumAttr);
 
@@ -238,7 +239,7 @@ void Subhalo_t::AverageCoordinates()
   if (Particles.size())
   {
     copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
-    copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
+    copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
   }
   AveragePosition(ComovingAveragePosition, Particles.data(), Nbound);
   AverageVelocity(PhysicalAverageVelocity, Particles.data(), Nbound);
@@ -526,8 +527,7 @@ HBTInt Subhalo_t::KickNullParticles()
   }
   Particles.resize(it_save - it_begin);
 
-  if (it != it_save)
-    cout << it - it_save << " outof " << np_old << " particles consumed for track " << TrackId << "\n";
+  // if(it!=it_save) cout<<it-it_save<<" outof "<<np_old<<" particles consumed for track "<<TrackId<<"\n";
   return it - it_save;
 #endif
 }
