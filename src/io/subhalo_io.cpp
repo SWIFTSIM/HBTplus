@@ -318,25 +318,28 @@ void SubhaloSnapshot_t::Save(MpiWorker_t &world)
 
 void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
 {
+  /* Create file */
   string filename;
   GetSubFileName(filename, iFile);
-  //   cout<<"Saving "<<Subhalos.size()<<" subhaloes to "<<filename<<"..."<<endl;
   hid_t file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
+  /* General I/O and subhalo number information */
   hsize_t ndim = 1, dim_atom[] = {1};
   writeHDFmatrix(file, &nfiles, "NumberOfFiles", ndim, dim_atom, H5T_NATIVE_INT);
   writeHDFmatrix(file, &SnapshotId, "SnapshotId", ndim, dim_atom, H5T_NATIVE_INT);
+  writeHDFmatrix(file, &MemberTable.NBirth, "NumberOfNewSubhalos", ndim, dim_atom, H5T_HBTInt);
+  writeHDFmatrix(file, &MemberTable.NFake, "NumberOfFakeHalos", ndim, dim_atom, H5T_HBTInt);
+  writeHDFmatrix(file, &NumSubsAll, "NumberOfSubhalosInAllFiles", ndim, dim_atom, H5T_HBTInt);
+
+  /* Cosmology information */
   hid_t cosmology = H5Gcreate2(file, "/Cosmology", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   writeHDFmatrix(cosmology, &Cosmology.OmegaM0, "OmegaM0", ndim, dim_atom, H5T_HBTReal);
   writeHDFmatrix(cosmology, &Cosmology.OmegaLambda0, "OmegaLambda0", ndim, dim_atom, H5T_HBTReal);
   writeHDFmatrix(cosmology, &Cosmology.Hz, "HubbleParam", ndim, dim_atom, H5T_HBTReal);
   writeHDFmatrix(cosmology, &Cosmology.ScaleFactor, "ScaleFactor", ndim, dim_atom, H5T_HBTReal);
   H5Gclose(cosmology);
-  writeHDFmatrix(file, &MemberTable.NBirth, "NumberOfNewSubhalos", ndim, dim_atom, H5T_HBTInt);
-  writeHDFmatrix(file, &MemberTable.NFake, "NumberOfFakeHalos", ndim, dim_atom, H5T_HBTInt);
-  writeHDFmatrix(file, &NumSubsAll, "NumberOfSubhalosInAllFiles", ndim, dim_atom, H5T_HBTInt); // for data verification
 
-  // Write unit information to the output file
+  /* Unit information */
   hid_t units = H5Gcreate2(file, "/Units", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   writeHDFmatrix(units, &HBTConfig.LengthInMpch, "LengthInMpch", ndim, dim_atom, H5T_HBTReal);
   writeHDFmatrix(units, &HBTConfig.MassInMsunh, "MassInMsunh", ndim, dim_atom, H5T_HBTReal);
