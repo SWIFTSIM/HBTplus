@@ -153,4 +153,7 @@ inline void writeHDFmatrix(hid_t file, const void *buf, const char *name, hsize_
 {
   writeHDFmatrix(file, buf, name, ndim, dims, dtype, dtype);
 }
+
+void writeStringAttribute(hid_t handle, const char *buf, const char *attr_name);
+
 #endif

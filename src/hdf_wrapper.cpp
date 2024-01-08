@@ -22,3 +22,21 @@ void writeHDFmatrix(hid_t file, const void *buf, const char *name, hsize_t ndim,
   H5Dclose(dataset);
   H5Sclose(dataspace);
 }
+
+/* Writes a string attribute in the specified file handle (e.g group, dataset, etc)*/
+void writeStringAttribute(hid_t handle, const char *buf, const char *attr_name)
+{
+  if (H5Aexists(handle, attr_name))
+    H5Adelete(handle, attr_name);
+
+  hid_t atype = H5Tcopy(H5T_C_S1);
+  herr_t status = H5Tset_size(atype, strlen(buf));
+
+  hid_t hdf5_dataspace = H5Screate(H5S_SCALAR);
+  hid_t hdf5_attribute = H5Acreate(handle, attr_name, atype, hdf5_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+
+  status = H5Awrite(hdf5_attribute, atype, buf);
+
+  status = H5Aclose(hdf5_attribute);
+  status = H5Sclose(hdf5_dataspace);
+}
