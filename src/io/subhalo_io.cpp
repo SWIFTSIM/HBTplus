@@ -346,6 +346,12 @@ void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
   writeHDFmatrix(units, &HBTConfig.VelInKmS, "VelInKmS", ndim, dim_atom, H5T_HBTReal);
   H5Gclose(units);
 
+  /* Version information */
+  hid_t header = H5Gcreate2(file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  writeStringAttribute(header, "Git_branch", GIT_BRANCH);
+  writeStringAttribute(header, "Git_commit", GIT_COMMIT_HASH);
+  H5Gclose(header);
+
   vector<hvl_t> vl(Subhalos.size());
   hsize_t dim_sub[] = {Subhalos.size()};
   // now write the particle list for each subhalo
