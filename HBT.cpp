@@ -25,6 +25,9 @@ int main(int argc, char **argv)
   int snapshot_start, snapshot_end;
   if (0 == world.rank())
   {
+    // Print information about the version being run.
+    cout << "HBT compiled using git branch: " << GIT_BRANCH << " and commit: " << GIT_COMMIT_HASH << endl;
+
     ParseHBTParams(argc, argv, HBTConfig, snapshot_start, snapshot_end);
     mkdir(HBTConfig.SubhaloPath.c_str(), 0755);
     HBTConfig.DumpParameters();

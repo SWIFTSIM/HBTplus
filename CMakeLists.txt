@@ -88,6 +88,24 @@ if(HBT_USE_GSL)
 endif(HBT_USE_GSL)
 
 #
+# Get the git branch and commit hash
+#
+execute_process( # BRANCH
+    COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process( # COMMIT HASH
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+add_definitions(-DGIT_BRANCH="${GIT_BRANCH}")
+
+#
 # List of HBT source files.
 # Headers are found automatically by cmake.
 #
