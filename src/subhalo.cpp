@@ -146,6 +146,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(NboundType, MPI_HBT_INT, TypeMax);
   RegisterAttr(MboundType, MPI_HBT_INT, TypeMax);
 #endif
+  RegisterAttr(TracerIndex, MPI_HBT_INT, 1);
   RegisterAttr(HostHaloId, MPI_HBT_INT, 1);
   RegisterAttr(Rank, MPI_HBT_INT, 1);
   RegisterAttr(Depth, MPI_INT, 1);
