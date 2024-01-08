@@ -19,5 +19,6 @@ Summary of additions/changes:
 - Ability to specify two different gravitational softening values, reflecting the commonplace use in cosmological simulations of a comoving and maximum physical softening values: *SofteningHalo* and *MaxPhysicalSofteningHalo*, respectively.
 - Automatic reading of gravitational softenings from SWIFT outputs, preventing the accidental use of incorrect values.
 - Parameters.log file now groups the values of related parameters together.
+- Compile-time git version information printed and saved to catalogues.
 
 **NOTE**: these are currently under development, and so caution is advised.
