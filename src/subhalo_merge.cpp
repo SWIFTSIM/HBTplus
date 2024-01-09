@@ -262,6 +262,14 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
   host.Nbound += Nbound;
 #endif
 
+  /* To keep using a collisionless tracer after merging the respective subhalo,
+   * we need to place it at the beginning of the particle array. */
+  swap(Particles[0], Particles[TracerIndex]);
+
+  // Update the location of the tracer
+  TracerIndex = 0;
+
+  /* Limit the particles to the tracer */
   Particles.resize(1);
   Nbound = 1;
   CountParticles();
