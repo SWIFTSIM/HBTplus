@@ -182,8 +182,15 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
     if (Subhalos[subid].Particles.size())
+    {
+      /* Be sure we do not try to access out-of-bounds memory */
+      assert(Subhalos[subid].TracerIndex >= 0);
+      assert(Subhalos[subid].TracerIndex < Subhalos[subid].Particles.size());
+
+      /* We can safely use the TracerIndex to retrieve tracer */
       Subhalos[subid].HostHaloId =
         GetLocalHostId(Subhalos[subid].Particles[Subhalos[subid].TracerIndex].Id, halo_snap, part_snap);
+    }
     else
       Subhalos[subid].HostHaloId = -1;
   }
