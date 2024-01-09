@@ -200,12 +200,14 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   ReadAttribute(file, "Parameters", "Gravity:max_physical_DM_softening", buf);
   Header.DM_maximum_physical_softening = stof(buf) * Header.length_conversion;
 
+#ifndef DM_ONLY
   // Baryonic softening
   ReadAttribute(file, "Parameters", "Gravity:comoving_baryon_softening", buf);
   Header.baryon_comoving_softening = stof(buf) * Header.length_conversion;
   ReadAttribute(file, "Parameters", "Gravity:max_physical_baryon_softening", buf);
   Header.baryon_maximum_physical_softening = stof(buf) * Header.length_conversion;
-
+#endif
+  
   H5Fclose(file);
 }
 
