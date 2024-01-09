@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "hdf_wrapper.h"
 
 void writeHDFmatrix(hid_t file, const void *buf, const char *name, hsize_t ndim, const hsize_t *dims, hid_t dtype,
