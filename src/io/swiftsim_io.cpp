@@ -23,7 +23,7 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
 {
   /*to create the struct data type for communication*/
   SwiftSimHeader_t p;
-#define NumAttr 14
+#define NumAttr 18
   MPI_Datatype oldtypes[NumAttr];
   int blockcounts[NumAttr];
   MPI_Aint offsets[NumAttr], origin, extent;
@@ -53,7 +53,11 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(velocity_conversion, MPI_DOUBLE, 1);
   RegisterAttr(energy_conversion, MPI_DOUBLE, 1);
   RegisterAttr(NullGroupId, MPI_INTEGER, 1);
-
+  RegisterAttr(DM_comoving_softening, MPI_DOUBLE, 1);
+  RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
+  RegisterAttr(baryon_comoving_softening, MPI_DOUBLE, 1);
+  RegisterAttr(baryon_maximum_physical_softening, MPI_DOUBLE, 1);
+  
 #undef RegisterAttr
   assert(i <= NumAttr);
 
