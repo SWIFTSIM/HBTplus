@@ -433,6 +433,10 @@ void Subhalo_t::CalculateShape()
 void Subhalo_t::CountParticleTypes()
 {
 #ifndef DM_ONLY
+
+  // Assume no tracer until we find one
+  TracerIndex = Nbound + 1;
+
   for (int itype = 0; itype < TypeMax; itype++)
   {
     NboundType[itype] = 0;
@@ -470,10 +474,6 @@ void Subhalo_t::CountParticleTypes()
   }
   else
   {
-    /* Initialise large value in this case, since OMP reduction operation
-     * handled that part in the other case. */
-    TracerIndex = Nbound + 1;
-
     auto end = Particles.begin() + Nbound;
     for (auto it = Particles.begin(); it != end; ++it)
     {
@@ -491,10 +491,13 @@ void Subhalo_t::CountParticleTypes()
           TracerIndex = it - Particles.begin();
     }
   }
-
+  
   /* We found no collisionless tracer in this subgroup. Use most bound particle
    * instead. */
   TracerIndex = (TracerIndex > Nbound) ? 0 : TracerIndex;
+#else
+  // Always use the first particle in DMO runs
+  TracerIndex = 0;
 #endif
 }
 
