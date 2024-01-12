@@ -661,6 +661,9 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
 
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
 
+  /* Assign the box size read in from the Header */
+  HBTConfig.BoxSize = Header.BoxSize;
+
   /* Use the softening values we read in from the Header */
   HBTConfig.SofteningHalo = Header.DM_comoving_softening;
   HBTConfig.MaxPhysicalSofteningHalo = Header.DM_maximum_physical_softening;
