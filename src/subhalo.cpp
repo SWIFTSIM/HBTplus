@@ -482,10 +482,6 @@ void Subhalo_t::CountParticleTypes()
   }
   else
   {
-    /* Initialise large value in this case, since OMP reduction operation
-     * handled that part in the other case. */
-    TracerIndex = Nbound + 1;
-
     auto end = Particles.begin() + Nbound;
     for (auto it = Particles.begin(); it != end; ++it)
     {
@@ -513,6 +509,9 @@ void Subhalo_t::CountParticleTypes()
 
   // Sanity check
   assert(TracerIndex != numeric_limits<HBTInt>::max());
+#else
+  // Always use the first particle in DMO runs
+  TracerIndex = 0;
 #endif
 }
 
