@@ -4,3 +4,27 @@ new particle query algorithm
 2) distribute halo in blocks
 3) compute location of halo using queried particles
 4) guess target node of unqueried particles, fetch particles to local buffer (can have a guessed buffer first)
+
+Victor: 
+
+1) Update TracerIndex when Subhalo_t::KickNullParticles is called. If particles 
+   more bound than the tracer get removed from the simulation, the value of 
+   TracerIndex should be lowered to reflect the updated particle array.
+2) Different particle limits: N_min_collisionless and N_min_total. Currently, 
+   N_min_collisionless = N_min_total = 20
+3) Merging criteria. Implement relative criteria. Also work with specified tracers 
+   (**dont use gas particles**). Use more than 1 most bound particle for the satellites 
+   (check if they are orphans)
+4) Diagnostic plots, with subfind and other halo finders as references. ROB
+5) Auto-testing
+6) Remove parameters that are read in from swiftsim snapshots (including units.)
+7) Implement baryonic softening.
+8)  Faster loading of subhaloes via a hash table. Currently outputting unsorted subhaloes.
+   Do it in the same way as swift does (top cell)? In TrackId ordering?
+9) Identify HBT information that could help speed up SOAP. See above.
+10) Add additional box wrapping after adding CoM offset with respect to a reference particle.
+    e.g. ParticleSnapshot_t::AveragePosition and AveragePosition (defined in snapshot.cpp)
+11) Update OldMostboundParticle using the TracerIndex.
+
+John:
+1) Check why merging fails in certain cases, within DMO runs.
