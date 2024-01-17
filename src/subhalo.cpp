@@ -3,6 +3,7 @@
 #include <new>
 #include <numeric>
 #include <omp.h>
+#include <limits>
 
 #include "datatypes.h"
 #include "snapshot_number.h"
@@ -434,8 +435,12 @@ void Subhalo_t::CountParticleTypes()
 {
 #ifndef DM_ONLY
 
-  // Assume no tracer until we find one
-  TracerIndex = Nbound + 1;
+  /* Used for finding TracerIndex for large (Nbound > 100) tracks */
+#pragma omp declare reduction(minPair:IndexParticleType_t : omp_out = firstIndex(omp_out, omp_in))                     \
+  initializer(omp_priv = IndexParticleType_t(numeric_limits<HBTInt>::max(), -1))
+
+  /* Initialise the value of the pair to identify specified tracer */
+  IndexParticleType_t Tracer_Index_ParticleType(numeric_limits<HBTInt>::max(), -1);
 
   for (int itype = 0; itype < TypeMax; itype++)
   {
@@ -448,7 +453,7 @@ void Subhalo_t::CountParticleTypes()
     {
       vector<HBTInt> nboundtype(TypeMax, 0);
       vector<float> mboundtype(TypeMax, 0.);
-#pragma omp for reduction(min : TracerIndex)
+#pragma omp for reduction(minPair : Tracer_Index_ParticleType)
       for (HBTInt i = 0; i < Nbound; i++)
       {
         auto &p = Particles[i];
@@ -460,9 +465,12 @@ void Subhalo_t::CountParticleTypes()
         /* Check whether we found a collisionless particle for the first time,
          * indicating we have reached the tentative most bound collisionless
          * tracer */
-        if (TracerIndex > Nbound)
-          if ((1 << itype) & HBTConfig.TracerParticleBitMask)
-            TracerIndex = i;
+        if (Tracer_Index_ParticleType.second == -1)           // No tracer yet
+          if ((1 << itype) & HBTConfig.TracerParticleBitMask) // Found tracer
+          {
+            Tracer_Index_ParticleType.first = i;
+            Tracer_Index_ParticleType.second = itype;
+          }
       }
 #pragma omp critical
       for (int i = 0; i < TypeMax; i++)
@@ -485,16 +493,22 @@ void Subhalo_t::CountParticleTypes()
       MboundType[itype] += p.Mass;
 
       /* Check whether we found a collisionless particle for the first time,
-       * indicating we have reached the most bound collisionless tracer */
-      if (TracerIndex > Nbound)
-        if ((1 << itype) & HBTConfig.TracerParticleBitMask)
-          TracerIndex = it - Particles.begin();
+       * indicating we have reached the tentative most bound collisionless
+       * tracer */
+      if (Tracer_Index_ParticleType.second == -1) // No tracer yet
+        if ((1 << itype) & HBTConfig.TracerParticleBitMask) // Found tracer
+        {
+          Tracer_Index_ParticleType.first = it - Particles.begin();
+          Tracer_Index_ParticleType.second = itype;
+        }
     }
   }
-  
-  /* We found no collisionless tracer in this subgroup. Use most bound particle
-   * instead. */
-  TracerIndex = (TracerIndex > Nbound) ? 0 : TracerIndex;
+
+  // If we found no tracer in this subgroup, default to the most bound particle.
+  TracerIndex = (Tracer_Index_ParticleType.second == -1) ? 0 : Tracer_Index_ParticleType.first;
+
+  // Sanity check
+  assert(TracerIndex != numeric_limits<HBTInt>::max());
 #else
   // Always use the first particle in DMO runs
   TracerIndex = 0;
