@@ -665,6 +665,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
 
   /* Assign the box size read in from the Header */
   HBTConfig.BoxSize = Header.BoxSize;
+  HBTConfig.BoxHalf = HBTConfig.BoxSize / 2;
 
   /* Use the softening values we read in from the Header */
   HBTConfig.SofteningHalo = Header.DM_comoving_softening;
