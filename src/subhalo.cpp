@@ -495,7 +495,7 @@ void Subhalo_t::CountParticleTypes()
       /* Check whether we found a collisionless particle for the first time,
        * indicating we have reached the tentative most bound collisionless
        * tracer */
-      if (Tracer_Index_ParticleType.second == -1) // No tracer yet
+      if (Tracer_Index_ParticleType.second == -1)           // No tracer yet
         if ((1 << itype) & HBTConfig.TracerParticleBitMask) // Found tracer
         {
           Tracer_Index_ParticleType.first = it - Particles.begin();
