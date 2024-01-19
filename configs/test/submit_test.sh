@@ -24,7 +24,7 @@ echo
 sed -i "s|hbt_output|$PWD\/test_output|g" config_test.txt
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-mpirun -np $SLURM_NTASKS ./test_build/HBT config_test.txt
+mpirun -np $SLURM_NTASKS ./build/HBT config_test.txt
 
 # Revert to the original value of the path
 sed -i "s|$PWD\/test_output|hbt_output|g" config_test.txt
