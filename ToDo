@@ -9,22 +9,32 @@ Victor:
 
 1) Update TracerIndex when Subhalo_t::KickNullParticles is called. If particles 
    more bound than the tracer get removed from the simulation, the value of 
-   TracerIndex should be lowered to reflect the updated particle array.
-2) Different particle limits: N_min_collisionless and N_min_total. Currently, 
-   N_min_collisionless = N_min_total = 20
-3) Merging criteria. Implement relative criteria. Also work with specified tracers 
-   (**dont use gas particles**). Use more than 1 most bound particle for the satellites 
-   (check if they are orphans)
-4) Diagnostic plots, with subfind and other halo finders as references. ROB
-5) Auto-testing
-6) Remove parameters that are read in from swiftsim snapshots (including units.)
-7) Implement baryonic softening.
-8)  Faster loading of subhaloes via a hash table. Currently outputting unsorted subhaloes.
-   Do it in the same way as swift does (top cell)? In TrackId ordering?
-9) Identify HBT information that could help speed up SOAP. See above.
-10) Add additional box wrapping after adding CoM offset with respect to a reference particle.
+   TracerIndex should be lowered to reflect the updated particle array. 
+   [IDEA, DEBUGGING: Also store the ID of the tracer index and then check if the expected and the current agree.]
+2)  Add additional box wrapping after adding CoM offset with respect to a reference particle.
     e.g. ParticleSnapshot_t::AveragePosition and AveragePosition (defined in snapshot.cpp)
-11) Update OldMostboundParticle using the TracerIndex.
+2) Auto-testing (plots, look out for number comparison). Transfer to Rob when I leave. 
+
+Rob:
+1) Diagnostic plots, with subfind and other halo finders as references.
+2) Make it so that the code crashes if the parameter values do not match those in swift snapshots.
+3) Implement baryonic softening. Not needed for COLIBRE or FLAMINGO; possibly for 
+   future zooms.
+4) [SOAP] Remove redundant sorts in radius.
 
 John:
-1) Check why merging fails in certain cases, within DMO runs.
+1) [NECESSARY:BIG DMO RUN] Check why merging fails in certain cases, within DMO runs.
+2) [NECESSARY:FLAMINGO] Merging bug fix: limit the particles used to measure position and velocity dispersions/values 
+   to be collisionless ones. At the moment, HBT uses any particle (including gas!) [FLAMI]
+3) [NECESSARY:FLAMINGO] Different particle limits: N_min_collisionless and N_min_total. Currently, 
+   N_min_collisionless = 0; N_min_total = 20. Simple approach, if we want to 
+   implement it, use N_min_collisionless = 20. Way to implement it is to check 
+   for the number of collisionless particles after doing the unbinding (e.g. Subhalo_t::CountParticleTypes)
+4) [NECESSARY:FLAMINGO] Update OldMostboundParticle using the TracerIndex.(Unbinding: see auto OldMostboundParticle =      Particles[0];). 
+5) Merging criteria: Use all collisionless particles up to a maximum specified one 
+   (parameter). Use the same value for the satellites.
+5) (NON-SOAP/Evolutionary-history) Faster loading of subhaloes via a hash table. Currently outputting unsorted subhaloes.
+   Do it in the same way as swift does (top cell)? In TrackId ordering?
+6) (NON-SOAP/Evolutionary-history) Make it so that it saves subhalo properties as an array of structures, rather than 
+   a structure of arrays. At the moment, it needs to read all the properties, rather than single ones. 
+7)  Speed up I/O by no relying on loading particle data twice. 
