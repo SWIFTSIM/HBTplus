@@ -129,10 +129,10 @@ void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
   PhysicalSigmaV = sqrt(sx2[0] + sx2[1] + sx2[2]);
 }
 
-float SinkDistance(const Subhalo_t &sat, const SubHelper_t &cen)
+float SinkDistance(const SubHelper_t &sat, const SubHelper_t &cen)
 {
-  float d = PeriodicDistance(cen.ComovingPosition, sat.ComovingMostBoundPosition);
-  float v = Distance(cen.PhysicalVelocity, sat.PhysicalMostBoundVelocity);
+  float d = PeriodicDistance(cen.ComovingPosition, sat.ComovingPosition);
+  float v = Distance(cen.PhysicalVelocity, sat.PhysicalVelocity);
   return d / cen.ComovingSigmaR + v / cen.PhysicalSigmaV;
 }
 
@@ -149,7 +149,7 @@ void DetectTraps(vector<Subhalo_t> &Subhalos, vector<SubHelper_t> &Helpers, int 
     {
       if (Subhalos[HostId].Nbound > 1) // avoid orphans or nulls as hosts
       {
-        float delta = SinkDistance(Subhalos[i], Helpers[HostId]);
+        float delta = SinkDistance(Helpers[i], Helpers[HostId]);
         if (delta < DeltaCrit)
         {
           Subhalos[i].SinkTrackId =
