@@ -1,6 +1,11 @@
 include_directories(../src/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+# Helper functions available for use in all unit tests
+add_library(testfuncs OBJECT
+  make_test_subhalo.cpp
+)
+
 #
 # Loop over unit tests to build and run. To add a new test:
 #
@@ -23,7 +28,7 @@ foreach(TEST_NAME
     test_build_pos_vel
   )
 
-  add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs>)
+  add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
   target_link_libraries(${TEST_NAME} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
   add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 
