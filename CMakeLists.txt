@@ -110,7 +110,6 @@ add_definitions(-DGIT_BRANCH="${GIT_BRANCH}")
 # Headers are found automatically by cmake.
 #
 set(HBT_SRC 
-  HBT.cpp
   src/config_parser.cpp
   src/geometric_tree.cpp
   src/gravity_tree.cpp
@@ -163,9 +162,15 @@ hbt_option(HBT_REAL4_MASS              HBT_REAL4_MASS          "Enable to store 
 hbt_option(HBT_UNBIND_WITH_THERMAL_ENERGY UNBIND_WITH_THERMAL_ENERGY "Enable use of thermal energy when unbinding" OFF)
 
 #
+# Make an object library with all HBT source files except the top level program.
+# This makes a bundle of .o files which we can reuse when compiling unit tests.
+#
+add_library(hbtfuncs OBJECT ${HBT_SRC})
+
+#
 # HBT executable
 #
-add_executable(HBT ${HBT_SRC})
+add_executable(HBT HBT.cpp $<TARGET_OBJECTS:hbtfuncs>)
 target_link_libraries(HBT ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
 
 #
