@@ -35,7 +35,7 @@ void make_test_subhalo(std::mt19937 &rng,
       r2 = 0.0;
       for(int j=0; j<3; j+=1) {
         HBTReal x = vel_dist(rng);
-        sub.Particles[i].PhysicalVelocity[j] = vel[i]+x;
+        sub.Particles[i].PhysicalVelocity[j] = vel[j]+x;
         r2 += x*x;
       }
     } while(r2 >= vel_range*vel_range);
@@ -44,9 +44,9 @@ void make_test_subhalo(std::mt19937 &rng,
   // Set particle IDs, masses, type
   for(HBTInt i=0; i<nr_particles; i+=1) {
 #ifndef DM_ONLY
-    sub.Particles[i].Mass = 1.0;
     sub.Particles[i].Type = 1;
 #endif
+    sub.Particles[i].Mass = 1.0;
     sub.Particles[i].Id = i;
   }
 
@@ -67,7 +67,7 @@ void make_test_subhalo(std::mt19937 &rng,
   // Shift halo to specified coordinates
   for(HBTInt i=0; i<nr_particles; i+=1) {
     for(int j=0; j<3; j+=1) {
-      sub.Particles[i].ComovingPosition[j] += pos[i];
+      sub.Particles[i].ComovingPosition[j] += pos[j];
     }
   }
 

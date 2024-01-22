@@ -11,21 +11,6 @@
 #define NumPartCoreMax 20
 #define DeltaCrit 2.
 
-struct SubHelper_t
-{
-  HBTInt HostTrackId;
-  bool IsMerged;
-  HBTxyz ComovingPosition;
-  HBTxyz PhysicalVelocity;
-  float ComovingSigmaR;
-  float PhysicalSigmaV;
-  void BuildPosition(const Subhalo_t &sub);
-  void BuildVelocity(const Subhalo_t &sub);
-  SubHelper_t() : HostTrackId(-1), IsMerged(false)
-  {
-  }
-};
-
 void SubHelper_t::BuildPosition(const Subhalo_t &sub)
 {
   // Compute position of a halo using the most bound NumPartCoreMax tracer
@@ -72,7 +57,7 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
         const int is_tracer = sub.Particles[i].IsTracer();        
         // First pass: use tracers only
         // Second pass: use non-tracers only
-        if((is_tracer && (pass_nr==0)) || (!is_tracer && (pass_nr==1))) {
+        if((is_tracer && (pass_nr==0)) || ((!is_tracer) && (pass_nr==1))) {
 
           NumPart += 1;
           HBTReal m = sub.Particles[i].Mass;

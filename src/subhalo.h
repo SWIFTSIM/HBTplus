@@ -326,4 +326,20 @@ public:
     return i;
   }
 };
+
+struct SubHelper_t
+{
+  HBTInt HostTrackId;
+  bool IsMerged;
+  HBTxyz ComovingPosition;
+  HBTxyz PhysicalVelocity;
+  float ComovingSigmaR;
+  float PhysicalSigmaV;
+  void BuildPosition(const Subhalo_t &sub);
+  void BuildVelocity(const Subhalo_t &sub);
+  SubHelper_t() : HostTrackId(-1), IsMerged(false)
+  {
+  }
+};
+
 #endif
