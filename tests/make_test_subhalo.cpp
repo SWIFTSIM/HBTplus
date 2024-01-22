@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <cassert>
 
 #include "subhalo.h"
 #include "make_test_subhalo.h"
@@ -77,6 +78,8 @@ void make_test_subhalo(std::mt19937 &rng,
       for(int j=0; j<3; j+=1) {
         if(sub.Particles[i].ComovingPosition[j] < 0.0)sub.Particles[i].ComovingPosition[j] += HBTConfig.BoxSize;
         if(sub.Particles[i].ComovingPosition[j] >= HBTConfig.BoxSize)sub.Particles[i].ComovingPosition[j] -= HBTConfig.BoxSize;
+        assert(sub.Particles[i].ComovingPosition[j] >= 0);
+        assert(sub.Particles[i].ComovingPosition[j] < HBTConfig.BoxSize);        
       }
     }
   }
