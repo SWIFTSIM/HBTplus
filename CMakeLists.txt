@@ -10,6 +10,7 @@ cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 project(hbtplus)
 enable_language(C)
 enable_language(CXX)
+include(CTest)
 
 #
 # Set default build mode to Release
@@ -193,3 +194,6 @@ mark_as_advanced(CMAKE_INSTALL_PREFIX)
 mark_as_advanced(CLEAR CMAKE_CXX_FLAGS)
 mark_as_advanced(CLEAR CMAKE_CXX_FLAGS_RELEASE)
 mark_as_advanced(CLEAR CMAKE_CXX_FLAGS_DEBUG)
+
+# Add unit tests directory
+add_subdirectory(./tests)
