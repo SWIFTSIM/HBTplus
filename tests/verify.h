@@ -1,6 +1,6 @@
 #include <string>
 
-void verify_failed(std::string message, std::string filename, int line);
+void verify_failed(const std::string &message, const std::string &filename, const int line);
 
 /*
   Abort with a message if condition x is not true.
