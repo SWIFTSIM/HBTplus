@@ -77,6 +77,14 @@ struct Particle_t
     copyXYZ(vel, PhysicalVelocity);
     return vel;
   }
+  int IsTracer() const
+  {
+#ifdef DM_ONLY
+    return 1;
+#else
+    return (1 << Type) & HBTConfig.HBTConfig.TracerParticleBitMask;
+#endif
+  }
 };
 extern ostream &operator<<(ostream &o, Particle_t &p);
 
