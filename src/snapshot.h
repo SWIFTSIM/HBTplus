@@ -82,7 +82,7 @@ struct Particle_t
 #ifdef DM_ONLY
     return 1;
 #else
-    return (1 << Type) & HBTConfig.HBTConfig.TracerParticleBitMask;
+    return (1 << Type) & HBTConfig.TracerParticleBitMask;
 #endif
   }
 };

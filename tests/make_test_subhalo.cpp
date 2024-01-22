@@ -45,7 +45,7 @@ void make_test_subhalo(std::mt19937 &rng,
   // Set particle IDs, masses, type
   for(HBTInt i=0; i<nr_particles; i+=1) {
 #ifndef DM_ONLY
-    sub.Particles[i].Type = 1;
+    sub.Particles[i].Type = TypeDM;
 #endif
     sub.Particles[i].Mass = 1.0;
     sub.Particles[i].Id = i;
