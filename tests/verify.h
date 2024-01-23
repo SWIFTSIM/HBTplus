@@ -1,3 +1,6 @@
+#ifndef VERIFY_H
+#define VERIFY_H
+
 #include <string>
 
 void verify_failed(const std::string &message, const std::string &filename, const int line);
@@ -7,3 +10,5 @@ void verify_failed(const std::string &message, const std::string &filename, cons
   This is like assert() but is not disabled in Release mode.
 */
 #define verify(X) if (!(X)) verify_failed( #X , __FILE__ , __LINE__)
+
+#endif

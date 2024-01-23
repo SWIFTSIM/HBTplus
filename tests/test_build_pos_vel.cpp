@@ -6,6 +6,7 @@
 #include "make_test_subhalo.h"
 #include "verify.h"
 #include "periodic_distance.h"
+#include "fractional_difference.h"
 
 // This needs to match the value in subhalo_merge.cpp
 #define NumPartCoreMax 20
@@ -29,7 +30,7 @@ int main(int argc, char* argv[])
   const HBTxyz pos = {10.0, 10.0, 10.0};
   const HBTReal radius = 2.0;
   const HBTxyz vel = {20.0, 20.0, 20.0};
-  const HBTReal vel_range = 1.0;
+  const HBTReal vel_range = 30.0;
   const double tracer_fraction = 0.1;
 #ifndef DM_ONLY
   std::uniform_real_distribution<double> is_tracer(0.0, 1.0);
@@ -106,15 +107,20 @@ int main(int argc, char* argv[])
         // Compute the position and velocity
         double msum = 0.0;
         double mxsum[3] = {0.0, 0.0, 0.0};
+        double mx2sum[3] = {0.0, 0.0, 0.0};
         double mvsum[3] = {0.0, 0.0, 0.0};
+        double mv2sum[3] = {0.0, 0.0, 0.0};
         HBTxyz ref = sub.Particles[0].ComovingPosition;
         for(auto i: part_index) {
           const Particle_t &p = sub.Particles[i];
-          msum += p.Mass;
+          double m = p.Mass;
+          msum += m;
           HBTxyz wrapped = wrap_position(ref, p.ComovingPosition, HBTConfig.BoxSize);
           for(int j=0; j<3; j+=1) {
-            mxsum[j] += p.Mass*wrapped[j];
-            mvsum[j] += p.Mass*p.PhysicalVelocity[j];
+            mxsum[j] += m*wrapped[j];
+            mx2sum[j] += m*wrapped[j]*wrapped[j];            
+            mvsum[j] += m*p.PhysicalVelocity[j];
+            mv2sum[j] += m*p.PhysicalVelocity[j]*p.PhysicalVelocity[j];            
           }
         }
         HBTxyz check_pos;
@@ -126,7 +132,19 @@ int main(int argc, char* argv[])
         verify(periodic_distance(subhelper.ComovingPosition, check_pos, HBTConfig.BoxSize) < 1.0e-5);        
         for(int j=0; j<3; j+=1) {
           verify(fabs(check_vel[j]-subhelper.PhysicalVelocity[j]) < 1.0e-5);
-        }  
+        }
+
+        // Check the uncertainty on the position and velocity
+        for(int j=0; j<3; j+=1) {
+          mx2sum[j] /= msum;
+          mx2sum[j] -= (mxsum[j]*mxsum[j]) / (msum*msum);
+          mv2sum[j] /= msum;
+          mv2sum[j] -= (mvsum[j]*mvsum[j]) / (msum*msum);
+        }
+        double check_sigma_r = sqrt(mx2sum[0]+mx2sum[1]+mx2sum[2]);
+        verify(fractional_difference(check_sigma_r, subhelper.ComovingSigmaR) < 1.0e-5);        
+        double check_sigma_v = sqrt(mv2sum[0]+mv2sum[1]+mv2sum[2]);
+        verify(fractional_difference(check_sigma_v, subhelper.PhysicalSigmaV) < 1.0e-5);        
       }
     }
   }
