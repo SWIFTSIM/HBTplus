@@ -123,6 +123,8 @@ void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
         // First pass: use tracers only
         // Second pass: use non-tracers only
         if((is_tracer && (pass_nr==0)) || (!is_tracer && (pass_nr==1))) {
+
+          NumPart += 1;
           HBTReal m = sub.Particles[i].Mass;
           msum += m;
           for (int j = 0; j < 3; j++)
@@ -136,7 +138,7 @@ void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
         if(NumPart==NumPartCoreMax)break;
         // Next particle in subhalo
       }
-        if(NumPart==NumPartCoreMax)break;
+    if(NumPart==NumPartCoreMax)break;
     // Next pass
   }
   
