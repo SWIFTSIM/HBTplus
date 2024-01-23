@@ -1,5 +1,6 @@
 #include <random>
 #include <iostream>
+#include <cmath>
 
 #include "config_parser.h"
 #include "make_test_subhalo.h"
@@ -28,7 +29,7 @@ int main(int argc, char* argv[])
   const HBTxyz pos = {10.0, 10.0, 10.0};
   const HBTReal radius = 2.0;
   const HBTxyz vel = {20.0, 20.0, 20.0};
-  const HBTReal vel_range = 50.0;
+  const HBTReal vel_range = 1.0;
   const double tracer_fraction = 0.1;
 #ifndef DM_ONLY
   std::uniform_real_distribution<double> is_tracer(0.0, 1.0);
@@ -73,45 +74,61 @@ int main(int argc, char* argv[])
   
         // Check that the resulting velocity is vaguely sane
         for(int i=0; i<3; i+=1) {
-          verify(subhelper.PhysicalVelocity[i] > vel[i] - vel_range);
-          verify(subhelper.PhysicalVelocity[i] < vel[i] + vel_range);
+          verify(subhelper.PhysicalVelocity[i] >= vel[i] - vel_range);
+          verify(subhelper.PhysicalVelocity[i] <= vel[i] + vel_range);
         }
+
+        // The uncertainty on the position should be less than the size of the halo
+        verify(subhelper.ComovingSigmaR <= radius);
+        verify(subhelper.PhysicalSigmaV <= vel_range);
         
-        // Now do a more accurate check
-        // In the hydro case we use the tracers first, then others if we still need more particles.
+        // To do more accurate checks we need to determine which particles
+        // should have been used for the calculations. First store the indexes
+        // of tracer type particles.
+        vector<int> part_index(0);
+        int NumPart = 0;
+        for(int i=0; i<sub.Particles.size(); i+=1) {
+          if(NumPart == NumPartCoreMax)break;
+          if(sub.Particles[i].IsTracer()) {
+            part_index.push_back(i);
+            NumPart += 1;
+          }
+        }
+        // Then make up any shortfall with non-tracers
+        for(int i=0; i<sub.Particles.size(); i+=1) {
+          if(NumPart == NumPartCoreMax)break;
+          if(!sub.Particles[i].IsTracer()) {
+            part_index.push_back(i);
+            NumPart += 1;
+          }
+        }
+
+        // Compute the position and velocity
         double msum = 0.0;
         double mxsum[3] = {0.0, 0.0, 0.0};
+        double mvsum[3] = {0.0, 0.0, 0.0};
         HBTxyz ref = sub.Particles[0].ComovingPosition;
-        HBTInt NumPart = 0;
-        for(auto &p : sub.Particles) {
-          if(NumPart == NumPartCoreMax)break;
-          if(p.IsTracer()) {
-            msum += p.Mass;
-            HBTxyz wrapped = wrap_position(ref, p.ComovingPosition, HBTConfig.BoxSize);
-            for(int j=0; j<3; j+=1)
-              mxsum[j] += p.Mass*wrapped[j];
-            NumPart += 1;
+        for(auto i: part_index) {
+          const Particle_t &p = sub.Particles[i];
+          msum += p.Mass;
+          HBTxyz wrapped = wrap_position(ref, p.ComovingPosition, HBTConfig.BoxSize);
+          for(int j=0; j<3; j+=1) {
+            mxsum[j] += p.Mass*wrapped[j];
+            mvsum[j] += p.Mass*p.PhysicalVelocity[j];
           }
         }
-#ifndef DM_ONLY
-        for(auto &p : sub.Particles) {
-          if(NumPart == NumPartCoreMax)break;
-          if(!p.IsTracer()) {
-            msum += p.Mass;
-            HBTxyz wrapped = wrap_position(ref, p.ComovingPosition, HBTConfig.BoxSize);
-            for(int j=0; j<3; j+=1)
-              mxsum[j] += p.Mass*wrapped[j];
-            NumPart += 1;
-          }
-        }
-#endif
         HBTxyz check_pos;
-        for(int j=0; j<3; j+=1)
+        HBTxyz check_vel;
+        for(int j=0; j<3; j+=1) {
           check_pos[j] = mxsum[j] / msum;
+          check_vel[j] = mvsum[j] / msum;
+        }
         verify(periodic_distance(subhelper.ComovingPosition, check_pos, HBTConfig.BoxSize) < 1.0e-5);        
+        for(int j=0; j<3; j+=1) {
+          verify(fabs(check_vel[j]-subhelper.PhysicalVelocity[j]) < 1.0e-5);
+        }  
       }
     }
   }
-
   return 0;
 }

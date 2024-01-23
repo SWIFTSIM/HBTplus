@@ -25,7 +25,7 @@ void make_test_subhalo(std::mt19937 &rng,
         sub.Particles[i].ComovingPosition[j] = x;
         r2 += x*x;
       }
-    } while(r2 >= radius*radius);
+    } while(r2 > radius*radius);
   }
 
   // Set particle velocities (also uniformly distributed in a sphere)
@@ -39,7 +39,7 @@ void make_test_subhalo(std::mt19937 &rng,
         sub.Particles[i].PhysicalVelocity[j] = vel[j]+x;
         r2 += x*x;
       }
-    } while(r2 >= vel_range*vel_range);
+    } while(r2 > vel_range*vel_range);
   }
 
   // Set particle IDs, masses, type
