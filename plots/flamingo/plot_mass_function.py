@@ -27,8 +27,11 @@ def plot_mass_function(basedirs, fof_names, names, snap_nr, min_mass, max_mass,
     # Separate out the run directories and names
     basedirs = basedirs.split(",")
     names = names.split(",")
-    fof_names = fof_names.split(",")
-    
+    if fof_names is not None:
+        fof_names = fof_names.split(",")
+    else:
+        fof_names = (None,)*len(basedirs)
+        
     # Pick mass bins
     bins = np.logspace(np.log10(min_mass), np.log10(max_mass), nr_bins)
     
