@@ -7,6 +7,7 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 import virgo.util.partial_formatter as pf
 import h5py
+import numpy as np
 
 
 def read_hbtplus_metadata(basedir, snap_nr, comm=None):
@@ -68,16 +69,27 @@ def read_swift_fof(filename, snap_nr, comm=None):
         comm = MPI.COMM_WORLD
     comm_size = comm.Get_size()
     comm_rank = comm.Get_rank()
-    
+
+    # Determine mass units
+    if comm_rank == 0:
+        with h5py.File(filename.format(snap_nr=snap_nr, file_nr=0), "r") as infile:
+            mass_unit_cgs = float(infile["Units"].attrs["Unit mass in cgs (U_M)"])
+            h = float(infile["Cosmology"].attrs["h"])
+            msun_cgs = float(infile["PhysicalConstants/CGS"].attrs["solar_mass"])            
+            mass_conversion = mass_unit_cgs / msun_cgs * h
+    else:
+        mass_conversion = None
+    mass_conversion = comm.bcast(mass_conversion)
+            
     # Sub in the snapshot number but not the file number
-    formatter = PartialFormatter()
+    formatter = pf.PartialFormatter()
     filename = formatter.format(filename, snap_nr=snap_nr, file_nr=None)
 
     # Read the files
     mf = phdf5.MultiFile(filename, file_nr_attr=("Header", "NumFilesPerSnapshot"), comm=comm)
-    fof_groupid, fof_mass, fof_size = mf.read(("GroupIDs","Masses","Sizes"), unpack=True)
+    fof_groupid, fof_mass, fof_size = mf.read(("GroupIDs","Masses","Sizes"), group="Groups", unpack=True)
 
-    return fof_groupid, fof_mass, fof_size
+    return fof_groupid, fof_mass*mass_conversion, fof_size
 
 
 def get_hbt_fof_info(subhalo, fof_groupid, fof_mass, fof_size, comm=None):
