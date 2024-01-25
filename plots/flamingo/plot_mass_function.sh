@@ -12,9 +12,9 @@ basedir2=/cosma8/data/dp004/jch/HBT-test/pos_vel_changes/new_pos_vel/hbt
 mpirun -np 8 python3 -m mpi4py ./plot_mass_function.py \
        --names="${name1},${name2}" \
        --basedirs="${basedir1},${basedir2}" \
-       --snap-nrs=77,70,50,30 \
-       --min-mass=1.0e2 \
-       --max-mass=1.0e5 \
+       --snap-nrs=77,60,40,20 \
+       --min-mass=3.0e11 \
+       --max-mass=3.0e15 \
        --nr-bins=30 \
        --title="L1000N0900/DMO_FIDUCIAL"
 

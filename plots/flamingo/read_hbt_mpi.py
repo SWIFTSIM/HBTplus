@@ -6,7 +6,30 @@
 import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 import virgo.util.partial_formatter as pf
+import h5py
 
+
+def read_hbtplus_metadata(basedir, snap_nr, comm=None):
+
+    # Determine communicator to use
+    from mpi4py import MPI
+    if comm is None:
+        comm = MPI.COMM_WORLD
+    comm_size = comm.Get_size()
+    comm_rank = comm.Get_rank()
+        
+    filename = f"{basedir}/{snap_nr:03d}/SubSnap_{snap_nr:03d}.0.hdf5"
+    if comm_rank == 0:
+        metadata = {}
+        with h5py.File(filename, "r") as infile:
+            for group in ("Units", "Cosmology"):
+                for name in infile[group]:
+                    metadata[name] = float(infile[group][name][...])
+    else:
+        metadata = None
+
+    return comm.bcast(metadata)
+        
 
 def read_hbtplus_subhalos(basedir, snap_nr, comm=None):
     """

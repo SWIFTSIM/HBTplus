@@ -33,34 +33,38 @@ def plot_mass_function(basedirs, names, snap_nr, min_mass, max_mass, nr_bins):
     
     # Loop over runs to plot
     for i, (name, basedir) in enumerate(zip(names, basedirs)):
-    
+
+        # Read metadata
+        metadata = rhm.read_hbtplus_metadata(basedir, snap_nr, comm)
+        
         # Read the subhalo catalogue for this run
         subhalo = rhm.read_hbtplus_subhalos(basedir, snap_nr, comm)
         
         # Plot total mass function
-        centres, counts =  mf.mass_function(subhalo, bins, comm=comm)
+        centres, counts =  mf.mass_function(subhalo, bins, metadata, comm=comm)
         if comm_rank == 0:
             linestyle = f"C{i}-"
             plt.plot(centres, counts, linestyle, label=name+" (all)")
 
         # Plot satellite mass function
-        centres, counts =  mf.mass_function(subhalo, bins, type="satellite", comm=comm)
+        centres, counts =  mf.mass_function(subhalo, bins, metadata, type="satellite", comm=comm)
         if comm_rank == 0:
             linestyle = f"C{i}:"
             plt.plot(centres, counts, linestyle, label=name+" (sats)")
 
         # Plot central mass function
-        centres, counts =  mf.mass_function(subhalo, bins, type="central", comm=comm)
+        centres, counts =  mf.mass_function(subhalo, bins, metadata, type="central", comm=comm)
         if comm_rank == 0:
             linestyle = f"C{i}--"
             plt.plot(centres, counts, linestyle, label=name+" (centrals)")
             
     if comm_rank == 0:
-        plt.xlabel("Subhalo mass")
+        plt.xlabel("Subhalo mass [Msolar/h]")
         plt.xscale("log")
         plt.ylabel("Number of subhalos")
         plt.yscale("log")
-        plt.title(f"Snapshot {snap_nr}")
+        z = 1.0/metadata["ScaleFactor"]-1.0
+        plt.title(f"Snapshot {snap_nr}, z={z:.2f}")
 
         
 def plot_mass_functions(basedirs, names, snap_nrs, min_mass, max_mass, nr_bins, title):
