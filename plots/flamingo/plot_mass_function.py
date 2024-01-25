@@ -8,7 +8,6 @@ comm_size = comm.Get_size()
 comm_rank = comm.Get_rank()
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import read_hbt_mpi as rhm
 import mass_function as mf
@@ -78,7 +77,7 @@ def plot_mass_function(basedirs, fof_names, names, snap_nr, min_mass, max_mass,
 
         
 def plot_mass_functions(basedirs, fof_names, names, snap_nrs, min_mass, max_mass,
-                        nr_bins, title, min_fof_mass, max_fof_mass):
+                        nr_bins, title, min_fof_mass, max_fof_mass, output_file):
 
     snap_nrs = [int(sn) for sn in snap_nrs.split(",")]
     nx, ny = nr_subplots(len(snap_nrs))
@@ -97,8 +96,11 @@ def plot_mass_functions(basedirs, fof_names, names, snap_nrs, min_mass, max_mass
     if comm_rank == 0:
         plt.suptitle(title)
         plt.tight_layout()
-        plt.show()
-
+        if output_file is not None:
+            plt.savefig(output_file)
+        else:
+            plt.show()
+        
         
 if __name__ == "__main__":
 
@@ -114,8 +116,16 @@ if __name__ == "__main__":
     parser.add_argument("--title", type=str, help="Title for the figure")
     parser.add_argument("--min-fof-mass", type=float, help="Minimum FoF halo mass")
     parser.add_argument("--max-fof-mass", type=float, help="Maximum FoF halo mass")
+    parser.add_argument("--output-file", type=str, help="Name of the figure output file (omit for interactive use)")
     
     args = parser.parse_args()
 
+    # Put matplotlib in headless mode if writing a file
+    global plt
+    if args.output_file is not None:
+        import matplotlib
+        matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    
     plot_mass_functions(**vars(args))
     
