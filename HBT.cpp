@@ -13,6 +13,8 @@ using namespace std;
 #include "src/snapshot.h"
 #include "src/subhalo.h"
 
+#include "git_version_info.h"
+
 int main(int argc, char **argv)
 {
   MPI_Init(&argc, &argv);
@@ -26,8 +28,13 @@ int main(int argc, char **argv)
   if (0 == world.rank())
   {
     // Print information about the version being run.
-    cout << "HBT compiled using git branch: " << GIT_BRANCH << " and commit: " << GIT_COMMIT_HASH << endl;
-
+    cout << "HBT compiled using git branch: " << branch_name << " and commit: " << commit_hash;
+    if(uncommitted_changes)
+      cout << " (with uncommitted changes)";
+    else
+      cout << " (clean)";      
+    cout << endl;
+        
     ParseHBTParams(argc, argv, HBTConfig, snapshot_start, snapshot_end);
     mkdir(HBTConfig.SubhaloPath.c_str(), 0755);
     HBTConfig.DumpParameters();

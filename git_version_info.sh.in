@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Get git commit hash etc
+COMMIT_HASH=`@GIT_EXECUTABLE@ rev-parse HEAD`
+USER_NAME=`@GIT_EXECUTABLE@ config user.name`
+USER_EMAIL=`@GIT_EXECUTABLE@ config user.email`
+TIMESTAMP=`date`
+BRANCH_NAME=`@GIT_EXECUTABLE@ rev-parse --abbrev-ref HEAD`
+
+# Check for uncommitted changes
+@GIT_EXECUTABLE@ diff HEAD --exit-code --quiet
+UNCOMMITTED_CHANGES=$?
+
+# Create the output file
+cat << EOF
+char commit_hash[] = "${COMMIT_HASH}";
+char source_dir[]  = "@CMAKE_SOURCE_DIR@";
+char build_dir[]   = "@CMAKE_BINARY_DIR@";
+char branch_name[] = "${BRANCH_NAME}";
+char user_name[]   = "${USER_NAME}";
+char user_email[]  = "${USER_EMAIL}";
+char build_time[]  = "${TIMESTAMP}";
+int uncommitted_changes = ${UNCOMMITTED_CHANGES};
+EOF
