@@ -88,29 +88,10 @@ if(HBT_USE_GSL)
 endif(HBT_USE_GSL)
 
 #
-# Get the git branch and commit hash
-#
-execute_process( # BRANCH
-    COMMAND git rev-parse --abbrev-ref HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_BRANCH
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-execute_process( # COMMIT HASH
-    COMMAND git rev-parse --short HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_COMMIT_HASH
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
-add_definitions(-DGIT_BRANCH="${GIT_BRANCH}")
-
-#
 # List of HBT source files.
 # Headers are found automatically by cmake.
 #
 set(HBT_SRC 
-  HBT.cpp
   src/config_parser.cpp
   src/geometric_tree.cpp
   src/gravity_tree.cpp
@@ -163,9 +144,45 @@ hbt_option(HBT_REAL4_MASS              HBT_REAL4_MASS          "Enable to store 
 hbt_option(HBT_UNBIND_WITH_THERMAL_ENERGY UNBIND_WITH_THERMAL_ENERGY "Enable use of thermal energy when unbinding" OFF)
 
 #
+# Make an object library with all HBT source files except the top level program.
+# This makes a bundle of .o files which we can reuse when compiling unit tests.
+#
+add_library(hbtfuncs OBJECT ${HBT_SRC})
+
+#
+# Determine if we're going to output git revision info
+#
+set(HAVE_GIT 0)
+find_package(Git)
+if(GIT_FOUND)
+  if(EXISTS ${CMAKE_SOURCE_DIR}/.git)
+    set(HAVE_GIT 1)
+  endif(EXISTS ${CMAKE_SOURCE_DIR}/.git)
+endif(GIT_FOUND)
+set(STORE_REVISION_INFO ${HAVE_GIT} CACHE BOOL "Whether to output git revision info")
+
+#
+# Generate a shell script which will run the git executable we found and generate the version info
+# if any source file or the git repo changes.
+#
+if(STORE_REVISION_INFO)
+  set(GIT_VERSION_INFO_FILE ${CMAKE_BINARY_DIR}/git_version_info.c)
+  configure_file(${CMAKE_SOURCE_DIR}/git_version_info.sh.in ${CMAKE_BINARY_DIR}/git_version_info.sh @ONLY)
+  add_custom_command(
+    OUTPUT ${GIT_VERSION_INFO_FILE}
+    COMMAND /bin/sh ${CMAKE_BINARY_DIR}/git_version_info.sh > ${GIT_VERSION_INFO_FILE}
+    DEPENDS HBT.cpp hbtfuncs ${CMAKE_BINARY_DIR}/git_version_info.sh CMakeLists.txt 
+            ${CMAKE_SOURCE_DIR}/.git/HEAD ${CMAKE_SOURCE_DIR}/.git/index
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+  add_definitions(-DHAVE_GIT)
+endif(STORE_REVISION_INFO)
+include_directories(${CMAKE_SOURCE_DIR})
+
+#
 # HBT executable
 #
-add_executable(HBT ${HBT_SRC})
+add_executable(HBT HBT.cpp ${GIT_VERSION_INFO_FILE} $<TARGET_OBJECTS:hbtfuncs>)
 target_link_libraries(HBT ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
 
 #

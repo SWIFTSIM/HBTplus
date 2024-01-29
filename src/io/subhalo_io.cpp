@@ -8,6 +8,7 @@
 #include "../snapshot_number.h"
 #include "../subhalo.h"
 #include "../config_parser.h"
+#include "git_version_info.h"
 
 void SubhaloSnapshot_t::BuildHDFDataType()
 {
@@ -348,8 +349,8 @@ void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
 
   /* Version information */
   hid_t header = H5Gcreate2(file, "/Header", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  writeStringAttribute(header, "Git_branch", GIT_BRANCH);
-  writeStringAttribute(header, "Git_commit", GIT_COMMIT_HASH);
+  writeStringAttribute(header, "Git_branch", branch_name);
+  writeStringAttribute(header, "Git_commit", commit_hash);
   H5Gclose(header);
 
   vector<hvl_t> vl(Subhalos.size());
