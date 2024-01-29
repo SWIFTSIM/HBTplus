@@ -90,7 +90,10 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
     sx2[j] /= msum;
     ComovingPosition[j] = sx[j];
     if (HBTConfig.PeriodicBoundaryOn)
+    {
       ComovingPosition[j] += origin[j];
+      ComovingPosition[j] = BOX_WRAP(ComovingPosition[j]);
+    }
     sx2[j] -= sx[j] * sx[j];
   }
   ComovingSigmaR = sqrt(sx2[0] + sx2[1] + sx2[2]);

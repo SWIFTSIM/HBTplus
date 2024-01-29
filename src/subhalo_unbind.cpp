@@ -194,6 +194,10 @@ public:
       sx += origin[0];
       sy += origin[1];
       sz += origin[2];
+
+      sx = BOX_WRAP(sx);
+      sy = BOX_WRAP(sy);
+      sz = BOX_WRAP(sz);
     }
     CoM[0] = sx;
     CoM[1] = sy;
