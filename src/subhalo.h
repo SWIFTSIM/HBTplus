@@ -167,11 +167,13 @@ public:
     return TracerIndex;
   }
   void SetTracerIndex(const HBTInt index) {
-    assert(index >= 0);
-    assert(index < Particles.size());
+    assert((index >= 0));
+    assert((index < Particles.size()) || ((Particles.size()==0) && (index==0))); // allow index=0 for halos with no particles
     TracerIndex = index;
 #ifdef CHECK_TRACER_INDEX
-    TracerId = Particles[index].Id;
+    if(Particles.size() > 0) {
+      TracerId = Particles[index].Id;
+    }
 #endif
   }
 };
