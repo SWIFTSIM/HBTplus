@@ -1,0 +1,37 @@
+# Configuration file used to run on 16 outputs of a (subsampled) COLIBRE 
+# simulations 
+
+[Compulsary Params]
+SnapshotPath /cosma7/data/dp004/dc-foro1/colibre/ 
+HaloPath /cosma7/data/dp004/dc-foro1/colibre/
+SubhaloPath hbt_output
+SnapshotFileBase colibre
+
+# These should be read in from swiftsim automatically
+BoxSize -1
+SofteningHalo -1
+MaxPhysicalSofteningHalo -1
+
+[Reader]
+# Use swift reader
+SnapshotFormat swiftsim
+GroupFileFormat swiftsim_particle_index
+
+# Which snapshots to analyse
+SnapshotIdList 4 12 20 28 36 44 52 60 68 76 84 92 100 108 116 127
+MinSnapshotIndex 0
+MaxSnapshotIndex 15
+
+[Units]
+MassInMsunh 6.81e9 # Removes h factors from the final output 
+LengthInMpch 0.681 # Removes h factors from the final output
+VelInKmS 1
+
+MaxConcurrentIO 28 # Number of cores in a cosma7 node                    
+
+# Optional parameters; default values are shown here
+#MinNumPartOfSub 20
+#BoundMassPrecision 0.995
+#PeriodicBoundaryOn 1
+#SaveSubParticleProperties 0
+#TracerParticleTypes 1 4 
