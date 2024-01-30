@@ -5,4 +5,4 @@ cmake_install.cmake
 **/*.o
 **/__pycache__
 testing/build/
-testing/hbt_test/
+testing/test_output/
