@@ -4,3 +4,5 @@ CMakeCache.txt
 cmake_install.cmake
 **/*.o
 **/__pycache__
+testing/build/
+testing/hbt_test/
