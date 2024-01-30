@@ -7,7 +7,7 @@ rm -fr build # In case an older version is already present
 mkdir build
 
 # Create cmake file and configuration
-cmake -B$PWD/build -S"$PWD/../.." -D HBT_USE_OPENMP=ON -D HBT_UNSIGNED_LONG_ID_OUTPUT=OFF
+cmake -B$PWD/build -S"$PWD/.." -D HBT_USE_OPENMP=ON -D HBT_UNSIGNED_LONG_ID_OUTPUT=OFF
 
 # Compile
 cd $PWD/build
