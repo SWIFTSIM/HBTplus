@@ -107,7 +107,7 @@ void ParticleSnapshot_t::AveragePosition(HBTxyz &CoM, const HBTInt Particles[], 
     if (HBTConfig.PeriodicBoundaryOn)
     {
       sx[j] += origin[j];
-      sx[j] = BOX_WRAP(sx[j])
+      sx[j] = BOX_WRAP(sx[j]);
     }
     CoM[j] = sx[j];
   }
@@ -219,7 +219,7 @@ double AveragePosition(HBTxyz &CoM, const Particle_t Particles[], HBTInt NumPart
     if (HBTConfig.PeriodicBoundaryOn)
     {
       sx[j] += origin[j];
-      sx[j] = BOX_WRAP(sx[j])
+      sx[j] = BOX_WRAP(sx[j]);
     }
     CoM[j] = sx[j];
   }
