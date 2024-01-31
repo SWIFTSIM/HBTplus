@@ -17,6 +17,9 @@ then
   ./clang_formatting_env/bin/python3 -m pip install clang-format
 fi
 
+# Activate enviroment to enable clang-format command
+source ./clang_formatting_env/bin/activate
+
 # Formatting command
 clang=${CLANG_FORMAT_CMD:="clang-format"}
 cmd="$clang -style=file $(git ls-files '*.c' '*.h' '*.cpp')"

@@ -57,7 +57,7 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
   RegisterAttr(baryon_comoving_softening, MPI_DOUBLE, 1);
   RegisterAttr(baryon_maximum_physical_softening, MPI_DOUBLE, 1);
-  
+
 #undef RegisterAttr
   assert(i <= NumAttr);
 
@@ -211,7 +211,7 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   ReadAttribute(file, "Parameters", "Gravity:max_physical_baryon_softening", buf);
   Header.baryon_maximum_physical_softening = stof(buf) * Header.length_conversion;
 #endif
-  
+
   H5Fclose(file);
 }
 
@@ -663,9 +663,17 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
 
   Cosmology.Set(Header.ScaleFactor, Header.OmegaM0, Header.OmegaLambda0);
 
+  /* Assign the box size read in from the Header */
+  HBTConfig.BoxSize = Header.BoxSize;
+  HBTConfig.BoxHalf = HBTConfig.BoxSize / 2;
+
   /* Use the softening values we read in from the Header */
   HBTConfig.SofteningHalo = Header.DM_comoving_softening;
   HBTConfig.MaxPhysicalSofteningHalo = Header.DM_maximum_physical_softening;
+
+  /* Update the tree parameters based on the softenings */
+  HBTConfig.TreeNodeResolution = HBTConfig.SofteningHalo * 0.1;
+  HBTConfig.TreeNodeResolutionHalf = HBTConfig.TreeNodeResolution / 2.;
 
   // Decide how many particles this MPI rank will read
   HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt)0);

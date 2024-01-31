@@ -6,6 +6,7 @@
 using namespace std;
 #include <array>
 #include <vector>
+
 // #include <memory>
 #ifdef DM_ONLY
 #undef UNBIND_WITH_THERMAL_ENERGY
@@ -64,7 +65,7 @@ typedef HBTReal HBTMassType;
 #define MPI_HBT_MASS MPI_HBT_REAL
 #endif
 
-// the user should ganrantee that HBTInt can at least hold NP_DM
+// The user should guarantee that HBTInt can at least hold NP_DM
 #ifdef HBT_INT8
 typedef long HBTInt;
 #define HBTIFMT "%ld"
@@ -74,6 +75,13 @@ typedef int HBTInt;
 #define HBTIFMT "%d"
 #define MPI_HBT_INT MPI_INT
 #endif
+
+/* Used for reducing the TracerIndex value. Taken from https://shorturl.at/aENT2 */
+typedef pair<HBTInt, int> IndexParticleType_t;
+inline IndexParticleType_t firstIndex(IndexParticleType_t a, IndexParticleType_t b)
+{
+  return a.first < b.first ? a : b;
+}
 
 // typedef HBTReal HBTxyz[3];  //3-d pos/vel data
 /*inline void copyHBTxyz(HBTxyz & dest, const HBTxyz & src)
