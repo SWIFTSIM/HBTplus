@@ -10,6 +10,7 @@ cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 project(hbtplus)
 enable_language(C)
 enable_language(CXX)
+include(CTest)
 
 #
 # Set default build mode to Release
@@ -144,12 +145,6 @@ hbt_option(HBT_REAL4_MASS              HBT_REAL4_MASS          "Enable to store 
 hbt_option(HBT_UNBIND_WITH_THERMAL_ENERGY UNBIND_WITH_THERMAL_ENERGY "Enable use of thermal energy when unbinding" OFF)
 
 #
-# Make an object library with all HBT source files except the top level program.
-# This makes a bundle of .o files which we can reuse when compiling unit tests.
-#
-add_library(hbtfuncs OBJECT ${HBT_SRC})
-
-#
 # Determine if we're going to output git revision info
 #
 set(HAVE_GIT 0)
@@ -171,18 +166,24 @@ if(STORE_REVISION_INFO)
   add_custom_command(
     OUTPUT ${GIT_VERSION_INFO_FILE}
     COMMAND /bin/sh ${CMAKE_BINARY_DIR}/git_version_info.sh > ${GIT_VERSION_INFO_FILE}
-    DEPENDS HBT.cpp hbtfuncs ${CMAKE_BINARY_DIR}/git_version_info.sh CMakeLists.txt 
+    DEPENDS HBT.cpp ${HBT_SRC} ${CMAKE_BINARY_DIR}/git_version_info.sh CMakeLists.txt 
             ${CMAKE_SOURCE_DIR}/.git/HEAD ${CMAKE_SOURCE_DIR}/.git/index
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    )
+  )
   add_definitions(-DHAVE_GIT)
 endif(STORE_REVISION_INFO)
 include_directories(${CMAKE_SOURCE_DIR})
 
 #
+# Make an object library with all HBT source files except the top level program.
+# This makes a bundle of .o files which we can reuse when compiling unit tests.
+#
+add_library(hbtfuncs OBJECT ${HBT_SRC} ${GIT_VERSION_INFO_FILE})
+
+#
 # HBT executable
 #
-add_executable(HBT HBT.cpp ${GIT_VERSION_INFO_FILE} $<TARGET_OBJECTS:hbtfuncs>)
+add_executable(HBT HBT.cpp $<TARGET_OBJECTS:hbtfuncs>)
 target_link_libraries(HBT ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
 
 #
@@ -205,3 +206,6 @@ mark_as_advanced(CMAKE_INSTALL_PREFIX)
 mark_as_advanced(CLEAR CMAKE_CXX_FLAGS)
 mark_as_advanced(CLEAR CMAKE_CXX_FLAGS_RELEASE)
 mark_as_advanced(CLEAR CMAKE_CXX_FLAGS_DEBUG)
+
+# Add unit tests directory
+add_subdirectory(./unit_tests)
