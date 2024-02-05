@@ -319,7 +319,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
 
-  auto OldMostboundParticle = Particles[0]; // backup
+  // Determine particle which will be used as the tracer if subhalo becomes unresolved.
+  auto OldMostboundParticle = Particles[GetTracerIndex()];
+  
   GravityTree_t tree;
   tree.Reserve(Particles.size());
   Nbound = Particles.size(); // start from full set
@@ -411,6 +413,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         if (p.Id == OldMostboundParticle.Id)
         {
           swap(p, Particles[0]); // restore old most-bound to beginning
+	  SetTracerIndex(0); // update location of the tracer
           break;
         }
       }
