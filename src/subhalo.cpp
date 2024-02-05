@@ -549,6 +549,9 @@ HBTInt Subhalo_t::KickNullParticles()
 
   // if(it!=it_save) cout<<it-it_save<<" outof "<<np_old<<" particles consumed for track "<<TrackId<<"\n";
   return it - it_save;
+
+  // Temporary fix to update TracerIndex
+  CountParticleTypes();
 #endif
 }
 
