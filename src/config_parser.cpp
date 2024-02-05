@@ -48,6 +48,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(MinSnapshotIndex);
   TrySetPar(MinNumPartOfSub);
   TrySetPar(MinNumTracerPartOfSub);
+  TrySetPar(MaxNumPartMerge);
   TrySetPar(ParticleIdRankStyle);
   TrySetPar(ParticleIdNeedHash);
   TrySetPar(SnapshotIdUnsigned);
@@ -273,6 +274,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncAtom(MinSnapshotIndex, MPI_INT);
   _SyncAtom(MinNumPartOfSub, MPI_INT);
   _SyncAtom(MinNumTracerPartOfSub, MPI_INT);  
+  _SyncAtom(MaxNumPartMerge, MPI_INT);
   _SyncAtom(GroupParticleIdMask, MPI_LONG);
   _SyncReal(MassInMsunh);
   _SyncReal(LengthInMpch);
@@ -416,6 +418,7 @@ void Parameter_t::DumpParameters()
   DumpHeader("Subhalo Tracking");
   DumpPar(MinNumPartOfSub);
   DumpPar(MinNumTracerPartOfSub);  
+  DumpPar(MaxNumPartMerge);
   if (TracerParticleTypes.size())
   {
     version_file << "TracerParticleTypes";

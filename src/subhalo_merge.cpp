@@ -8,13 +8,13 @@
 #include "snapshot_number.h"
 #include "subhalo.h"
 
-#define NumPartCoreMax 20
 #define DeltaCrit 2.
 
 void SubHelper_t::BuildPosition(const Subhalo_t &sub)
 {
-  // Compute position of a halo using the most bound NumPartCoreMax tracer
-  // type particles. If there are not enough tracers we make up the difference
+  // Compute position of a halo using min(Nbound, MaxNumPartMerge) particles.
+  // Initially we attempt to compute the position using tracer particles.
+  // If there are not enough tracers we make up the difference
   // with the most bound non-tracer particles.
   //
   // Implemented by making two passes through the halo particles looking at
@@ -22,7 +22,7 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
   // as soon as we've seen enough particles.
   //
   // Could be slow if a halo with many particles has
-  // 1 <= nr_tracers < NumPartCoreMax (which should be unlikely?).
+  // 1 <= nr_tracers < MaxNumPartMerge.
   //
   if (0 == sub.Nbound)
   {
@@ -73,10 +73,10 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
               sx2[j] += dx * dx * m;
             }
         }
-        if(NumPart==NumPartCoreMax)break;
+        if(NumPart==MaxNumPartMerge)break;
         // Next particle in subhalo
       }
-        if(NumPart==NumPartCoreMax)break;
+        if(NumPart==MaxNumPartMerge)break;
     // Next pass
   }
   
@@ -94,6 +94,8 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
 
 void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
 {
+  // Compute position of a halo using the same particles as for BuildPosition.
+  //
   if (0 == sub.Nbound)
   {
     PhysicalSigmaV = 0.;
@@ -135,10 +137,10 @@ void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
               sx2[j] += dx * dx * m;
             }
         }
-        if(NumPart==NumPartCoreMax)break;
+        if(NumPart==MaxNumPartMerge)break;
         // Next particle in subhalo
       }
-    if(NumPart==NumPartCoreMax)break;
+    if(NumPart==MaxNumPartMerge)break;
     // Next pass
   }
   
