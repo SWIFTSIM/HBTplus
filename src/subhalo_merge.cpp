@@ -287,10 +287,10 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
 
   /* To keep using a collisionless tracer after merging the respective subhalo,
    * we need to place it at the beginning of the particle array. */
-  swap(Particles[0], Particles[TracerIndex]);
+  swap(Particles[0], Particles[GetTracerIndex()]);
 
   // Update the location of the tracer
-  TracerIndex = 0;
+  SetTracerIndex(0);
 
   /* Limit the particles to the tracer */
   Particles.resize(1);

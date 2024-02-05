@@ -143,6 +143,7 @@ hbt_option(HBT_UNSIGNED_LONG_ID_OUTPUT UNSIGNED_LONG_ID_OUTPUT "Enable to output
 hbt_option(HBT_REAL4_VEL               HBT_REAL4_VEL           "Enable to store particle velocities as 4 byte reals" OFF)
 hbt_option(HBT_REAL4_MASS              HBT_REAL4_MASS          "Enable to store particle masses as 4 byte reals" OFF)
 hbt_option(HBT_UNBIND_WITH_THERMAL_ENERGY UNBIND_WITH_THERMAL_ENERGY "Enable use of thermal energy when unbinding" OFF)
+hbt_option(HBT_CHECK_TRACER_INDEX      CHECK_TRACER_INDEX      "For debugging: check that tracer particle has the expected ID" OFF)
 
 #
 # Determine if we're going to output git revision info

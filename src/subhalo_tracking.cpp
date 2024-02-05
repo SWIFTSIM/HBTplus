@@ -183,13 +183,9 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
   {
     if (Subhalos[subid].Particles.size())
     {
-      /* Be sure we do not try to access out-of-bounds memory */
-      assert(Subhalos[subid].TracerIndex >= 0);
-      assert(Subhalos[subid].TracerIndex < Subhalos[subid].Particles.size());
-
       /* We can safely use the TracerIndex to retrieve tracer */
       Subhalos[subid].HostHaloId =
-        GetLocalHostId(Subhalos[subid].Particles[Subhalos[subid].TracerIndex].Id, halo_snap, part_snap);
+        GetLocalHostId(Subhalos[subid].Particles[Subhalos[subid].GetTracerIndex()].Id, halo_snap, part_snap);
     }
     else
       Subhalos[subid].HostHaloId = -1;
@@ -233,7 +229,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   if (thisrank == root)
   {
     for (HBTInt i = 0; i < Subhalos.size(); i++)
-      TrackParticleIds[i] = Subhalos[i].Particles[Subhalos[i].TracerIndex].Id;
+      TrackParticleIds[i] = Subhalos[i].Particles[Subhalos[i].GetTracerIndex()].Id;
   }
   MPI_Bcast(TrackParticleIds.data(), NumSubhalos, MPI_HBT_INT, root, world.Communicator);
 
