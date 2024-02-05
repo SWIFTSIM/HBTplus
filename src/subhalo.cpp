@@ -466,7 +466,7 @@ void Subhalo_t::CountParticleTypes()
          * indicating we have reached the tentative most bound collisionless
          * tracer */
         if (Tracer_Index_ParticleType.second == -1)           // No tracer yet
-          if ((1 << itype) & HBTConfig.TracerParticleBitMask) // Found tracer
+          if (p.IsTracer()) // Found tracer
           {
             Tracer_Index_ParticleType.first = i;
             Tracer_Index_ParticleType.second = itype;
@@ -496,7 +496,7 @@ void Subhalo_t::CountParticleTypes()
        * indicating we have reached the tentative most bound collisionless
        * tracer */
       if (Tracer_Index_ParticleType.second == -1)           // No tracer yet
-        if ((1 << itype) & HBTConfig.TracerParticleBitMask) // Found tracer
+        if (p.IsTracer()) // Found tracer
         {
           Tracer_Index_ParticleType.first = it - Particles.begin();
           Tracer_Index_ParticleType.second = itype;
