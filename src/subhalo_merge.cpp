@@ -11,23 +11,19 @@
 #define NumPartCoreMax 20
 #define DeltaCrit 2.
 
-struct SubHelper_t
-{
-  HBTInt HostTrackId;
-  bool IsMerged;
-  HBTxyz ComovingPosition;
-  HBTxyz PhysicalVelocity;
-  float ComovingSigmaR;
-  float PhysicalSigmaV;
-  void BuildPosition(const Subhalo_t &sub);
-  void BuildVelocity(const Subhalo_t &sub);
-  SubHelper_t() : HostTrackId(-1), IsMerged(false)
-  {
-  }
-};
-
 void SubHelper_t::BuildPosition(const Subhalo_t &sub)
 {
+  // Compute position of a halo using the most bound NumPartCoreMax tracer
+  // type particles. If there are not enough tracers we make up the difference
+  // with the most bound non-tracer particles.
+  //
+  // Implemented by making two passes through the halo particles looking at
+  // tracers only the first time then non-tracers the second. We exit
+  // as soon as we've seen enough particles.
+  //
+  // Could be slow if a halo with many particles has
+  // 1 <= nr_tracers < NumPartCoreMax (which should be unlikely?).
+  //
   if (0 == sub.Nbound)
   {
     ComovingSigmaR = 0.;
@@ -40,37 +36,51 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
     return;
   }
 
-  HBTInt NumPart = sub.Nbound;
-  if (NumPart > NumPartCoreMax)
-    NumPart = NumPartCoreMax;
-
-  HBTInt i, j;
+  // Initalize variables used to accumulate position, mass etc
+  HBTInt NumPart = 0;
   double sx[3], sx2[3], origin[3], msum;
-
   sx[0] = sx[1] = sx[2] = 0.;
   sx2[0] = sx2[1] = sx2[2] = 0.;
   msum = 0.;
+
+  // Use first particle as reference point for box wrap
   if (HBTConfig.PeriodicBoundaryOn)
-    for (j = 0; j < 3; j++)
+    for (int j = 0; j < 3; j++)
       origin[j] = sub.Particles[0].ComovingPosition[j];
+  
+  // Might need to make two passes through the particles
+  for(int pass_nr=0; pass_nr<2; pass_nr+=1) {
 
-  for (i = 0; i < NumPart; i++)
-  {
-    HBTReal m = sub.Particles[i].Mass;
-    msum += m;
-    for (j = 0; j < 3; j++)
-    {
-      double dx;
-      if (HBTConfig.PeriodicBoundaryOn)
-        dx = NEAREST(sub.Particles[i].ComovingPosition[j] - origin[j]);
-      else
-        dx = sub.Particles[i].ComovingPosition[j];
-      sx[j] += dx * m;
-      sx2[j] += dx * dx * m;
-    }
+    // Loop over particles in the subhalo
+    for (int i = 0; i < sub.Particles.size(); i++)
+      {
+        const int is_tracer = sub.Particles[i].IsTracer();        
+        // First pass: use tracers only
+        // Second pass: use non-tracers only
+        if((is_tracer && (pass_nr==0)) || ((!is_tracer) && (pass_nr==1))) {
+
+          NumPart += 1;
+          HBTReal m = sub.Particles[i].Mass;
+          msum += m;
+          for (int j = 0; j < 3; j++)
+            {
+              double dx;
+              if (HBTConfig.PeriodicBoundaryOn)
+                dx = NEAREST(sub.Particles[i].ComovingPosition[j] - origin[j]);
+              else
+                dx = sub.Particles[i].ComovingPosition[j];
+              sx[j] += dx * m;
+              sx2[j] += dx * dx * m;
+            }
+        }
+        if(NumPart==NumPartCoreMax)break;
+        // Next particle in subhalo
+      }
+        if(NumPart==NumPartCoreMax)break;
+    // Next pass
   }
-
-  for (j = 0; j < 3; j++)
+  
+  for (int j = 0; j < 3; j++)
   {
     sx[j] /= msum;
     sx2[j] /= msum;
@@ -81,6 +91,7 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
   }
   ComovingSigmaR = sqrt(sx2[0] + sx2[1] + sx2[2]);
 }
+
 void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
 {
   if (0 == sub.Nbound)
@@ -95,31 +106,43 @@ void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
     return;
   }
 
-  HBTInt NumPart = sub.Nbound;
-  if (NumPart > NumPartCoreMax)
-    NumPart = NumPartCoreMax;
-
-  HBTInt i, j;
+  // Initalize variables used to accumulate velocity, mass etc
+  HBTInt NumPart = 0;
   double sx[3], sx2[3], msum;
-
   sx[0] = sx[1] = sx[2] = 0.;
   sx2[0] = sx2[1] = sx2[2] = 0.;
   msum = 0.;
 
-  for (i = 0; i < NumPart; i++)
-  {
-    HBTReal m = sub.Particles[i].Mass;
-    msum += m;
-    for (j = 0; j < 3; j++)
-    {
-      double dx;
-      dx = sub.Particles[i].PhysicalVelocity[j];
-      sx[j] += dx * m;
-      sx2[j] += dx * dx * m;
-    }
-  }
+  // Might need to make two passes through the particles
+  for(int pass_nr=0; pass_nr<2; pass_nr+=1) {
 
-  for (j = 0; j < 3; j++)
+    // Loop over particles in the subhalo
+    for (int i = 0; i < sub.Particles.size(); i++)
+      {
+        const int is_tracer = sub.Particles[i].IsTracer();        
+        // First pass: use tracers only
+        // Second pass: use non-tracers only
+        if((is_tracer && (pass_nr==0)) || (!is_tracer && (pass_nr==1))) {
+
+          NumPart += 1;
+          HBTReal m = sub.Particles[i].Mass;
+          msum += m;
+          for (int j = 0; j < 3; j++)
+            {
+              double dx;
+              dx = sub.Particles[i].PhysicalVelocity[j];
+              sx[j] += dx * m;
+              sx2[j] += dx * dx * m;
+            }
+        }
+        if(NumPart==NumPartCoreMax)break;
+        // Next particle in subhalo
+      }
+    if(NumPart==NumPartCoreMax)break;
+    // Next pass
+  }
+  
+  for (int j = 0; j < 3; j++)
   {
     sx[j] /= msum;
     sx2[j] /= msum;
@@ -129,10 +152,10 @@ void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
   PhysicalSigmaV = sqrt(sx2[0] + sx2[1] + sx2[2]);
 }
 
-float SinkDistance(const Subhalo_t &sat, const SubHelper_t &cen)
+float SinkDistance(const SubHelper_t &sat, const SubHelper_t &cen)
 {
-  float d = PeriodicDistance(cen.ComovingPosition, sat.ComovingMostBoundPosition);
-  float v = Distance(cen.PhysicalVelocity, sat.PhysicalMostBoundVelocity);
+  float d = PeriodicDistance(cen.ComovingPosition, sat.ComovingPosition);
+  float v = Distance(cen.PhysicalVelocity, sat.PhysicalVelocity);
   return d / cen.ComovingSigmaR + v / cen.PhysicalSigmaV;
 }
 
@@ -149,7 +172,7 @@ void DetectTraps(vector<Subhalo_t> &Subhalos, vector<SubHelper_t> &Helpers, int 
     {
       if (Subhalos[HostId].Nbound > 1) // avoid orphans or nulls as hosts
       {
-        float delta = SinkDistance(Subhalos[i], Helpers[HostId]);
+        float delta = SinkDistance(Helpers[i], Helpers[HostId]);
         if (delta < DeltaCrit)
         {
           Subhalos[i].SinkTrackId =
