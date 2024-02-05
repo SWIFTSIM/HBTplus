@@ -103,12 +103,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
 }
 inline void Subhalo_t::DuplicateMostBoundParticleId()
 {
-  // Subhalos with no particles inherit their MostBoundID from their progenitor
-  // so all subhalos have a defined MostBoundID even if they contain zero particles.
-  if (Particles.size() > 0)
-  {
-    MostBoundParticleId = Particles[0].Id;
-  }
+  MostBoundParticleId = Particles[GetTracerIndex()].Id;
 }
 string SubhaloSnapshot_t::GetSubDir()
 {

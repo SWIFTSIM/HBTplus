@@ -320,7 +320,16 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   auto &RefVel = PhysicalAverageVelocity;
 
   // Determine particle which will be used as the tracer if subhalo becomes unresolved.
-  auto OldMostboundParticle = Particles[GetTracerIndex()];
+  // This is the most bound tracer type particle, or just the most bound if there are
+  // no tracers.
+  auto OldMostboundParticle = Particles[0];
+  for(HBTInt i=0; i<Nbound; i+=1) {
+    const auto &p = Particles[i];
+    if(p.IsTracer()) {
+      OldMostboundParticle = p;
+      break;
+    }
+  }
   
   GravityTree_t tree;
   tree.Reserve(Particles.size());
