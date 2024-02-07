@@ -41,7 +41,7 @@ public:
   int MaxConcurrentIO;
   int MinSnapshotIndex;
   int MinNumPartOfSub;
-  int MinNumTracerPartOfSub;  
+  int MinNumTracerPartOfSub;
   long GroupParticleIdMask; // only used for a peculiar gadget format.
   HBTReal MassInMsunh;
   HBTReal LengthInMpch;
