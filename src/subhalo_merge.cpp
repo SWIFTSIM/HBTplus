@@ -52,7 +52,7 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
   for(int pass_nr=0; pass_nr<2; pass_nr+=1) {
 
     // Loop over particles in the subhalo
-    for (int i = 0; i < sub.Particles.size(); i++)
+    for (int i = 0; i < sub.Nbound; i++)
       {
         const int is_tracer = sub.Particles[i].IsTracer();        
         // First pass: use tracers only
@@ -117,7 +117,7 @@ void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
   for(int pass_nr=0; pass_nr<2; pass_nr+=1) {
 
     // Loop over particles in the subhalo
-    for (int i = 0; i < sub.Particles.size(); i++)
+    for (int i = 0; i < sub.Nbound; i++)
       {
         const int is_tracer = sub.Particles[i].IsTracer();        
         // First pass: use tracers only
