@@ -171,7 +171,7 @@ inline void trim_trailing_garbage(string &s, const string &garbage_list)
   (((x) > HBTConfig.BoxHalf) ? ((x)-HBTConfig.BoxSize) : (((x) < -HBTConfig.BoxHalf) ? ((x) + HBTConfig.BoxSize) : (x)))
 
 #define BOX_WRAP(x)                                                                                                    \
-  (((x) > HBTConfig.BoxSize) ? ((x)-HBTConfig.BoxSize) : (((x) < -HBTConfig.BoxSize) ? ((x) + HBTConfig.BoxSize) : (x)))
+  (((x) > HBTConfig.BoxSize) ? ((x)-HBTConfig.BoxSize) : (((x) < 0) ? ((x) + HBTConfig.BoxSize) : (x)))
 
 inline HBTReal PeriodicDistance(const HBTxyz &x, const HBTxyz &y)
 {
