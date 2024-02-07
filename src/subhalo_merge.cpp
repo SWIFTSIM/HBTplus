@@ -47,39 +47,43 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
   if (HBTConfig.PeriodicBoundaryOn)
     for (int j = 0; j < 3; j++)
       origin[j] = sub.Particles[0].ComovingPosition[j];
-  
+
   // Might need to make two passes through the particles
-  for(int pass_nr=0; pass_nr<2; pass_nr+=1) {
+  for (int pass_nr = 0; pass_nr < 2; pass_nr += 1)
+  {
 
     // Loop over particles in the subhalo
     for (int i = 0; i < sub.Nbound; i++)
+    {
+      const int is_tracer = sub.Particles[i].IsTracer();
+      // First pass: use tracers only
+      // Second pass: use non-tracers only
+      if ((is_tracer && (pass_nr == 0)) || ((!is_tracer) && (pass_nr == 1)))
       {
-        const int is_tracer = sub.Particles[i].IsTracer();        
-        // First pass: use tracers only
-        // Second pass: use non-tracers only
-        if((is_tracer && (pass_nr==0)) || ((!is_tracer) && (pass_nr==1))) {
 
-          NumPart += 1;
-          HBTReal m = sub.Particles[i].Mass;
-          msum += m;
-          for (int j = 0; j < 3; j++)
-            {
-              double dx;
-              if (HBTConfig.PeriodicBoundaryOn)
-                dx = NEAREST(sub.Particles[i].ComovingPosition[j] - origin[j]);
-              else
-                dx = sub.Particles[i].ComovingPosition[j];
-              sx[j] += dx * m;
-              sx2[j] += dx * dx * m;
-            }
+        NumPart += 1;
+        HBTReal m = sub.Particles[i].Mass;
+        msum += m;
+        for (int j = 0; j < 3; j++)
+        {
+          double dx;
+          if (HBTConfig.PeriodicBoundaryOn)
+            dx = NEAREST(sub.Particles[i].ComovingPosition[j] - origin[j]);
+          else
+            dx = sub.Particles[i].ComovingPosition[j];
+          sx[j] += dx * m;
+          sx2[j] += dx * dx * m;
         }
-        if(NumPart==NumPartCoreMax)break;
-        // Next particle in subhalo
       }
-        if(NumPart==NumPartCoreMax)break;
+      if (NumPart == NumPartCoreMax)
+        break;
+      // Next particle in subhalo
+    }
+    if (NumPart == NumPartCoreMax)
+      break;
     // Next pass
   }
-  
+
   for (int j = 0; j < 3; j++)
   {
     sx[j] /= msum;
@@ -114,34 +118,38 @@ void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
   msum = 0.;
 
   // Might need to make two passes through the particles
-  for(int pass_nr=0; pass_nr<2; pass_nr+=1) {
+  for (int pass_nr = 0; pass_nr < 2; pass_nr += 1)
+  {
 
     // Loop over particles in the subhalo
     for (int i = 0; i < sub.Nbound; i++)
+    {
+      const int is_tracer = sub.Particles[i].IsTracer();
+      // First pass: use tracers only
+      // Second pass: use non-tracers only
+      if ((is_tracer && (pass_nr == 0)) || (!is_tracer && (pass_nr == 1)))
       {
-        const int is_tracer = sub.Particles[i].IsTracer();        
-        // First pass: use tracers only
-        // Second pass: use non-tracers only
-        if((is_tracer && (pass_nr==0)) || (!is_tracer && (pass_nr==1))) {
 
-          NumPart += 1;
-          HBTReal m = sub.Particles[i].Mass;
-          msum += m;
-          for (int j = 0; j < 3; j++)
-            {
-              double dx;
-              dx = sub.Particles[i].PhysicalVelocity[j];
-              sx[j] += dx * m;
-              sx2[j] += dx * dx * m;
-            }
+        NumPart += 1;
+        HBTReal m = sub.Particles[i].Mass;
+        msum += m;
+        for (int j = 0; j < 3; j++)
+        {
+          double dx;
+          dx = sub.Particles[i].PhysicalVelocity[j];
+          sx[j] += dx * m;
+          sx2[j] += dx * dx * m;
         }
-        if(NumPart==NumPartCoreMax)break;
-        // Next particle in subhalo
       }
-    if(NumPart==NumPartCoreMax)break;
+      if (NumPart == NumPartCoreMax)
+        break;
+      // Next particle in subhalo
+    }
+    if (NumPart == NumPartCoreMax)
+      break;
     // Next pass
   }
-  
+
   for (int j = 0; j < 3; j++)
   {
     sx[j] /= msum;
