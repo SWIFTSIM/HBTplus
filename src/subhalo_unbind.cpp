@@ -393,13 +393,16 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     HBTInt Nbound_tracers = Nbound;
 #else
     HBTInt Nbound_tracers = 0;
-    for(HBTInt i=0; i<Nbound; i+=1) {
+    for (HBTInt i = 0; i < Nbound; i += 1)
+    {
       const auto &p = Particles[Elist[i].pid];
-      if(p.IsTracer())Nbound_tracers += 1;
-      if(Nbound_tracers >= HBTConfig.MinNumTracerPartOfSub)break; // We found enough, so no need to continue
+      if (p.IsTracer())
+        Nbound_tracers += 1;
+      if (Nbound_tracers >= HBTConfig.MinNumTracerPartOfSub)
+        break; // We found enough, so no need to continue
     }
 #endif
-    
+
     if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub)) // disruption
     {
       Nbound = 1;
