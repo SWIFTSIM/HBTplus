@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
         // of tracer type particles.
         vector<int> part_index(0);
         int NumPart = 0;
-        for (int i = 0; i < sub.Particles.size(); i += 1)
+        for (int i = 0; i < sub.Nbound; i += 1)
         {
           if (NumPart == NumPartCoreMax)
             break;
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
           }
         }
         // Then make up any shortfall with non-tracers
-        for (int i = 0; i < sub.Particles.size(); i += 1)
+        for (int i = 0; i < sub.Nbound; i += 1)
         {
           if (NumPart == NumPartCoreMax)
             break;
