@@ -465,8 +465,8 @@ void Subhalo_t::CountParticleTypes()
         /* Check whether we found a collisionless particle for the first time,
          * indicating we have reached the tentative most bound collisionless
          * tracer */
-        if (Tracer_Index_ParticleType.second == -1)           // No tracer yet
-          if (p.IsTracer()) // Found tracer
+        if (Tracer_Index_ParticleType.second == -1) // No tracer yet
+          if (p.IsTracer())                         // Found tracer
           {
             Tracer_Index_ParticleType.first = i;
             Tracer_Index_ParticleType.second = itype;
@@ -495,8 +495,8 @@ void Subhalo_t::CountParticleTypes()
       /* Check whether we found a collisionless particle for the first time,
        * indicating we have reached the tentative most bound collisionless
        * tracer */
-      if (Tracer_Index_ParticleType.second == -1)           // No tracer yet
-        if (p.IsTracer()) // Found tracer
+      if (Tracer_Index_ParticleType.second == -1) // No tracer yet
+        if (p.IsTracer())                         // Found tracer
         {
           Tracer_Index_ParticleType.first = it - Particles.begin();
           Tracer_Index_ParticleType.second = itype;
