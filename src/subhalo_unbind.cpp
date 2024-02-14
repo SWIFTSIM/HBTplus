@@ -325,9 +325,13 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   tree.Reserve(Particles.size());
   Nbound = Particles.size(); // start from full set
   if (MaxSampleSize > 0 && Nbound > MaxSampleSize) {
-    // Initialize random number generator with first particle ID for reproducibility
-    mt19937 rng;
-    rng.seed(Particles[0].Id);
+    // Initialize random number generator with first few particle IDs for reproducibility
+    int nr_seed_vals = min(Nbound, (HBTInt) 20);
+    vector<HBTInt> ids(nr_seed_vals);
+    for(int i=0; i<nr_seed_vals; i+=1)
+      ids[i] = Particles[i].Id;
+    seed_seq seed(ids.begin(), ids.end());
+    mt19937 rng(seed);    
     // shuffle for easy resampling later.
     shuffle(Particles.begin(), Particles.end(), rng);    
   }
