@@ -329,7 +329,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     int nr_seed_vals = min(Nbound, (HBTInt) 20);
     vector<HBTInt> ids(nr_seed_vals);
     for(int i=0; i<nr_seed_vals; i+=1)
-      ids[i] = Particles[i].Id;
+      ids[i] = Particles[i].Id ^ HBTConfig.RandomSeedFactor;
     seed_seq seed(ids.begin(), ids.end());
     mt19937 rng(seed);    
     // shuffle for easy resampling later.
