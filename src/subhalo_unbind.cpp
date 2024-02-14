@@ -3,6 +3,7 @@
 #include <iostream>
 #include <new>
 #include <omp.h>
+#include <random>
 
 #include "datatypes.h"
 #include "gravity_tree.h"
@@ -323,8 +324,13 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   GravityTree_t tree;
   tree.Reserve(Particles.size());
   Nbound = Particles.size(); // start from full set
-  if (MaxSampleSize > 0 && Nbound > MaxSampleSize)
-    random_shuffle(Particles.begin(), Particles.end()); // shuffle for easy resampling later.
+  if (MaxSampleSize > 0 && Nbound > MaxSampleSize) {
+    // Initialize random number generator with first particle ID for reproducibility
+    mt19937 rng;
+    rng.seed(Particles[0].Id);
+    // shuffle for easy resampling later.
+    shuffle(Particles.begin(), Particles.end(), rng);    
+  }
   HBTInt Nlast;
 
   vector<ParticleEnergy_t> Elist(Nbound);
