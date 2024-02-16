@@ -29,12 +29,12 @@ int main(int argc, char **argv)
   {
     // Print information about the version being run.
     cout << "HBT compiled using git branch: " << branch_name << " and commit: " << commit_hash;
-    if(uncommitted_changes)
+    if (uncommitted_changes)
       cout << " (with uncommitted changes)";
     else
-      cout << " (clean)";      
+      cout << " (clean)";
     cout << endl;
-        
+
     ParseHBTParams(argc, argv, HBTConfig, snapshot_start, snapshot_end);
     mkdir(HBTConfig.SubhaloPath.c_str(), 0755);
     HBTConfig.DumpParameters();
