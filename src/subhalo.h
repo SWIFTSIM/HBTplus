@@ -155,23 +155,28 @@ public:
     return SnapshotIndexOfSink == currentsnapshotindex;
   }
   void DuplicateMostBoundParticleId();
-  HBTInt GetTracerIndex() {
+  HBTInt GetTracerIndex()
+  {
     assert(TracerIndex >= 0);
     assert(TracerIndex < Particles.size());
 #ifdef CHECK_TRACER_INDEX
-    if(TracerId != Particles[TracerIndex].Id) {
+    if (TracerId != Particles[TracerIndex].Id)
+    {
       cerr << "Tracer particle ID is incorrect!" << endl;
       abort();
     }
 #endif
     return TracerIndex;
   }
-  void SetTracerIndex(const HBTInt index) {
+  void SetTracerIndex(const HBTInt index)
+  {
     assert((index >= 0));
-    assert((index < Particles.size()) || ((Particles.size()==0) && (index==0))); // allow index=0 for halos with no particles
+    assert((index < Particles.size()) ||
+           ((Particles.size() == 0) && (index == 0))); // allow index=0 for halos with no particles
     TracerIndex = index;
 #ifdef CHECK_TRACER_INDEX
-    if(Particles.size() > 0) {
+    if (Particles.size() > 0)
+    {
       TracerId = Particles[index].Id;
     }
 #endif

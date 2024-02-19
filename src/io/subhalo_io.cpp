@@ -103,7 +103,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
 }
 inline void Subhalo_t::DuplicateMostBoundParticleId()
 {
-  if(Nbound > 0)
+  if (Nbound > 0)
     MostBoundParticleId = Particles[GetTracerIndex()].Id;
 }
 string SubhaloSnapshot_t::GetSubDir()

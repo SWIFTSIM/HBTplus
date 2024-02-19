@@ -40,11 +40,12 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
       ZeroSizeSubhalo[nr_zero] = sub;
       ZeroSizeSubhalo[nr_zero].Particles.resize(1);
       ZeroSizeSubhalo[nr_zero].Particles[0] = Particle_t(sub.MostBoundParticleId);
-      for(int j=0; j<3; j+=1) {
+      for (int j = 0; j < 3; j += 1)
+      {
         /* Set default position and velocity for particles which no longer exist */
         ZeroSizeSubhalo[nr_zero].Particles[0].ComovingPosition[j] = -1.0;
         ZeroSizeSubhalo[nr_zero].Particles[0].PhysicalVelocity[j] = -1.0;
-      }      
+      }
       nr_zero += 1;
     }
   }
@@ -63,7 +64,8 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
     if (sub.Particles.size() == 0)
     {
       Particle_t &p = ZeroSizeSubhalo[nr_zero].Particles[0];
-      if(p.Id != SpecialConst::NullParticleId) {
+      if (p.Id != SpecialConst::NullParticleId)
+      {
         copyXYZ(sub.ComovingMostBoundPosition, p.ComovingPosition);
         copyXYZ(sub.PhysicalMostBoundVelocity, p.PhysicalVelocity);
       }

@@ -323,14 +323,16 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   // This is the most bound tracer type particle, or just the most bound if there are
   // no tracers.
   auto OldMostboundParticle = Particles[0];
-  for(HBTInt i=0; i<Nbound; i+=1) {
+  for (HBTInt i = 0; i < Nbound; i += 1)
+  {
     const auto &p = Particles[i];
-    if(p.IsTracer()) {
+    if (p.IsTracer())
+    {
       OldMostboundParticle = p;
       break;
     }
   }
-  
+
   GravityTree_t tree;
   tree.Reserve(Particles.size());
   Nbound = Particles.size(); // start from full set
@@ -425,7 +427,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         if (p.Id == OldMostboundParticle.Id)
         {
           swap(p, Particles[0]); // restore old most-bound to beginning
-	  SetTracerIndex(0); // update location of the tracer
+          SetTracerIndex(0);     // update location of the tracer
           break;
         }
       }

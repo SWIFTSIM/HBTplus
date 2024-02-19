@@ -510,7 +510,7 @@ void Subhalo_t::CountParticleTypes()
   // If we found no tracer in this subgroup, default to the most bound particle.
   HBTInt index = (Tracer_Index_ParticleType.second == -1) ? 0 : Tracer_Index_ParticleType.first;
   SetTracerIndex(index);
-  
+
 #else
   // Always use the first particle in DMO runs
   SetTracerIndex(0);
