@@ -31,6 +31,9 @@ def sort_hbt_output(basedir, snap_nr, outdir):
     mf = phdf5.MultiFile(filenames, file_nr_dataset="NumberOfFiles", comm=comm)
     subhalos = mf.read("Subhalos")
     field_names = list(subhalos.dtype.fields)
+
+    # Find total number of subhalos
+    total_nr_subhalos = comm.allreduce(len(subhalos))
     
     # Convert array of structs to dict of arrays
     data = {}
@@ -67,8 +70,12 @@ def sort_hbt_output(basedir, snap_nr, outdir):
         input_filename = f"{basedir}/{snap_nr:03d}/SubSnap_{snap_nr:03d}" + ".0.hdf5"
         with h5py.File(input_filename, "r") as input_file, h5py.File(output_filename, "r+") as output_file:        
             for name in ("Cosmology", "Header", "Units"):
-                input_file.copy(name, output_file)        
-
+                input_file.copy(name, output_file)
+            # Add some other datasets usually found in HBT SubSnap files
+            output_file["NumberOfFiles"] = (1,)
+            output_file["SnapshotId"] = input_file["SnapshotId"][...]
+            output_file["NumberOfSubhalosInAllFiles"] = (total_nr_subhalos,)
+                
     comm.barrier()
     if comm_rank == 0:
         print("Done.")
