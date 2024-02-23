@@ -13,11 +13,78 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 
 
+def read_snapshot(snapshot_file, snap_nr, particle_ids):
+    """
+    Read particle properties for the specified particle IDs.
+    Returns a dict of arrays.
+    """
+
+    # Datasets to pass through from the snapshot
+    passthrough_datasets = ("Coordinates", "Masses", "FOFGroupIDs")
+    
+    # Sub in the snapshot number
+    from virgo.util.partial_formatter import PartialFormatter
+    formatter = PartialFormatter()
+    filenames = formatter.format(snapshot_file, snap_nr=snap_nr, file_nr=None)
+
+    # Determine what particle types we have in the snapshot
+    if comm_rank == 0:
+        ptypes = []
+        with h5py.File(filenames.format(file_nr=0), "r") as infile:
+            nr_types = int(infile["Header"].attrs["NumPartTypes"])
+            nr_parts = infile["Header"].attrs["NumPart_Total"]
+            nr_parts_hw = infile["Header"].attrs["NumPart_Total_HighWord"]
+            for i in range(nr_types):
+                if nr_parts[i] > 0 or nr_parts_hw[i] > 0:
+                    ptypes.append(i)
+    else:
+        ptypes = None
+    ptypes = comm.bcast(ptypes)
+
+    # Read the particle data from the snapshot
+    particle_data = {"Type" : -np.ones(particle_ids.shape, dtype=np.int32)}
+    mf = phdf5.MultiFile(filenames, file_nr_attr=("Header","NumFilesPerSnapshot"), comm=comm)
+    for ptype in ptypes:
+        if ptype == 6:
+            continue # skip neutrinos
+        # Read the IDs of this particle type
+        if comm_rank == 0:
+            print(f"Reading snapshot particle IDs for type {ptype}")
+        snapshot_ids = mf.read(f"PartType{ptype}/ParticleIDs")
+        # For each subhalo particle ID, find matching index in the snapshot (if any)
+        ptr = psort.parallel_match(particle_ids, snapshot_ids, comm=comm)
+        matched = (ptr>=0)
+        # Loop over particle properties to pass through
+        for name in passthrough_datasets:
+            # Read this property from the snapshot
+            if ptype == 5 and name == "Masses":
+                snapshot_data = mf.read(f"PartType{ptype}/DynamicalMasses")
+            else:
+                snapshot_data = mf.read(f"PartType{ptype}/{name}")
+            # Allocate output array, if we didn't already
+            if name not in particle_data:
+                shape = (len(particle_ids),)+snapshot_data.shape[1:]
+                dtype = snapshot_data.dtype
+                particle_data[name] = -np.ones(shape, dtype=dtype) # initialize to -1 = not found
+            # Look up the value for each subhalo particle
+            if comm_rank == 0:
+                print(f"Looking up particle type {ptype} property {name} from snapshot")
+            particle_data[name][matched,...] = psort.fetch_elements(snapshot_data, ptr[matched], comm=comm)
+        # Also store the type of each matched particle
+        particle_data["Type"][matched] = ptype
+
+    # Should have matched all particles
+    assert np.all(particle_data["Type"] >= 0)
+        
+    return particle_data
+    
+
 def read_particles(filenames, nr_local_subhalos):
     """
     Read in the particle IDs belonging to the subhalos on this MPI
-    rank. Returns a single array with the concatenated IDs from all
-    local subhalos in the order they appear in the SubSnap files.
+    rank from the specified SubSnap files. Returns a single array with
+    the concatenated IDs from all local subhalos in the order they
+    appear in the SubSnap files.
     """
 
     # First determine how many subhalos are in each SubSnap file
@@ -68,7 +135,7 @@ def read_particles(filenames, nr_local_subhalos):
     return particle_ids
     
                 
-def sort_hbt_output(basedir, snap_nr, outdir, with_particles):
+def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
     """
     This reorganizes a set of HBT SubSnap files into a single file which
     contains one HDF5 dataset for each subhalo property. Subhalos are written
@@ -119,7 +186,7 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles):
     for name in field_names:
         if name != "TrackId":
             if comm_rank == 0:
-                print(f"Reordering property: {name}")
+                print(f"Reordering subhalo property: {name}")
             data[name] = psort.fetch_elements(data[name], order, comm=comm)
     del order
             
@@ -138,6 +205,9 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles):
         nr_local_particles = sum(nbound)
         particle_offset = np.cumsum(nbound) - nbound # offset on this rank
         particle_offset += (comm.scan(nr_local_particles) - nr_local_particles) # convert to global offset
+
+    if snapshot_file is not None:
+        particle_data = read_snapshot(snapshot_file, snap_nr, particle_ids)
         
     # Write subhalo properties to the output file
     output_filename = f"{outdir}/OrderedSubSnap_{snap_nr:03d}.hdf5"
@@ -158,6 +228,9 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles):
         if with_particles:
             phdf5.collective_write(particle_group, "ParticleIDs", particle_ids, comm)            
             phdf5.collective_write(subhalo_group, "ParticleOffset", particle_offset, comm)            
+            if snapshot_file is not None:
+                for name, data in particle_data.items():
+                    phdf5.collective_write(particle_group, name, data, comm)
             
     # Copy metadata from the first file
     comm.barrier()
@@ -187,6 +260,8 @@ if __name__ == "__main__":
     parser.add_argument("snap_nr", type=int, help="Index of the snapshot to process")
     parser.add_argument("outdir",  type=str, help="Directory in which to write the output")
     parser.add_argument("--with-particles", action="store_true", help="Also copy the particle IDs to the output")
+    parser.add_argument("--snapshot-file", type=str, help="Format string for snapshot files (f-string using {snap_nr}, {file_nr})")
+
     args = parser.parse_args()
 
     sort_hbt_output(**vars(args))
