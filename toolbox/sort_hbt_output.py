@@ -166,8 +166,22 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
         assert nr_local_particles == np.sum(nbound)
         
         # Assign TrackIds to the particles
-        particle_trackids = np.repeat(subhalos["TrackId"], subhalos["Nbound"])
-        
+        particle_sort_key = np.repeat(subhalos["TrackId"], subhalos["Nbound"]).astype(np.int64)
+
+        # Find maximum size of any subhalo
+        if len(subhalos) > 0:
+            max_subhalo_size = np.amax(subhalos["Nbound"])
+        else:
+            max_subhalo_size = 0
+        max_subhalo_size = comm.allreduce(max_subhalo_size, op=MPI.MAX)
+
+        # Convert trackid to sort key which includes ordering by energy
+        particle_sort_key *= max_subhalo_size
+        offset = 0
+        for n in subhalos["Nbound"]:
+            particle_sort_key[offset:offset+n] += np.arange(n, dtype=int)
+            offset += n
+                
     # Find total number of subhalos
     total_nr_subhalos = comm.allreduce(len(subhalos))
     
@@ -192,13 +206,13 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
             
     if with_particles:
 
-        # Sort particle IDs by TrackId too
+        # Sort particle IDs too
         if comm_rank == 0:
-            print(f"Reordering particle IDs by TrackId")
-        order = psort.parallel_sort(particle_trackids, return_index=True, comm=comm)
+            print(f"Reordering particle IDs by TrackId and energy")
+        order = psort.parallel_sort(particle_sort_key, return_index=True, comm=comm)
         particle_ids = psort.fetch_elements(particle_ids, order, comm=comm)
         del order
-        del particle_trackids
+        del particle_sort_key
 
         # Compute offset to each subhalo after sorting by TrackId
         nbound = data["Nbound"]
