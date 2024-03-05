@@ -183,7 +183,7 @@ void GetTracerIds(vector<HBTInt> &particle_ids, const Subhalo_t &Subhalo)
 {
   /* Initialise vector. This will make it so the code knows when to stop looking
    * for tracers, since orphans will have all but the first with NullParticleId */
-  particle_ids.assign(HBTConfig.MinNumTracerPartOfSub, SpecialConst::NullParticleId);
+  fill(particle_ids.begin(), particle_ids.end(), SpecialConst::NullParticleId);
 
   /* Iterate over the particle list to find tracers. */
   int BoundRanking = 0;
@@ -248,7 +248,7 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
     if (Subhalos[subid].Particles.size())
     {
       /* Create a list of tracer particle IDs*/
-      vector<HBTInt> TracerParticleIds;
+      vector<HBTInt> TracerParticleIds(HBTConfig.MinNumTracerPartOfSub);
       GetTracerIds(TracerParticleIds, Subhalos[subid]);
 
       /* Use several particles to score different FOFs */
