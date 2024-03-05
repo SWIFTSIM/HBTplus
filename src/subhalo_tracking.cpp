@@ -292,6 +292,21 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
                           "overflow. Please try more MPI threads. aborting.\n");
   }
   MPI_Bcast(&NumSubhalos, 1, MPI_HBT_INT, root, world.Communicator);
+
+  /* Create vector to hold the IDs of particles to look out for. We assign a 
+   * conservative value of MinNumTracerPartOfSub particles per subhalo, even 
+   * though we may have orphans in the mix (only require one entry) */
+  vector<vector<HBTInt>> TracerParticleIds(NumSubhalos, vector<HBTInt>(HBTConfig.MinNumTracerPartOfSub));
+
+  /* Populate the vectors with the ParticleIDs of tracers belonging to the subhaloes
+   * of the root task */
+  if (thisrank == root)
+  {
+#pragma omp parallel for if (NumSubhalos > 20)
+    for (HBTInt i = 0; i < NumSubhalos; i++)
+      GetTracerIds(TracerParticleIds[i], Subhalos[i]);
+  }
+
   TrackParticleIds.resize(NumSubhalos);
   if (thisrank == root)
   {
