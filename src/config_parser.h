@@ -91,7 +91,7 @@ public:
     MaxConcurrentIO = 10;
     MinSnapshotIndex = 0;
     MinNumPartOfSub = 20;
-    MinNumTracerPartOfSub = 20;
+    MinNumTracerPartOfSub = 10;
     GroupParticleIdMask = 0;
     MassInMsunh = 1e10;
     LengthInMpch = 1;
