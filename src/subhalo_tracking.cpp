@@ -307,6 +307,16 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
       GetTracerIds(TracerParticleIds[i], Subhalos[i]);
   }
 
+  /* Convert 2D vector into 1D C array, for communication purposes */
+  vector<HBTInt> TracerParticleIds_ToCommunicate(NumSubhalos * HBTConfig.MinNumTracerPartOfSub);
+  if (thisrank == root)
+  {
+    int elements  = 0;
+    for (auto entry : TracerParticleIds)
+      copy(entry.begin(), entry.end(), TracerParticleIds_ToCommunicate.begin() + HBTConfig.MinNumTracerPartOfSub * elements++);
+  }
+  MPI_Bcast(TracerParticleIds_ToCommunicate.data(), TracerParticleIds_ToCommunicate.size(), MPI_HBT_INT, root, world.Communicator);
+
   TrackParticleIds.resize(NumSubhalos);
   if (thisrank == root)
   {
