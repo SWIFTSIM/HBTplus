@@ -177,11 +177,31 @@ inline HBTInt GetLocalHostId(HBTInt pid, const HaloSnapshot_t &halo_snap, const 
   return hostid;
 }
 
+/* Identify and store the particle IDs of the most bound MinNumTracerPartOfSub
+ * collisionless tracers. Used to identify host FOF groups. */
+void GetTracerIds(vector<HBTInt> &particle_ids, const Subhalo_t &Subhalo)
+{
+  /* Initialise vector. This will make it so the code knows when to stop looking
+   * for tracers, since orphans will have all but the first with NullParticleId */
+  particle_ids.assign(HBTConfig.MinNumTracerPartOfSub, SpecialConst::NullParticleId);
+
+  /* Iterate over the particle list to find tracers. */
+  int BoundRanking = 0;
+  for (auto particle = Subhalo.Particles.begin(); particle != Subhalo.Particles.begin() + Subhalo.Nbound; particle++)
+  {
+    if (particle->IsTracer()) // Only use tracers.
+      particle_ids[BoundRanking++] = particle->Id;
+
+    if (BoundRanking == HBTConfig.MinNumTracerPartOfSub) // Use up to a user-defined number of tracers.
+      break;
+  }
+}
+
 /* Assign a host to a given subgroup based on the FoF membership of the
  * MinNumTracerPartOfSub most bound collisionless particles. This decision is
  * weighted by the binding energy ranking the particles had in the previous
  * output. */
-HBTInt DecideLocalHostId(const Subhalo_t &Subhalo, const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
+HBTInt DecideLocalHostId(const vector<HBTInt> &particle_ids, const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
 {
   /* To store unique host candidates, and the matching score. */
   std::unordered_map<HBTInt, float> CandidateHosts;
@@ -190,18 +210,17 @@ HBTInt DecideLocalHostId(const Subhalo_t &Subhalo, const HaloSnapshot_t &halo_sn
   float BoundRanking = 0.;
 
   /* Iterate over the particle list. */
-  for (auto particle = Subhalo.Particles.begin(); particle != Subhalo.Particles.begin() + Subhalo.Nbound; particle++)
+  for (auto id : particle_ids)
   {
-    if (particle->IsTracer()) // Only use tracers.
-    {
-      HBTInt Host = halo_snap.ParticleHash.GetIndex(particle->Id); // Can be -1.
-
-      /* If the key is not present, the score gets zero-initialised by default */
-      CandidateHosts[Host] += 1.0 / (1 + pow(BoundRanking++, 0.5));
-    }
-
-    if (BoundRanking == HBTConfig.MinNumTracerPartOfSub) // Use up to a user-defined number of tracers.
+    // No more tracers left (should only occur for orphans!)
+    if(id == SpecialConst::NullParticleId)
       break;
+
+    // Get host, which can be -1
+    HBTInt Host = halo_snap.ParticleHash.GetIndex(id);
+
+    /* If the key is not present, the score gets zero-initialised by default */
+    CandidateHosts[Host] += 1.0 / (1 + pow(BoundRanking++, 0.5));
   }
 
   /* Select candidate host with the highest score. */
@@ -228,8 +247,12 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
   {
     if (Subhalos[subid].Particles.size())
     {
+      /* Create a list of tracer particle IDs*/
+      vector<HBTInt> TracerParticleIds;
+      GetTracerIds(TracerParticleIds, Subhalos[subid]);
+
       /* Use several particles to score different FOFs */
-      Subhalos[subid].HostHaloId = DecideLocalHostId(Subhalos[subid], halo_snap, part_snap);
+      Subhalos[subid].HostHaloId = DecideLocalHostId(TracerParticleIds, halo_snap, part_snap);
     }
     else
       Subhalos[subid].HostHaloId = -1;
