@@ -183,7 +183,7 @@ void GetTracerIds(vector<HBTInt> &particle_ids, const Subhalo_t &Subhalo)
 {
   /* Initialise vector. This will make it so the code knows when to stop looking
    * for tracers, since orphans will have all but the first with NullParticleId */
-  fill(particle_ids.begin(), particle_ids.end(), SpecialConst::NullParticleId);
+  fill(particle_ids.begin(), particle_ids.begin() + HBTConfig.MinNumTracerPartOfSub, SpecialConst::NullParticleId);
 
   /* Iterate over the particle list to find tracers. */
   int BoundRanking = 0;
