@@ -506,13 +506,21 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
 {
   ParallelizeHaloes = halo_snap.NumPartOfLargestHalo < 0.1 * halo_snap.TotNumberOfParticles; // no dominating objects
 
-  // exchange subhaloes according to hosts
+  /* To hold subhaloes with updated information. */ 
   vector<Subhalo_t> LocalSubhalos;
   LocalSubhalos.reserve(Subhalos.size());
+
+  /* Creates ParticleID - HostHalo information, local to the task. */
   halo_snap.FillParticleHash();
+
+  /* Try identifying which FOF hosts local subhaloes, using local information 
+   * only. */
   FindLocalHosts(halo_snap, part_snap, Subhalos, LocalSubhalos);
+
+  /* Those which require information from external ranks are dealt with here. */
   for (int rank = 0; rank < world.size(); rank++)
     FindOtherHostsSafely(world, rank, halo_snap, part_snap, Subhalos, LocalSubhalos, MPI_HBT_SubhaloShell_t);
+
   Subhalos.swap(LocalSubhalos);
   halo_snap.ClearParticleHash();
 
