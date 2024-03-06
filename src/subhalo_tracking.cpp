@@ -338,18 +338,10 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   {
 #pragma omp parallel for if (NumSubhalos > 20)
     for (HBTInt i = 0; i < NumSubhalos; i++)
-      GetTracerIds(TracerParticleIds[i], Subhalos[i]);
+      GetTracerIds(TracerParticleIds.begin() + i * HBTConfig.MinNumTracerPartOfSub, Subhalos[i]);
   }
 
-  /* Convert 2D vector into 1D C array, for communication purposes */
-  vector<HBTInt> TracerParticleIds_ToCommunicate(NumSubhalos * HBTConfig.MinNumTracerPartOfSub);
-  if (thisrank == root)
-  {
-    int elements  = 0;
-    for (auto entry : TracerParticleIds)
-      copy(entry.begin(), entry.end(), TracerParticleIds_ToCommunicate.begin() + HBTConfig.MinNumTracerPartOfSub * elements++);
-  }
-  MPI_Bcast(TracerParticleIds_ToCommunicate.data(), TracerParticleIds_ToCommunicate.size(), MPI_HBT_INT, root, world.Communicator);
+  MPI_Bcast(TracerParticleIds.data(), TracerParticleIds.size(), MPI_HBT_INT, root, world.Communicator);
 
   TrackParticleIds.resize(NumSubhalos);
   if (thisrank == root)
