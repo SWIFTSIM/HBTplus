@@ -335,7 +335,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   /* Create vector to hold the IDs of particles to look out for. We assign a 
    * conservative value of MinNumTracerPartOfSub particles per subhalo, even 
    * though we may have orphans in the mix (only require one entry) */
-  vector<vector<HBTInt>> TracerParticleIds(NumSubhalos, vector<HBTInt>(HBTConfig.MinNumTracerPartOfSub));
+  vector<HBTInt> TracerParticleIds(NumSubhalos * HBTConfig.MinNumTracerPartOfSub);
 
   /* Populate the vectors with the ParticleIDs of tracers belonging to the subhaloes
    * of the root task */
