@@ -200,34 +200,31 @@ void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhal
 /* Identify which FOF is host to the particles. If we have a value of -2, that
  * means the particle was not found in the particle information available to the 
  * local rank. */
-bool GetTracerHosts(vector<HBTInt> &particle_hosts, const vector<HBTInt> &particle_ids, const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
+bool GetTracerHosts(vector<HBTInt>::iterator particle_hosts, vector<HBTInt>::const_iterator particle_ids, const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
 {
   /* Initialise vector. This will make it so the code knows when to stop looking
    * for tracers, since orphans will have all but the first with NullParticleId */
-  fill(particle_hosts.begin(), particle_hosts.begin() + HBTConfig.MinNumTracerPartOfSub, -2);
+  fill(particle_hosts, particle_hosts + HBTConfig.MinNumTracerPartOfSub, -2);
 
   bool MakeDecision = true;
 
   /* Iterate over the particle list to find hosts. */
-  int BoundRanking = 0;
-  for (auto id : particle_ids)
+  for(int BoundRanking = 0; BoundRanking < HBTConfig.MinNumTracerPartOfSub; BoundRanking++)
   {
     // No more tracers left (should only occur for orphans!)
-    if(id == SpecialConst::NullParticleId)
+    if(particle_ids[BoundRanking] == SpecialConst::NullParticleId)
       break;
 
     // Get host, which can be -1
-    particle_hosts[BoundRanking] = halo_snap.ParticleHash.GetIndex(id);
+    particle_hosts[BoundRanking] = halo_snap.ParticleHash.GetIndex(particle_ids[BoundRanking]);
 
     /* We cannot find the particle in the current rank. We will therefore need to 
      * try to find it in other ranks (and hence delay making a host decision) */
-    if(particle_hosts[BoundRanking] == -1 && part_snap.GetIndex(id) == -1)
+    if(particle_hosts[BoundRanking] == -1 && part_snap.GetIndex(particle_ids[BoundRanking]) == -1)
     {
       particle_hosts[BoundRanking]--; // Turns it to -2
       MakeDecision = false;
     }
-
-    BoundRanking++;
   }
 
   return MakeDecision;
@@ -286,7 +283,7 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
 
       /* Identify which FOFs those IDs are located in. */
       vector<HBTInt> TracerHosts(HBTConfig.MinNumTracerPartOfSub);
-      bool MakeDecision = GetTracerHosts(TracerHosts, TracerParticleIds, halo_snap, part_snap);
+      bool MakeDecision = GetTracerHosts(TracerHosts.begin(), TracerParticleIds.cbegin(), halo_snap, part_snap);
 
       /* If we found all tracers in the current rank, make a host decision. 
        * Otherwise, we will need to use information from other ranks to be sure 
