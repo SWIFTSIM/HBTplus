@@ -179,11 +179,11 @@ inline HBTInt GetLocalHostId(HBTInt pid, const HaloSnapshot_t &halo_snap, const 
 
 /* Identify and store the particle IDs of the most bound MinNumTracerPartOfSub
  * collisionless tracers. Used to identify host FOF groups. */
-void GetTracerIds(vector<HBTInt> &particle_ids, const Subhalo_t &Subhalo)
+void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhalo)
 {
   /* Initialise vector. This will make it so the code knows when to stop looking
    * for tracers, since orphans will have all but the first with NullParticleId */
-  fill(particle_ids.begin(), particle_ids.begin() + HBTConfig.MinNumTracerPartOfSub, SpecialConst::NullParticleId);
+  fill(particle_ids, particle_ids + HBTConfig.MinNumTracerPartOfSub, SpecialConst::NullParticleId);
 
   /* Iterate over the particle list to find tracers. */
   int BoundRanking = 0;
@@ -282,7 +282,7 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
     {
       /* Create a list of tracer particle IDs*/
       vector<HBTInt> TracerParticleIds(HBTConfig.MinNumTracerPartOfSub);
-      GetTracerIds(TracerParticleIds, Subhalos[subid]);
+      GetTracerIds(TracerParticleIds.begin(), Subhalos[subid]);
 
       /* Identify which FOFs those IDs are located in. */
       vector<HBTInt> TracerHosts(HBTConfig.MinNumTracerPartOfSub);
