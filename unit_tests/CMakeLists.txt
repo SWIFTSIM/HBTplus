@@ -27,6 +27,7 @@ add_library(testfuncs OBJECT
 #
 foreach(TEST_NAME
     test_build_pos_vel
+    test_argsort
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
