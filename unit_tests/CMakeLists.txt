@@ -42,6 +42,7 @@ endforeach()
 set(HBT_MPI_TEST_NPROCS 4 CACHE STRING "Set the number of processors used in MPI unit tests")
 foreach(TEST_NAME
     test_mpi
+    test_exchange_counts
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
