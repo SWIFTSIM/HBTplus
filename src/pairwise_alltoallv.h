@@ -1,7 +1,7 @@
 #include <mpi.h>
 
 /*
-  MPI_alltoallv which can handle large counts.
+  MPI_Alltoallv which can handle large counts.
   
   Template parameter T should be an integer type large enough to store the largest
   count on any MPI rank.
@@ -69,4 +69,15 @@ int Pairwise_Alltoallv(const void *sendbuf, const T *sendcounts, const T *sdispl
     }
   }
   return 0;
+}
+
+/*
+  This version accepts vector arguments. Recvbuf must already be large enough for the result.
+*/
+template<typename T, typename U, typename V>
+int Pairwise_Alltoallv(const std::vector<U> sendbuf, const std::vector<T> sendcounts, const std::vector<T> sdispls, MPI_Datatype sendtype,
+                       std::vector<V> recvbuf, const std::vector<T>recvcounts, const std::vector<T> rdispls, MPI_Datatype recvtype, MPI_Comm comm)
+{
+  return Pairwise_Alltoallv(sendbuf.data(), sendcounts.data(), sdispls.data(), sendtype,
+                            recvbuf.data(), recvcounts.data(), rdispls.data(), recvtype, comm);
 }
