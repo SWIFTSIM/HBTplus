@@ -1,3 +1,6 @@
+#ifndef ARGSORT_H
+#define ARGSORT_H
+
 #include <vector>
 #include <numeric>
 #include <algorithm>
@@ -19,3 +22,5 @@ template <typename index_t, typename value_t> std::vector<index_t> argsort(std::
   std::sort(index.begin(), index.end(), [&values](index_t a, index_t b) { return values[a] < values[b]; } );
   return index;
 }
+
+#endif

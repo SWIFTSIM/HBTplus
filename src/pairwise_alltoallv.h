@@ -1,3 +1,6 @@
+#ifndef PAIRWISE_ALLTOALLV_H
+#define PAIRWISE_ALLTOALLV_H
+
 #include <mpi.h>
 
 /*
@@ -117,3 +120,5 @@ void ExchangeCounts(const std::vector<T> &sendcounts, std::vector<T> &sdispls,
     rdispls[i] = rdispls[i-1] + recvcounts[i-1];    
   }
 }
+
+#endif
