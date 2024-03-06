@@ -45,6 +45,7 @@ foreach(TEST_NAME
     test_mpi
     test_exchange_counts
     test_pairwise_alltoallv
+    test_locate_ids
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
