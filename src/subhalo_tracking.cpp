@@ -237,20 +237,18 @@ bool GetTracerHosts(vector<HBTInt>::iterator particle_hosts, vector<HBTInt>::con
 HBTInt DecideLocalHostId(const vector<HBTInt> &particle_hosts, const vector<HBTInt> &particle_ids)
 {
   /* To store unique host candidates, and the matching score. */
-  std::unordered_map<HBTInt, float> CandidateHosts;
+  unordered_map<HBTInt, float> CandidateHosts;
 
-  /* To weight host candidate score by how bound was the particle was */
-  float BoundRanking = 0.;
-
-  /* Iterate over the particle list. */
-  for(int i = 0; i < HBTConfig.MinNumTracerPartOfSub; i++)
+  /* Iterate over the particle list, and weight each candidate score by how 
+   * bound was the particle is */
+  for(int BoundRanking = 0; BoundRanking < HBTConfig.MinNumTracerPartOfSub; BoundRanking++)
   {
-    // No more tracers left (should only occur for orphans!)
-    if(particle_ids[i] == SpecialConst::NullParticleId)
-      break;
+    // Not a valid tracer (NOTE: should we break or continue here?)
+    if(particle_hosts[BoundRanking] == -2)
+      continue;
 
     /* If the key is not present, the score gets zero-initialised by default */
-    CandidateHosts[particle_hosts[i]] += 1.0 / (1 + pow(BoundRanking++, 0.5));
+    CandidateHosts[particle_hosts[BoundRanking]] += 1.0 / (1 + pow(float(BoundRanking), 0.5));
   }
 
   /* Select candidate host with the highest score. */
@@ -288,7 +286,7 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
       /* If we found all tracers in the current rank, make a host decision. 
        * Otherwise, we will need to use information from other ranks to be sure 
        * of where the track is. */
-      Subhalos[subid].HostHaloId = (MakeDecision) ? DecideLocalHostId(TracerHosts, TracerParticleIds) : -2;
+      Subhalos[subid].HostHaloId = (MakeDecision) ? DecideLocalHostId(TracerHosts.cbegin()) : -2;
     }
     else
       Subhalos[subid].HostHaloId = -1;
