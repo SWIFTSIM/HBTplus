@@ -234,7 +234,7 @@ bool GetTracerHosts(vector<HBTInt>::iterator particle_hosts, vector<HBTInt>::con
  * MinNumTracerPartOfSub most bound collisionless particles. This decision is
  * weighted by the binding energy ranking the particles had in the previous
  * output. */
-HBTInt DecideLocalHostId(const vector<HBTInt> &particle_hosts, const vector<HBTInt> &particle_ids)
+HBTInt DecideLocalHostId(vector<HBTInt>::const_iterator particle_hosts)
 {
   /* To store unique host candidates, and the matching score. */
   unordered_map<HBTInt, float> CandidateHosts;
