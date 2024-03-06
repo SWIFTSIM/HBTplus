@@ -115,7 +115,7 @@ void ExchangeCounts(const std::vector<T> &sendcounts, std::vector<T> &sdispls,
     recvcounts[i] = static_cast<T>(recvcounts_ll[i]);
   sdispls[0] = 0;
   rdispls[0] = 0;
-  for(int i=0; i<comm_size; i+=1) {
+  for(int i=1; i<comm_size; i+=1) {
     sdispls[i] = sdispls[i-1] + sendcounts[i-1];
     rdispls[i] = rdispls[i-1] + recvcounts[i-1];    
   }
