@@ -14,13 +14,14 @@
 
 /*
   Given arrays of IDs and values distributed over all MPI ranks and an array
-  of IDs to find, retrieve all matching IDs and their corresponding values
-  from the other ranks.
+  of IDs to find, retrieve the associated values and a count of the number
+  of times each ID was found.
 
   The output consists of two arrays:
 
   count_found contains the number of times each ID was found.
-  values_found contains the values associated with each ID.
+  values_found contains the values associated with each ID in
+    order of the ids_to_find parameter
   
   Method:
 
@@ -207,6 +208,10 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
     }
   }
 
+  // We no longer need the target_ids or imported_ids_to_find at this point
+  std::vector<HBTInt>().swap(target_ids);
+  std::vector<HBTInt>().swap(imported_ids_to_find);
+  
   // Reverse-exchange the number of matches:
   // This will return the number of matches in the order in which the send buffer
   // for the ids_to_find exchange was populated.
@@ -258,6 +263,11 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
       }
     }
     assert(offset==total_nr_send);
+
+    // Free some vectors we no longer need
+    std::vector<T>().swap(target_values);
+    std::vector<HBTInt>().swap(match_offset);
+    std::vector<HBTInt>().swap(match_count);
 
     // Resize output buffer
     values_found.resize(total_nr_recv);
