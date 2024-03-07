@@ -864,16 +864,31 @@ public:
     if (subhalo.Nbound <= 1)
       return; // skip orphans
 
+    // TODO: Run formatter
+    // TODO: Does this break if MinNumTracer == 0?
+    auto tracer = subhalo.Particles[subhalo.GetTracerIndex()];
+    bool hasTracer = false;
     auto it_begin = subhalo.Particles.begin(), it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
     {
       auto insert_status = ExclusionList.insert(it->Id);
       if (insert_status.second) // inserted, meaning not excluded
       {
+        if (!hasTracer) {
+            if (it->IsTracer()) {
+                hasTracer = true;
+            }
+        }
         if (it != it_save)
           *it_save = move(*it);
         ++it_save;
       }
+    }
+    // If all tracers have been removed during masking, add back the most bound
+    if (!hasTracer) {
+        cout << "Tracer removed during masking\n";
+        *it_save = tracer;
+        ++it_save;
     }
     subhalo.Particles.resize(it_save - it_begin);
   }
