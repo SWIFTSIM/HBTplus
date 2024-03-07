@@ -8,6 +8,7 @@
 
 #include "datatypes.h"
 #include "argsort.h"
+#include "reorder.h"
 #include "pairwise_alltoallv.h"
 #include "hash_integers.h"
 
@@ -16,10 +17,17 @@
   of IDs to find, retrieve all matching IDs and their corresponding values
   from the other ranks.
 
-  There may be duplicate IDs (i.e. multiple values per ID, possibly stored
-  on different ranks), in which case all matches are returned so the
-  output vectors may be larger than the input ids_to_find vector.
+  The output consists of two arrays:
 
+  ids_found contains all matching IDs in the same order as the input
+  ids_to_find. IDs which were found multiple times will be duplicated in
+  consecutive elements of ids_found. IDs which were not found at all are
+  ommitted from ids_found.
+  
+  values_found contains the value associated with each ID. If an ID was
+  found several times there will be consecutive identical elements in
+  ids_found with corresponding (possibly different) values in values_found.
+    
   Method:
 
   Send each (ID, value) pair to an MPI rank based on hash of the ID
@@ -167,28 +175,11 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
     }    
   }
 
-  //
   // Sort local target (ID, value) pairs by ID
-  //
   {
-    // Make a sorting index to access in order of ID
     std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(target_ids);
-
-    // Reorder the IDs
-    {
-      std::vector<HBTInt> new_target_ids(target_ids.size());
-      for(HBTInt i=0; i<target_ids.size(); i+=1)
-        new_target_ids[i] = target_ids[order[i]];
-      target_ids.swap(new_target_ids);
-    }
-
-    // Reorder the values
-    {
-      std::vector<T> new_target_values(target_values.size());
-      for(HBTInt i=0; i<target_values.size(); i+=1)
-        new_target_values[i] = target_values[order[i]];
-      target_values.swap(new_target_values);
-    }
+    reorder<HBTInt,HBTInt>(target_ids, order);
+    reorder<T,HBTInt>(target_values, order);    
   }
 
   // For each ID to find, compute offset to first matching instance in target_ids
@@ -299,6 +290,77 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
     Pairwise_Alltoallv(result_sendbuf, result_sendcounts, result_senddispls, mpi_value_type,
                        values_found, result_recvcounts, result_recvdispls, mpi_value_type,
                        comm);
+  }
+
+  // Finally we need to put the results into the same order as the requested IDs
+  {
+    // First sort results by ID so that duplicate IDs are consecutive
+    std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(ids_found);
+    reorder<HBTInt,HBTInt>(ids_found, order);
+    reorder<T,HBTInt>(values_found, order);    
+  }
+
+  // For each ID in ids_to_find, find the index of the first match in the sorted ids_found
+  std::vector<HBTInt> found_offset(ids_to_find.size());
+  {
+    std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(ids_to_find);
+    HBTInt found_nr = 0;
+    for(HBTInt to_find_rank=0; to_find_rank<ids_to_find.size(); to_find_rank+=1) {
+      HBTInt to_find_nr = order[to_find_rank];
+      // Skip unmatched IDs
+      while((found_nr < ids_found.size()) && (ids_found[found_nr] < ids_to_find[to_find_nr])) {
+        found_nr += 1;
+      }
+      // Check if we have a match
+      if((found_nr < ids_found.size()) && (ids_found[found_nr] == ids_to_find[to_find_nr])) {
+        found_offset[to_find_nr] = found_nr;
+      } else {
+        found_offset[to_find_nr] = -1;
+      }
+    }
+  }
+
+  // Determine the size of the output array:
+  // Duplication in ids_to_find may cause duplication in the output.
+  HBTInt output_size = 0;
+  {
+    for(HBTInt to_find_nr=0; to_find_nr<ids_to_find.size(); to_find_nr+=1) {
+      HBTInt found_nr = found_offset[to_find_nr];
+      while((found_nr >= 0) && (found_nr < ids_found.size()) && (ids_found[found_nr]==ids_to_find[to_find_nr])) {
+        output_size += 1;
+        found_nr += 1;
+      }
+    }
+  }
+  
+  // Reconstruct array of values found in input order
+  {
+    std::vector<T> values_found_ordered(output_size);
+    HBTInt offset = 0;
+    for(HBTInt to_find_nr=0; to_find_nr<ids_to_find.size(); to_find_nr+=1) {
+      HBTInt found_nr = found_offset[to_find_nr];
+      while((found_nr >= 0) && (found_nr < ids_found.size()) && (ids_found[found_nr]==ids_to_find[to_find_nr])) {
+        values_found_ordered[offset] = values_found[found_nr];
+        offset += 1;
+        found_nr += 1;
+      }
+    }
+    values_found.swap(values_found_ordered);
+  }
+
+  // Reconstruct array of IDs found in input order
+  {
+    std::vector<HBTInt> ids_found_ordered(output_size);
+    HBTInt offset = 0;
+    for(HBTInt to_find_nr=0; to_find_nr<ids_to_find.size(); to_find_nr+=1) {
+      HBTInt found_nr = found_offset[to_find_nr];
+      while((found_nr >= 0) && (found_nr < ids_found.size()) && (ids_found[found_nr]==ids_to_find[to_find_nr])) {
+        ids_found_ordered[offset] = ids_found[found_nr];
+        offset += 1;
+        found_nr += 1;
+      }
+    }
+    ids_found.swap(ids_found_ordered);
   }
 }
 

@@ -15,7 +15,7 @@
   std::vector<int> order = argsort<int,float>(data);
 
 */
-template <typename index_t, typename value_t> std::vector<index_t> argsort(std::vector<value_t> values) {
+template <typename index_t, typename value_t> std::vector<index_t> argsort(const std::vector<value_t> &values) {
 
   std::vector<index_t> index(values.size());
   std::iota(index.begin(), index.end(), 0);
