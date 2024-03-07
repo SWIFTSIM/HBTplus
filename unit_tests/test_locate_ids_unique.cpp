@@ -7,6 +7,12 @@
 #include "locate_ids.h"
 #include "argsort.h"
 
+/*
+  Test LocateValuesById()
+
+  In this case we search for random (non-unique) IDs from a target set of
+  (unique ID, value) pairs distributed over multiple MPI ranks.
+*/
 
 int main(int argc, char *argv[]) {
 
@@ -67,25 +73,25 @@ int main(int argc, char *argv[]) {
     ids_to_find[i] = dist(rng);
 
   // Look up the values
-  std::vector<HBTInt> ids_found(0);
+  std::vector<HBTInt> count_found(0);
   std::vector<int> values_found(0);
-  LocateValuesById(ids, values, MPI_INT, ids_to_find, ids_found, values_found, MPI_COMM_WORLD);
+  LocateValuesById(ids, values, MPI_INT, ids_to_find, count_found, values_found, MPI_COMM_WORLD);
 
-  // In this test case we know that all IDs should be found
-  verify(ids_found.size() >= ids_to_find.size());
-  
-  // Check that the output is correct:
-  // ids_found should contain the same values as ids, but possibly with duplicates.
-  // values_found should contain the corresponding values.
+  // In this test case we know that all IDs should be found exactly once
+  verify(values_found.size() == ids_to_find.size());
+  for(int i=0; i<ids_to_find.size(); i+=1) {
+    verify(count_found[i] == 1);
+  }
+
+  // Check that the values are as expected
   int offset = 0;
-  for(int i=0; i<nr_to_find; i+=1) {
-    verify(ids_found[offset] == ids_to_find[i]);
-    while(ids_found[offset] == ids_to_find[i]) {
-      verify(values_found[offset] == 1000*ids_found[offset]);
+  for(int i=0; i<ids_to_find.size(); i+=1) {
+    for(int j=0; j<count_found[i]; j+=1) {
+      verify(values_found[offset] == 1000*ids_to_find[i]);
       offset += 1;
     }
   }
-  
+    
   MPI_Finalize();
   return 0;
 }

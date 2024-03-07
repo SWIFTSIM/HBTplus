@@ -19,15 +19,9 @@
 
   The output consists of two arrays:
 
-  ids_found contains all matching IDs in the same order as the input
-  ids_to_find. IDs which were found multiple times will be duplicated in
-  consecutive elements of ids_found. IDs which were not found at all are
-  ommitted from ids_found.
+  count_found contains the number of times each ID was found.
+  values_found contains the values associated with each ID.
   
-  values_found contains the value associated with each ID. If an ID was
-  found several times there will be consecutive identical elements in
-  ids_found with corresponding (possibly different) values in values_found.
-    
   Method:
 
   Send each (ID, value) pair to an MPI rank based on hash of the ID
@@ -35,15 +29,16 @@
   Each ID to find is then on the same rank as all matching (ID, value) pairs
   Match up IDs locally on each MPI rank
   Return matching (ID, value) pairs to the rank requesting them
-
+  Put result in order if the input IDs to find
+  
   Efficiency will depend on finding a good hash function!
   
   ids            - vector of IDs
   values         - vector of values associated with ids
   mpi_value_type - MPI type for the values
   ids_to_find    - vector of IDs to look up
-  ids_found      - returns array of matching IDs
-  values_found   - values associated with ids_found
+  count_found    - returns number of matches found for entries in ids_to_find
+  values_found   - values associated with the matched IDs
   comm           - MPI communicator to use
   
 */
@@ -52,7 +47,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
                       const std::vector<T> &values,
                       MPI_Datatype mpi_value_type,
                       const std::vector<HBTInt> &ids_to_find,
-                      std::vector<HBTInt> &ids_found,
+                      std::vector<HBTInt> &count_found,
                       std::vector<T> &values_found,
                       MPI_Comm comm) {
 
@@ -133,27 +128,27 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   // Now we need to redistribute the IDs we're looking for in the same way
   //
   std::vector<HBTInt> imported_ids_to_find(0);
-  std::vector<HBTInt> imported_counts(comm_size);
-  std::vector<HBTInt> imported_displs(comm_size);
+  std::vector<HBTInt> imported_recvcounts(comm_size);
+  std::vector<HBTInt> imported_recvdispls(comm_size);
+  std::vector<HBTInt> imported_sendcounts(comm_size);
+  std::vector<HBTInt> imported_senddispls(comm_size);
   {
     // Count the number of ids_to_find to send to each rank
-    std::vector<HBTInt> sendcounts(comm_size, 0);
     for(auto id: ids_to_find) {
       HBTInt hash = HashInteger(id);
       int dest = (std::abs(hash) % comm_size);
-      sendcounts[dest] += 1;
+      imported_sendcounts[dest] += 1;
     }
 
     // Compute displacements for the exchange
-    std::vector<HBTInt> senddispls(comm_size);
-    ExchangeCounts(sendcounts, senddispls, imported_counts, imported_displs, comm);
+    ExchangeCounts(imported_sendcounts, imported_senddispls, imported_recvcounts, imported_recvdispls, comm);
 
     // Compute totals to send and receive
     HBTInt total_nr_send = 0;
-    for(auto count: sendcounts)
+    for(auto count: imported_sendcounts)
       total_nr_send += count;
     HBTInt total_nr_recv = 0;
-    for(auto count: imported_counts)
+    for(auto count: imported_recvcounts)
       total_nr_recv += count;
 
     // Allocate buffer to receive IDs to find
@@ -161,7 +156,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
     {
       // Populate send buffer for IDs to find
       std::vector<HBTInt> ids_sendbuf(total_nr_send);
-      std::vector<HBTInt> offset = senddispls;
+      std::vector<HBTInt> offset = imported_senddispls;
       for(HBTInt i=0; i<ids_to_find.size(); i+=1) {
         HBTInt hash = HashInteger(ids_to_find[i]);
         int dest = (std::abs(hash) % comm_size);
@@ -169,8 +164,8 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
         offset[dest] += 1;
       }
       // Exchange IDs to find
-      Pairwise_Alltoallv(ids_sendbuf, sendcounts, senddispls, MPI_HBT_INT,
-                         imported_ids_to_find, imported_counts, imported_displs, MPI_HBT_INT,
+      Pairwise_Alltoallv(ids_sendbuf, imported_sendcounts, imported_senddispls, MPI_HBT_INT,
+                         imported_ids_to_find, imported_recvcounts, imported_recvdispls, MPI_HBT_INT,
                          comm);
     }    
   }
@@ -182,9 +177,10 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
     reorder<T,HBTInt>(target_values, order);    
   }
 
-  // For each ID to find, compute offset to first matching instance in target_ids
-  // or -1 if there is no match
+  // For each ID to find, compute offset and counts for matching instances in
+  // target_ids (or offset=-1, count=0 if no match).
   std::vector<HBTInt> match_offset(imported_ids_to_find.size());
+  std::vector<HBTInt> match_count(imported_ids_to_find.size(), 0);
   {
     // Get index to access imported_ids_to_find in order
     std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(imported_ids_to_find);
@@ -196,13 +192,28 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
         target_nr += 1;
       }
       if(imported_ids_to_find[order[i]] == target_ids[target_nr]) {
+        // Found a match
         match_offset[order[i]] = target_nr;
+        // Count number of consecutive IDs in target_ids which match this entry in imported_ids_to_find
+        HBTInt next_target_nr = target_nr;
+        while((next_target_nr < target_ids.size()) && (imported_ids_to_find[order[i]] == target_ids[next_target_nr])) {
+          match_count[order[i]] += 1;
+          next_target_nr +=1;
+        }
       } else {
-        match_offset[order[i]] = -1;        
+        // No match found
+        match_offset[order[i]] = -1;
       }
     }
   }
 
+  // Reverse-exchange the number of matches:
+  // This will return the number of matches in the order in which the send buffer
+  // for the ids_to_find exchange was populated.
+  count_found.resize(ids_to_find.size());
+  Pairwise_Alltoallv(match_count, imported_recvcounts, imported_recvdispls, MPI_HBT_INT,
+                     count_found, imported_sendcounts, imported_senddispls, MPI_HBT_INT,
+                     comm);
   //
   // Count how many values we're going to return to each MPI rank
   //
@@ -210,13 +221,9 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   // Loop over MPI ranks
   for(int rank_nr=0; rank_nr<comm_size; rank_nr+=1) {
     // Loop over IDs requested by this rank
-    for(HBTInt i=imported_displs[rank_nr]; i<imported_displs[rank_nr]+imported_counts[rank_nr]; i+=1) {
-      // Count how many matches we found for this ID
-      HBTInt j = match_offset[i];
-      while((j >= 0) && (j < target_ids.size()) && (target_ids[j] == imported_ids_to_find[i])) {
-        result_sendcounts[rank_nr] += 1;
-        j += 1;
-      }
+    for(HBTInt i=imported_recvdispls[rank_nr]; i<imported_recvdispls[rank_nr]+imported_recvcounts[rank_nr]; i+=1) {
+      // Accumulate number of matches found
+      result_sendcounts[rank_nr] += match_count[i];
     }
   }
   
@@ -233,36 +240,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   HBTInt total_nr_recv = 0;
   for(auto count: result_recvcounts)
     total_nr_recv += count;
-  
-  // Exchange result IDs
-  {
-    // Populate send buffer
-    std::vector<HBTInt> result_sendbuf(total_nr_send);
-    HBTInt offset = 0;
-    // Loop over MPI ranks
-    for(int rank_nr=0; rank_nr<comm_size; rank_nr+=1) {
-      // Loop over IDs requested by this rank
-      for(HBTInt i=imported_displs[rank_nr]; i<imported_displs[rank_nr]+imported_counts[rank_nr]; i+=1) {
-        // Copy matching IDs to the send buffer
-        HBTInt j = match_offset[i];
-        while((j >= 0) && (j < target_ids.size()) && (target_ids[j] == imported_ids_to_find[i])) {
-          result_sendbuf[offset] = target_ids[j];
-          offset += 1;
-          j += 1;
-        }
-      }
-    }
-    assert(offset==total_nr_send);
-
-    // Resize output buffer
-    ids_found.resize(total_nr_recv);
-
-    // Exchange data
-    Pairwise_Alltoallv(result_sendbuf, result_sendcounts, result_senddispls, MPI_HBT_INT,
-                       ids_found, result_recvcounts, result_recvdispls, MPI_HBT_INT,
-                       comm);
-  }
-  
+    
   // Exchange result values
   {
     // Populate send buffer
@@ -271,14 +249,12 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
     // Loop over MPI ranks
     for(int rank_nr=0; rank_nr<comm_size; rank_nr+=1) {
       // Loop over IDs requested by this rank
-      for(HBTInt i=imported_displs[rank_nr]; i<imported_displs[rank_nr]+imported_counts[rank_nr]; i+=1) {
+      for(HBTInt i=imported_recvdispls[rank_nr]; i<imported_recvdispls[rank_nr]+imported_recvcounts[rank_nr]; i+=1) {
         // Copy values associated with matching IDs to the send buffer
-        HBTInt j = match_offset[i];
-        while((j >= 0) && (j < target_ids.size()) && (target_ids[j] == imported_ids_to_find[i])) {
+        for(HBTInt j=match_offset[i]; j<match_offset[i]+match_count[i]; j+=1) {
           result_sendbuf[offset] = target_values[j];
           offset += 1;
-          j += 1;
-        }
+        }        
       }
     }
     assert(offset==total_nr_send);
@@ -292,75 +268,40 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
                        comm);
   }
 
-  // Finally we need to put the results into the same order as the requested IDs
-  {
-    // First sort results by ID so that duplicate IDs are consecutive
-    std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(ids_found);
-    reorder<HBTInt,HBTInt>(ids_found, order);
-    reorder<T,HBTInt>(values_found, order);    
-  }
-
-  // For each ID in ids_to_find, find the index of the first match in the sorted ids_found
-  std::vector<HBTInt> found_offset(ids_to_find.size());
-  {
-    std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(ids_to_find);
-    HBTInt found_nr = 0;
-    for(HBTInt to_find_rank=0; to_find_rank<ids_to_find.size(); to_find_rank+=1) {
-      HBTInt to_find_nr = order[to_find_rank];
-      // Skip unmatched IDs
-      while((found_nr < ids_found.size()) && (ids_found[found_nr] < ids_to_find[to_find_nr])) {
-        found_nr += 1;
-      }
-      // Check if we have a match
-      if((found_nr < ids_found.size()) && (ids_found[found_nr] == ids_to_find[to_find_nr])) {
-        found_offset[to_find_nr] = found_nr;
-      } else {
-        found_offset[to_find_nr] = -1;
-      }
-    }
-  }
-
-  // Determine the size of the output array:
-  // Duplication in ids_to_find may cause duplication in the output.
-  HBTInt output_size = 0;
-  {
-    for(HBTInt to_find_nr=0; to_find_nr<ids_to_find.size(); to_find_nr+=1) {
-      HBTInt found_nr = found_offset[to_find_nr];
-      while((found_nr >= 0) && (found_nr < ids_found.size()) && (ids_found[found_nr]==ids_to_find[to_find_nr])) {
-        output_size += 1;
-        found_nr += 1;
-      }
-    }
-  }
+  //
+  // Now we have arrays with the required values and the number of values associated
+  // with each ID to find, but they're in the order that the send buffers were
+  // populated so we need to reorder them. We do this by reversing the process
+  // used to fill the send buffer.
+  //
   
-  // Reconstruct array of values found in input order
+  // Compute offset to the set of values associated with each ID
+  std::vector<HBTInt> offset_found(count_found.size());
+  if(offset_found.size() > 0) {
+    offset_found[0] = 0;
+    for(HBTInt i=1; i<offset_found.size(); i+=1) {
+      offset_found[i] = offset_found[i-1] + count_found[i-1];
+    }
+  }
+
   {
-    std::vector<T> values_found_ordered(output_size);
-    HBTInt offset = 0;
-    for(HBTInt to_find_nr=0; to_find_nr<ids_to_find.size(); to_find_nr+=1) {
-      HBTInt found_nr = found_offset[to_find_nr];
-      while((found_nr >= 0) && (found_nr < ids_found.size()) && (ids_found[found_nr]==ids_to_find[to_find_nr])) {
-        values_found_ordered[offset] = values_found[found_nr];
-        offset += 1;
-        found_nr += 1;
+    // Reorder the arrays of values and counts
+    std::vector<HBTInt> count_found_ordered(count_found.size());
+    std::vector<T> values_found_ordered(values_found.size());
+    std::vector<HBTInt> offset = imported_senddispls;
+    HBTInt next_value = 0;
+    for(HBTInt i=0; i<ids_to_find.size(); i+=1) {
+      HBTInt hash = HashInteger(ids_to_find[i]);
+      int dest = (std::abs(hash) % comm_size);
+      count_found_ordered[i] = count_found[offset[dest]];
+      for(HBTInt j=0; j<count_found_ordered[i]; j+=1) {
+        values_found_ordered[next_value] = values_found[offset_found[offset[dest]]+j];
+        next_value += 1;
       }
+      offset[dest] += 1;
     }
     values_found.swap(values_found_ordered);
-  }
-
-  // Reconstruct array of IDs found in input order
-  {
-    std::vector<HBTInt> ids_found_ordered(output_size);
-    HBTInt offset = 0;
-    for(HBTInt to_find_nr=0; to_find_nr<ids_to_find.size(); to_find_nr+=1) {
-      HBTInt found_nr = found_offset[to_find_nr];
-      while((found_nr >= 0) && (found_nr < ids_found.size()) && (ids_found[found_nr]==ids_to_find[to_find_nr])) {
-        ids_found_ordered[offset] = ids_found[found_nr];
-        offset += 1;
-        found_nr += 1;
-      }
-    }
-    ids_found.swap(ids_found_ordered);
+    count_found.swap(count_found_ordered);
   }
 }
 
