@@ -44,13 +44,13 @@
   comm           - MPI communicator to use
   
 */
-template<typename T>
+template<typename value_t>
 void LocateValuesById(const std::vector<HBTInt> &ids,
-                      const std::vector<T> &values,
+                      const std::vector<value_t> &values,
                       MPI_Datatype mpi_value_type,
                       const std::vector<HBTInt> &ids_to_find,
                       std::vector<HBTInt> &count_found,
-                      std::vector<T> &values_found,
+                      std::vector<value_t> &values_found,
                       MPI_Comm comm) {
 
   int comm_size;
@@ -61,7 +61,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   //
   // First we redistribute the IDs and values according to the hash of the ID.
   //
-  std::vector<T> target_values(0);
+  std::vector<value_t> target_values(0);
   std::vector<HBTInt> target_ids(0);
   {
     // Count the number of elements from ids and values to send to each rank.
@@ -110,7 +110,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
     target_values.resize(total_nr_recv);
     {
       // Populate send buffer for the values
-      std::vector<T> values_sendbuf(total_nr_send);
+      std::vector<value_t> values_sendbuf(total_nr_send);
       std::vector<HBTInt> offset = senddispls;
       for(HBTInt i=0; i<ids.size(); i+=1) {
         HBTInt hash = HashInteger(ids[i]);
@@ -180,7 +180,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   {
     std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(target_ids);
     reorder<HBTInt,HBTInt>(target_ids, order);
-    reorder<T,HBTInt>(target_values, order);
+    reorder<value_t,HBTInt>(target_values, order);
   }
 
   // For each ID to find, compute offset and counts for matching instances in
@@ -256,7 +256,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   // Exchange result values
   {
     // Populate send buffer
-    std::vector<T> result_sendbuf(total_nr_send);
+    std::vector<value_t> result_sendbuf(total_nr_send);
     HBTInt offset = 0;
     // Loop over MPI ranks
     for(int rank_nr=0; rank_nr<comm_size; rank_nr+=1) {
@@ -272,7 +272,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
     assert(offset==total_nr_send);
 
     // Free some vectors we no longer need
-    std::vector<T>().swap(target_values);
+    std::vector<value_t>().swap(target_values);
     std::vector<HBTInt>().swap(match_offset);
     std::vector<HBTInt>().swap(match_count);
 
@@ -304,7 +304,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   {
     // Reorder the arrays of values and counts
     std::vector<HBTInt> count_found_ordered(count_found.size());
-    std::vector<T> values_found_ordered(values_found.size());
+    std::vector<value_t> values_found_ordered(values_found.size());
     std::vector<HBTInt> offset = imported_senddispls;
     HBTInt next_value = 0;
     for(HBTInt i=0; i<ids_to_find.size(); i+=1) {
