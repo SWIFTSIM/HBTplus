@@ -319,6 +319,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
 
+  // Keep the tracer particle IDs in case this subhalo becomes unresolved
+  vector<HBTInt> OldTracerIds = GetMostBoundTracerIds(HBTConfig.NumTracersForDescendants);
+  
   auto OldMostboundParticle = Particles[0]; // backup
   GravityTree_t tree;
   tree.Reserve(Particles.size());

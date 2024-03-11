@@ -42,6 +42,7 @@ public:
   int MinSnapshotIndex;
   int MinNumPartOfSub;
   int MinNumTracerPartOfSub;
+  int NumTracersForDescendants;
   long GroupParticleIdMask; // only used for a peculiar gadget format.
   HBTReal MassInMsunh;
   HBTReal LengthInMpch;
@@ -92,6 +93,7 @@ public:
     MinSnapshotIndex = 0;
     MinNumPartOfSub = 20;
     MinNumTracerPartOfSub = 20;
+    NumTracersForDescendants = 10;
     GroupParticleIdMask = 0;
     MassInMsunh = 1e10;
     LengthInMpch = 1;

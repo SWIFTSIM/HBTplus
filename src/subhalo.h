@@ -150,6 +150,7 @@ public:
     return SnapshotIndexOfSink == currentsnapshotindex;
   }
   void DuplicateMostBoundParticleId();
+  vector<HBTInt> GetMostBoundTracerIds(HBTInt n);
 };
 
 class MemberShipTable_t
