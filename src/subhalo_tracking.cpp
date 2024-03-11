@@ -195,6 +195,11 @@ void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhal
     if (BoundRanking == HBTConfig.MinNumTracerPartOfSub) // Use up to a user-defined number of tracers.
       break;
   }
+
+  /* Sanity checks */
+  assert(Subhalo.Particles.size() != 0); // Do not call the function for empty subhaloes.
+  assert(BoundRanking == min(Subhalo.Particles.size(),
+                             HBTConfig.MinNumTracerPartOfSub)); // We found all expected particles
 }
 
 /* Identify which FOF is host to the particles. If we have a value of -2, that
