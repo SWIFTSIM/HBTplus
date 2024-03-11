@@ -66,9 +66,11 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   {
     // Count the number of elements from ids and values to send to each rank.
     std::vector<HBTInt> sendcounts(comm_size, 0);
+#pragma omp parallel for
     for(auto id: ids) {
       HBTInt hash = HashInteger(id);
       int dest = (std::abs(hash) % comm_size);
+#pragma omp atomic
       sendcounts[dest] += 1;
     }
 
@@ -136,9 +138,11 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   std::vector<HBTInt> imported_senddispls(comm_size);
   {
     // Count the number of ids_to_find to send to each rank
+#pragma omp parallel for
     for(auto id: ids_to_find) {
       HBTInt hash = HashInteger(id);
       int dest = (std::abs(hash) % comm_size);
+#pragma omp atomic
       imported_sendcounts[dest] += 1;
     }
 
@@ -176,7 +180,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   {
     std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(target_ids);
     reorder<HBTInt,HBTInt>(target_ids, order);
-    reorder<T,HBTInt>(target_values, order);    
+    reorder<T,HBTInt>(target_values, order);
   }
 
   // For each ID to find, compute offset and counts for matching instances in
@@ -185,6 +189,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   std::vector<HBTInt> match_count(imported_ids_to_find.size(), 0);
   {
     // Loop over IDs to find
+#pragma omp parallel for schedule(static, 10*1024)
     for(HBTInt i=0; i<imported_ids_to_find.size(); i+=1) {
 
       // Locate this ID by bisection
@@ -225,6 +230,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   //
   std::vector<HBTInt> result_sendcounts(comm_size, 0);
   // Loop over MPI ranks
+#pragma omp parallel for
   for(int rank_nr=0; rank_nr<comm_size; rank_nr+=1) {
     // Loop over IDs requested by this rank
     for(HBTInt i=imported_recvdispls[rank_nr]; i<imported_recvdispls[rank_nr]+imported_recvcounts[rank_nr]; i+=1) {
