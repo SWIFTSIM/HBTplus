@@ -54,3 +54,7 @@ foreach(TEST_NAME
   add_test(NAME ${TEST_NAME} COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${HBT_MPI_TEST_NPROCS} ${MPIEXEC_PREFLAGS} ${TEST_NAME} ${MPIEXEC_POSTFLAGS})
   
 endforeach()
+
+# Program to test ID matching code on a large simulation snapshot
+add_executable(match_snapshot_ids match_snapshot_ids.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
+target_link_libraries(match_snapshot_ids ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES} ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES} ${GSL_LIBRARIES})
