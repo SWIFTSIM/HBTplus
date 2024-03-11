@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdlib>
 #include <cassert>
+#include <algorithm>
 
 #include "datatypes.h"
 #include "argsort.h"
@@ -183,31 +184,31 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   std::vector<HBTInt> match_offset(imported_ids_to_find.size());
   std::vector<HBTInt> match_count(imported_ids_to_find.size(), 0);
   {
-    // Get index to access imported_ids_to_find in order
-    std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(imported_ids_to_find);
-    
-    // Match up the IDs where possible
-    HBTInt target_nr = 0;
+    // Loop over IDs to find
     for(HBTInt i=0; i<imported_ids_to_find.size(); i+=1) {
-      while((target_ids[target_nr] < imported_ids_to_find[order[i]]) && (target_nr < target_ids.size()-1)) {
-        target_nr += 1;
-      }
-      if(imported_ids_to_find[order[i]] == target_ids[target_nr]) {
+
+      // Locate this ID by bisection
+      auto id_found = std::lower_bound(target_ids.begin(), target_ids.end(), imported_ids_to_find[i]);
+
+      // Compute index of (possibly) matching element
+      HBTInt j = id_found - target_ids.begin();
+
+      if((j >= 0) && (j < target_ids.size()) && (imported_ids_to_find[i] == target_ids[j])) {
         // Found a match
-        match_offset[order[i]] = target_nr;
-        // Count number of consecutive IDs in target_ids which match this entry in imported_ids_to_find
-        HBTInt next_target_nr = target_nr;
-        while((next_target_nr < target_ids.size()) && (imported_ids_to_find[order[i]] == target_ids[next_target_nr])) {
-          match_count[order[i]] += 1;
-          next_target_nr +=1;
+        match_offset[i] = j;
+        // Count number of consecutive matching instances.
+        while((j < target_ids.size()) && (imported_ids_to_find[i] == target_ids[j])) {
+          match_count[i] += 1;
+          j += 1;
         }
       } else {
         // No match found
-        match_offset[order[i]] = -1;
+        match_offset[i] = -1;
+        match_count[i]  = 0;        
       }
     }
   }
-
+  
   // We no longer need the target_ids or imported_ids_to_find at this point
   std::vector<HBTInt>().swap(target_ids);
   std::vector<HBTInt>().swap(imported_ids_to_find);
