@@ -307,6 +307,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   }
   if (Particles.size() == 1)
   {
+    MostBoundParticleId = Particles[0].Id;
     Nbound = 1;
     CountParticles();
 #ifdef SAVE_BINDING_ENERGY

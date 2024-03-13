@@ -864,9 +864,24 @@ public:
     if (subhalo.Nbound <= 1)
       return; // skip orphans
 
-    // TODO: Run formatter
-    // TODO: Does this break if MinNumTracer == 0?
-    auto tracer = subhalo.Particles[subhalo.GetTracerIndex()];
+    // Want to identify first tracer so we can add it back if all tracers are masked out
+    // Need to recalculate tracer index due to gas particles disappearing
+    // For DMO runs IsTracer will return 1 for all particles anyway
+    // TODO: Is this needed or will Victor set tracerIndex?
+    auto tracer = subhalo.Particles[0];
+    for (auto it = subhalo.Particles.begin(); it != subhalo.Particles.end(); ++it)
+    {
+        if (it->IsTracer())
+        {
+          tracer = *it;
+          break;
+        }
+    }
+    if (!tracer.IsTracer())
+    {
+      throw runtime_error("No tracer particle found before masking");
+    }
+
     bool hasTracer = false;
     auto it_begin = subhalo.Particles.begin(), it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
@@ -886,12 +901,14 @@ public:
     }
     // If all tracers have been removed during masking, add back the most bound
     if (!hasTracer) {
-        cout << "Tracer removed during masking\n";
         *it_save = tracer;
+        // TODO: Update tracerindex? Don't think I should need to
+        // subhalo.SetTracerIndex(it_save - it_begin)
         ++it_save;
     }
     subhalo.Particles.resize(it_save - it_begin);
   }
+//TODO: Remove introduced TODO comments and run formatter
 };
 
 void SubhaloSnapshot_t::MaskSubhalos()
