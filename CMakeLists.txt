@@ -100,6 +100,7 @@ set(HBT_SRC
   src/hdf_wrapper.cpp
   src/linkedlist_base.cpp
   src/linkedlist.cpp
+  src/merger_tree.cpp
   src/mpi_wrapper.cpp
   src/mymath.cpp
   src/particle_exchanger.cpp

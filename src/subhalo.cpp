@@ -189,6 +189,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
 
   RegisterAttr(MostBoundParticleId, MPI_HBT_INT, 1);
   RegisterAttr(SinkTrackId, MPI_HBT_INT, 1);
+  RegisterAttr(DisruptTrackId, MPI_HBT_INT, 1);
   RegisterAttr(NestedParentTrackId, MPI_HBT_INT, 1);
 #undef RegisterAttr
   assert(NumAttr <= MaxNumAttr);

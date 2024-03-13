@@ -11,6 +11,8 @@
 #include "mpi_wrapper.h"
 #include "snapshot_number.h"
 
+class MergerTreeInfo;
+
 enum class SubReaderDepth_t
 {
   SubTable,     // read only the properties of subhalos
@@ -88,6 +90,7 @@ public:
 
   // for merging
   HBTInt SinkTrackId;         // the trackId it sinked to, -1 if it hasn't sunk.
+  HBTInt DisruptTrackId;      // the trackId it merged with if it became unresolved without sinking
   HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
 
   ParticleList_t Particles;
@@ -113,10 +116,11 @@ public:
     SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
     SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;
+    DisruptTrackId = SpecialConst::NullTrackId;    
     MostBoundParticleId = SpecialConst::NullParticleId;
   }
-  void Unbind(const Snapshot_t &epoch);
-  void RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap);
+  void Unbind(const Snapshot_t &epoch, MergerTreeInfo &merger_tree);
+  void RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, MergerTreeInfo &merger_tree);
   HBTReal KineticDistance(const Halo_t &halo, const Snapshot_t &epoch);
   void TruncateSource();
   float GetMass() const
@@ -266,9 +270,9 @@ public:
   void UpdateMostBoundPosition(MpiWorker_t &world, const ParticleSnapshot_t &part_snap);
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
-  void RefineParticles();
+  void RefineParticles(MergerTreeInfo &merger_tree);
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
-  void MergeSubhalos();
+  void MergeSubhalos(MergerTreeInfo &merger_tree);
   HBTInt size() const
   {
     return Subhalos.size();

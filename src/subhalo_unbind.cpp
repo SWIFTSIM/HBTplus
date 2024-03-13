@@ -8,6 +8,7 @@
 #include "gravity_tree.h"
 #include "snapshot_number.h"
 #include "subhalo.h"
+#include "merger_tree.h"
 
 struct ParticleEnergy_t
 {
@@ -279,7 +280,7 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
     }
   }
 }
-void Subhalo_t::Unbind(const Snapshot_t &epoch)
+void Subhalo_t::Unbind(const Snapshot_t &epoch, MergerTreeInfo &merger_tree)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
   HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
   bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
@@ -408,6 +409,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
     if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub)) // disruption
     {
+      merger_tree.StoreTracerIds(TrackId, OldTracerIds);
       Nbound = 1;
       Nlast = 1;
       if (IsAlive())
@@ -478,7 +480,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     Energies[i] = Elist[i].E;
 #endif
 }
-void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
+void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, MergerTreeInfo &merger_tree)
 {
   bool is_orphan = (Nbound <= 1);
   ParticleList_t particle_backup;
@@ -488,7 +490,7 @@ void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
   {
     auto subid = NestedSubhalos[i];
     auto &subhalo = Subhalos[subid];
-    subhalo.RecursiveUnbind(Subhalos, snap);
+    subhalo.RecursiveUnbind(Subhalos, snap, merger_tree);
     Particles.insert(Particles.end(), subhalo.Particles.begin() + subhalo.Nbound,
                      subhalo.Particles.end()); // the mostbound particle of orphan is treated as bound and thus does not
                                                // feed to its host subhalo. However, it can still be collected by the
@@ -496,7 +498,7 @@ void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
   }
   if (is_orphan)
     Particles.swap(particle_backup); // restore to single particle for unbinding
-  Unbind(snap);
+  Unbind(snap, merger_tree);
   if (is_orphan)
     Particles.swap(particle_backup); // set to extended list, to feed to its host
 }
@@ -513,7 +515,7 @@ void Subhalo_t::TruncateSource()
   Particles.resize(Nsource);
 }
 
-void SubhaloSnapshot_t::RefineParticles()
+void SubhaloSnapshot_t::RefineParticles(MergerTreeInfo &merger_tree)
 { // it's more expensive to build an exclusive list. so do inclusive here.
   // TODO: ensure the inclusive unbinding is stable (contaminating particles from big subhaloes may hurdle the unbinding
 
@@ -527,7 +529,7 @@ void SubhaloSnapshot_t::RefineParticles()
 #pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
-    Subhalos[subid].Unbind(*this);
+    Subhalos[subid].Unbind(*this, merger_tree);
     Subhalos[subid].TruncateSource();
   }
 #else
@@ -545,7 +547,7 @@ void SubhaloSnapshot_t::RefineParticles()
     auto &heads = MemberTable.SubGroupsOfHeads[haloid];
     // update central member list (append other heads except itself)
     nests.insert(nests.end(), heads.begin() + 1, heads.end());
-    central.RecursiveUnbind(Subhalos, *this);
+    central.RecursiveUnbind(Subhalos, *this, merger_tree);
     nests.resize(old_membercount); // restore old satellite list
   }
 // unbind field subs
@@ -556,14 +558,14 @@ void SubhaloSnapshot_t::RefineParticles()
     for (HBTInt i = 0; i < NumField; i++)
     {
       HBTInt subid = MemberTable.SubGroups[-1][i];
-      Subhalos[subid].Unbind(*this);
+      Subhalos[subid].Unbind(*this, merger_tree);
     }
     // unbind new-born subs
     HBTInt NumSubOld = MemberTable.AllMembers.size(), NumSub = Subhalos.size();
 #pragma omp for schedule(dynamic, 1)
     for (HBTInt i = NumSubOld; i < NumSub; i++)
     {
-      Subhalos[i].Unbind(*this);
+      Subhalos[i].Unbind(*this, merger_tree);
     }
 #pragma omp for schedule(dynamic, 1)
     for (HBTInt i = 0; i < NumSub; i++)
