@@ -1,7 +1,6 @@
 import h5py
 import numpy as np
 from tqdm import tqdm
-from repository.analysis import tools
 
 def quick_search(input_array, search_values, sorter_array=None):
     '''
@@ -153,7 +152,7 @@ def get_duplicate_tracks(catalogue_path, output_index, plot = False):
         subgroup_particle_ids = hbt_ids[hbt_offsets[trackid] : hbt_offsets[trackid] + hbt_lengths[trackid]]
         
         # Find where they are located
-        idx = tools.quick_search(hbt_ids, subgroup_particle_ids, id_sorter)
+        idx = quick_search(hbt_ids, subgroup_particle_ids, id_sorter)
         
         # Classify into tracks
         found_trackids = np.digitize(idx, hbt_offsets) - 1

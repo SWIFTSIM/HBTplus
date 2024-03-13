@@ -1,7 +1,6 @@
 import h5py
 import numpy as np
 import swiftsimio as sw
-from repository.analysis import tools
 
 def quick_search(input_array, search_values, sorter_array=None):
     '''
