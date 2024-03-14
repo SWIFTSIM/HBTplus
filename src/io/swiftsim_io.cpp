@@ -734,7 +734,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
           ReadSnapshot(file_nr, Particles.data() + particle_offset, file_start, file_count);
           particle_offset += file_count;
         }
-      }                                    // Next file
+      } // Next file
       assert(particle_offset == np_local); // Check we read the expected number of particles
       reads_done += 1;
     }
@@ -750,8 +750,8 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   // For testing: dump the snapshot to a new set of files
   // Generate test file name for this MPI  rank
   stringstream formatter1;
-  formatter1 << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << snapshotId << "/"
-             << "test_" << setw(3) << setfill('0') << snapshotId << "." << world.rank() << ".hdf5";
+  formatter1 << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << snapshotId << "/" << "test_" << setw(3)
+             << setfill('0') << snapshotId << "." << world.rank() << ".hdf5";
   string tfilename = formatter1.str();
   // Create array of coordinates
   double *pos = (double *)malloc(3 * sizeof(double) * np_local);
@@ -880,7 +880,7 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
           ReadGroupParticles(file_nr, ParticleHosts.data() + particle_offset, file_start, file_count, FlagReadId);
           particle_offset += file_count;
         }
-      }                                    // Next file
+      } // Next file
       assert(particle_offset == np_local); // Check we read the expected number of particles
       reads_done += 1;
     }
@@ -898,8 +898,8 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
   //
   // Generate test file name for this MPI  rank
   stringstream formatter1;
-  formatter1 << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << snapshotId << "/"
-             << "test_halo_" << setw(3) << setfill('0') << snapshotId << "." << world.rank() << ".hdf5";
+  formatter1 << HBTConfig.SubhaloPath << "/" << setw(3) << setfill('0') << snapshotId << "/" << "test_halo_" << setw(3)
+             << setfill('0') << snapshotId << "." << world.rank() << ".hdf5";
   string tfilename = formatter1.str();
   // Create array of coordinates
   double *pos = (double *)malloc(3 * sizeof(double) * np_local);

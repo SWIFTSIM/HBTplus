@@ -79,7 +79,8 @@ int main(int argc, char **argv)
 
     /* For SWIFT-based outputs we load some parameters directly from the snapshots,
        so we delay writing Parameters.log until the values are known. */
-    if ((isnap == snapshot_start) && (world.rank() == 0))HBTConfig.DumpParameters();
+    if ((isnap == snapshot_start) && (world.rank() == 0))
+      HBTConfig.DumpParameters();
 
     timer.Tick(world.Communicator);
     halosnap.UpdateParticles(world, partsnap);
