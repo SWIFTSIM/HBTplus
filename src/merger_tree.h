@@ -18,7 +18,7 @@ public:
 
   void Clear();
   void StoreTracerIds(HBTInt TrackId, std::vector<HBTInt> Ids);
-  void FindDescendants(SubhaloList_t Subhalos, MpiWorker_t world);
+  void FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world);
   
 };
 
