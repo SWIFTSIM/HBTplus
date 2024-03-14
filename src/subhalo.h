@@ -268,6 +268,7 @@ public:
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
   void MergeSubhalos();
+  void WrapPositions();
   HBTInt size() const
   {
     return Subhalos.size();
