@@ -87,7 +87,7 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
   }
 
   // Now identify a descendant for each lost subhalo in the DescendantTracerIds map
-  std::vector<HBTInt> DescendantTrackIds;
+  std::vector<std::pair<HBTInt,HBTInt>> DescendantTrackIds;
   {
     HBTInt count_found_offset = 0;
     HBTInt trackids_found_offset = 0;
@@ -134,85 +134,36 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
         }
       }
       // Store the result in the same order as the DescendantTracerIds map keys
-      DescendantTrackIds.push_back(max_trackid);    
+      std::pair<HBTInt,HBTInt> desc_pair(LostTrackId, max_trackid);
+      DescendantTrackIds.push_back(desc_pair);
     }
     assert(count_found_offset==count_found.size());
     assert(trackids_found_offset==trackids_found.size());
   }
 
-  // Make vector of TrackIds corresponding to DescendantTrackIds
-  std::vector<HBTInt> TrackIds;
-  for(auto &p: DescendantTracerIds)
-    TrackIds.push_back(p.first);
-  
-  // Now we need to send each (TrackId,DescendantTrackId) pair to the MPI rank where the subhalo is stored.
-  // Find range of TrackIds in the Subhalos vector on each MPI rank
-  std::vector<HBTInt> min_trackid(world.size(), SpecialConst::NullTrackId);
-  std::vector<HBTInt> max_trackid(world.size(), SpecialConst::NullTrackId);  
+  // Now we need to update DisruptTrackId in the Subhalo_t structs.
+  // Here we assume that subhalos have not migrated between MPI ranks since
+  // Unbind() was called, so all entries in the DescendantTracerIds map
+  // correspond to subhalos which are stored on this MPI rank.
   {
-    HBTInt local_min_trackid = SpecialConst::NullTrackId;
-    HBTInt local_max_trackid = SpecialConst::NullTrackId;
-    for(auto &sub : Subhalos) {
-      if(local_min_trackid == SpecialConst::NullTrackId) {
-        local_min_trackid = sub.TrackId;
-      } else if(sub.TrackId < local_min_trackid) {
-        local_min_trackid = sub.TrackId;
-      }
-      if(local_max_trackid == SpecialConst::NullTrackId) {
-        local_max_trackid = sub.TrackId;
-      } else if(sub.TrackId > local_max_trackid) {
-        local_max_trackid = sub.TrackId;
-      }
-    }
-    MPI_Allgather(&local_min_trackid, 1, MPI_HBT_INT, min_trackid.data(), 1, MPI_HBT_INT, world.Communicator);
-    MPI_Allgather(&local_max_trackid, 1, MPI_HBT_INT, max_trackid.data(), 1, MPI_HBT_INT, world.Communicator);
-  }
-  
-  // Count number of local descendant TrackIds to send to each rank
-  std::vector<HBTInt> sendcounts(world.size(), 0);
-  int destination = 0;
-  for(HBTInt i=0; i<DescendantTrackIds.size(); i+=1) {
-    while((min_trackid[destination]==SpecialConst::NullTrackId) || (max_trackid[destination] < TrackIds[i]))
-      destination += 1;
-    assert(destination < world.size());
-    assert(min_trackid[destination] <= TrackIds[i]);
-    assert(max_trackid[destination] >= TrackIds[i]);
-    sendcounts[destination] += 1;
-  }
-  
-  // Exchange data
-  {
-    std::vector<HBTInt> senddispls(world.size());
-    std::vector<HBTInt> recvcounts(world.size());
-    std::vector<HBTInt> recvdispls(world.size());
-    ExchangeCounts(sendcounts, senddispls, recvcounts, recvdispls, world.Communicator);
-    HBTInt total_nr = 0;
-    for(auto n : recvcounts)
-      total_nr += n;
-    std::vector<HBTInt> RecvTrackIds(total_nr);
-    Pairwise_Alltoallv(TrackIds, sendcounts, senddispls, MPI_HBT_INT,
-                       RecvTrackIds, recvcounts, recvdispls, MPI_HBT_INT, world.Communicator);
-    TrackIds.swap(RecvTrackIds);
-    std::vector<HBTInt> RecvDescendantTrackIds(total_nr);
-    Pairwise_Alltoallv(DescendantTrackIds, sendcounts, senddispls, MPI_HBT_INT,
-                       RecvDescendantTrackIds, recvcounts, recvdispls, MPI_HBT_INT, world.Communicator);
-    DescendantTrackIds.swap(RecvDescendantTrackIds);    
-  }
+    // Make a sorting index for the subhalos
+    std::vector<HBTInt> subhalo_trackid;
+    for(auto &sub : Subhalos)
+      subhalo_trackid.push_back(sub.TrackId);
+    std::vector<HBTInt> subhalo_order = argsort<HBTInt,HBTInt>(subhalo_trackid);
 
-  // Sort imported (TrackId, DescendantTrackId) pairs
-  {
-    std::vector<HBTInt> order = argsort<HBTInt,HBTInt>(TrackIds);
-    reorder(TrackIds, order);
-    reorder(DescendantTrackIds, order);    
-  }
-  
-  // Finally, update the subhalo struct from the imported data
-  HBTInt sub_nr = 0;
-  for(HBTInt i=0; i<TrackIds.size(); i+=1) {
-    while(Subhalos[sub_nr].TrackId < TrackIds[i])
-      sub_nr += 1;
-    assert(Subhalos[sub_nr].TrackId == TrackIds[i]);
-    Subhalos[sub_nr].DisruptTrackId = DescendantTrackIds[i];
+    // Iterate through (TrackId, DescendantTrackId) pairs finding matching subhalos
+    HBTInt sub_nr = 0;
+    for (const auto &p : DescendantTrackIds) {
+      const HBTInt TrackId1 = p.first;  // TrackId of disrupted halo
+      const HBTInt TrackId2 = p.second; // TrackId of the descendant
+      while(Subhalos[subhalo_order[sub_nr]].TrackId < TrackId1) {
+        sub_nr += 1;
+        assert(sub_nr < Subhalos.size());
+      }
+      assert(Subhalos[subhalo_order[sub_nr]].TrackId == TrackId1);
+      Subhalos[subhalo_order[sub_nr]].DisruptTrackId = TrackId2;
+    }
   }
   
   // We can now free the vectors of tracer IDs
