@@ -38,7 +38,6 @@ int main(int argc, char **argv)
 
     ParseHBTParams(argc, argv, HBTConfig, snapshot_start, snapshot_end);
     mkdir(HBTConfig.SubhaloPath.c_str(), 0755);
-    HBTConfig.DumpParameters();
 
     cout << argv[0] << " run using " << world.size() << " mpi tasks";
 #ifdef _OPENMP
@@ -79,10 +78,9 @@ int main(int argc, char **argv)
     HaloSnapshot_t halosnap;
     halosnap.Load(world, isnap);
 
-    /* For SWIFT-based outputs, we load parameters directly from the snapshots.
-     * This means that the inital call to DumpParameters (potentially) used
-     * outdated values. This extra call will save the correct ones. */
-    if (HBTConfig.SnapshotFormat == "swiftsim" && (isnap == snapshot_start))
+    /* For SWIFT-based outputs we load some parameters directly from the snapshots,
+       so we delay writing Parameters.log until the values are known. */
+    if ((isnap == snapshot_start) && (world.rank() == 0))
       HBTConfig.DumpParameters();
 
     timer.Tick(world.Communicator);
