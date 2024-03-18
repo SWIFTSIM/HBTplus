@@ -380,7 +380,7 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   if (thisrank == root)
   {
     NumSubhalos = Subhalos.size();
-    if (NumSubhalos > INT_MAX)
+    if (NumSubhalos * HBTConfig.NumTracerHostFinding > INT_MAX)
       throw runtime_error("Error: in FindOtherHosts(), sending more subhaloes than INT_MAX will cause MPI message to "
                           "overflow. Please try more MPI threads. aborting.\n");
   }
