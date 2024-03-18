@@ -281,14 +281,6 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
 }
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
-  HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
-  bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
-  HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
-
-  /* Need to initialise here, since orphans/disrupted objects do not call the
-   * function used to set the value of TracerIndex (CountParticleTypes). This
-   * prevents accessing entries beyond the corresponding particle array. */
-  SetTracerIndex(0);
 
   /* We skip already existing orphans */
   if(!Particles.size())
@@ -301,8 +293,19 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     return;
   }
 
-  /* We only expect (potentially) resolved subhaloes to make it here. */
-  assert(Particles.size() > 1);
+  /* We only expect (potentially) resolved subhaloes to make it here, or masked 
+   * out subhaloes (which should have at least one tracer particle if everything 
+   * is working correctly) */
+  assert(Particles.size() >= 1);
+  
+  HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
+  bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
+  HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
+
+  /* Need to initialise here, since orphans/disrupted objects do not call the
+   * function used to set the value of TracerIndex (CountParticleTypes). This
+   * prevents accessing entries beyond the corresponding particle array. */
+  SetTracerIndex(0);
 
   HBTxyz OldRefPos, OldRefVel;
   auto &RefPos = ComovingAveragePosition;
