@@ -89,7 +89,7 @@ public:
 
   // for merging
   HBTInt SinkTrackId;         // the trackId it sinked to, -1 if it hasn't sunk.
-  HBTInt DisruptTrackId;      // the trackId it merged with if it became unresolved without sinking
+  HBTInt DescendantTrackId;      // the trackId it merged with if it became unresolved without sinking
   HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
 
   ParticleList_t Particles;
@@ -115,7 +115,7 @@ public:
     SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
     SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;
-    DisruptTrackId = SpecialConst::NullTrackId;    
+    DescendantTrackId = SpecialConst::NullTrackId;    
     MostBoundParticleId = SpecialConst::NullParticleId;
   }
   void Unbind(const Snapshot_t &epoch);

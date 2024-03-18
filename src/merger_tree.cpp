@@ -27,7 +27,7 @@ void MergerTreeInfo::StoreTracerIds(SubhaloList_t &subhalos, int nr_tracers) {
 void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world) {
 
   // Compute descendants for all disrupted subhalos in DescendantTracerIds.
-  // Updates DisruptTrackId in the affected Subhalo_t class instances.
+  // Updates DescendantTrackId in the affected Subhalo_t class instances.
 
   std::vector<HBTInt> count_found(0);
   std::vector<HBTInt> trackids_found(0);
@@ -145,7 +145,7 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
     assert(trackids_found_offset==trackids_found.size());
   }
 
-  // Now we need to update DisruptTrackId in the Subhalo_t structs.
+  // Now we need to update DescendantTrackId in the Subhalo_t structs.
   // Here we assume that subhalos have not migrated between MPI ranks since
   // Unbind() was called, so all entries in the DescendantTracerIds map
   // correspond to subhalos which are stored on this MPI rank.
@@ -166,7 +166,7 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
         assert(sub_nr < Subhalos.size());
       }
       assert(Subhalos[subhalo_order[sub_nr]].TrackId == TrackId1);
-      Subhalos[subhalo_order[sub_nr]].DisruptTrackId = TrackId2;
+      Subhalos[subhalo_order[sub_nr]].DescendantTrackId = TrackId2;
     }
   }
   
