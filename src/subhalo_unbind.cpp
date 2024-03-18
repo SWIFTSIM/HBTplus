@@ -290,12 +290,6 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * prevents accessing entries beyond the corresponding particle array. */
   SetTracerIndex(0);
 
-  if (Particles.size() < HBTConfig.MinNumPartOfSub) // not enough src particles, can be due to masking
-  {
-    if (IsAlive())
-      SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
-  }
-
   /* We skip already existing orphans */
   if(!Particles.size())
   {
