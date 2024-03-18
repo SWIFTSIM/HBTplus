@@ -112,6 +112,7 @@ int main(int argc, char **argv)
     subsnap.UpdateTracks(world, halosnap);
 
     timer.Tick(world.Communicator);
+    merger_tree.FindDescendants(subsnap.Subhalos, world);
     subsnap.Save(world);
 
     timer.Tick(world.Communicator);
