@@ -1,5 +1,6 @@
 #include <mpi.h>
 
+#include "verify.h"
 #include "mpi_wrapper.h"
 #include "subhalo.h"
 #include "merger_tree.h"
