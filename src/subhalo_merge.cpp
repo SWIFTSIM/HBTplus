@@ -300,8 +300,22 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
   // Update the location of the tracer
   SetTracerIndex(0);
 
-  /* Limit the particles to the tracer */
-  Particles.resize(1);
-  Nbound = 1;
+  /* We will copy the information required to save the orphan in this output.
+   * For future outputs, we will rely on UpdateMostBoundPosition instead. */
+  copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
+  copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
+  copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
+  copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
+
+  Mbound = Particles[0].Mass;
+
+  /* Used to trace orphans without a Particle explicitly associated to them */
+  MostBoundParticleId = Particles[0].Id;
+
+  /* Do not allow the orphan to have any particles, so they can be subject to
+   * unbinding in their parent. The particle array will be updated after this
+   * subhalo has been done. */
+  Nbound = 0;
+  Particles.resize(0);
   CountParticles();
 }
