@@ -107,7 +107,6 @@ int main(int argc, char **argv)
     subsnap.UpdateTracks(world, halosnap);
 
     timer.Tick(world.Communicator);
-    subsnap.WrapPositions();
     subsnap.Save(world);
 
     timer.Tick(world.Communicator);

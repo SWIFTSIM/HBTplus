@@ -509,8 +509,8 @@ int main(int argc, char **argv)
   if (halo.Halos.size() > 1)
   {
     auto &h = halo.Halos[1];
-    cout << " Halo 1 from thread " << world.rank() << ":" << "id=" << h.HaloId << "," << h.Particles.size() << ", "
-         << h.Particles[5] << endl;
+    cout << " Halo 1 from thread " << world.rank() << ":"
+         << "id=" << h.HaloId << "," << h.Particles.size() << ", " << h.Particles[5] << endl;
   }
 
   MPI_Finalize();

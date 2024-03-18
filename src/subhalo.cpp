@@ -574,14 +574,3 @@ void Subhalo_t::CountParticles()
   Mbound = accumulate(begin(MboundType), end(MboundType), (HBTReal)0.);
 #endif
 }
-
-void SubhaloSnapshot_t::WrapPositions()
-{
-  for (auto &&subhalo : Subhalos)
-  {
-    for (int i = 0; i < 3; i++)
-    {
-      subhalo.ComovingAveragePosition[i] = position_modulus(subhalo.ComovingAveragePosition[i], HBTConfig.BoxSize);
-    }
-  }
-}

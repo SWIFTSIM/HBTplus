@@ -9,7 +9,7 @@ HBTReal LinkedlistBase_t::Distance2(const HBTxyz &x, const HBTxyz &y)
   dx[2] = x[2] - y[2];
   if (PeriodicBoundary)
   {
-#define _NEAREST(x) (((x) > BoxHalf) ? ((x) - BoxSize) : (((x) < -BoxHalf) ? ((x) + BoxSize) : (x)))
+#define _NEAREST(x) (((x) > BoxHalf) ? ((x)-BoxSize) : (((x) < -BoxHalf) ? ((x) + BoxSize) : (x)))
     dx[0] = _NEAREST(dx[0]);
     dx[1] = _NEAREST(dx[1]);
     dx[2] = _NEAREST(dx[2]);
