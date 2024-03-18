@@ -185,6 +185,14 @@ void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhal
    * for tracers, since orphans will have all but the first with NullParticleId */
   fill(particle_ids, particle_ids + HBTConfig.NumTracerHostFinding, SpecialConst::NullParticleId);
 
+  /* Handle orphans by manually copying over the tracer particle ID, since we do
+   * not have any particles associated to them. */
+  if(!Subhalo.Particles.size())
+  {
+    particle_ids[0] = Subhalo.MostBoundParticleId;
+    return;
+  }
+
   /* Iterate over the particle list to find tracers. */
   int BoundRanking = 0;
   for (auto particle = Subhalo.Particles.begin(); particle != Subhalo.Particles.begin() + Subhalo.Nbound; particle++)
