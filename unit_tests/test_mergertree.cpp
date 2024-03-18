@@ -47,13 +47,8 @@ int main(int argc, char *argv[]) {
   
   // Identify tracer particle IDs for each subhalo (just the first nr_tracers particles)
   const int nr_tracers = 5;
-  for(int i=0; i<subhalos_per_rank; i+=1) {
-    std::vector<HBTInt> Ids(nr_tracers);
-    for(int j=0; j<nr_tracers; j+=1)
-      Ids[j] = Subhalo[i].Particles[j].Id;
-    merger_tree.StoreTracerIds(Subhalo[i].TrackId, Ids);
-  }
-
+  merger_tree.StoreTracerIds(Subhalo, nr_tracers);
+  
   // Use tracers to identify subhalo descendants
   merger_tree.FindDescendants(Subhalo, world);
 

@@ -15,9 +15,13 @@ void MergerTreeInfo::Clear() {
   DescendantTracerIds.clear();
 }
 
-void MergerTreeInfo::StoreTracerIds(HBTInt TrackId, std::vector<HBTInt> Ids) {
-  // Store the tracer IDs for the specified TrackId
-  DescendantTracerIds[TrackId] = Ids;
+void MergerTreeInfo::StoreTracerIds(SubhaloList_t &subhalos, HBTInt nr_tracers) {
+  // Store tracers for all resolved subhalos
+  for(auto &sub : subhalos) {
+    if(sub.Nbound > 1) {
+      DescendantTracerIds[sub.TrackId] = sub.GetMostBoundTracerIds(nr_tracers);
+    }
+  }
 }
 
 void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world) {
