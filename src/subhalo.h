@@ -11,7 +11,6 @@
 #include "mpi_wrapper.h"
 #include "snapshot_number.h"
 
-class MergerTreeInfo;
 
 enum class SubReaderDepth_t
 {
@@ -119,8 +118,8 @@ public:
     DisruptTrackId = SpecialConst::NullTrackId;    
     MostBoundParticleId = SpecialConst::NullParticleId;
   }
-  void Unbind(const Snapshot_t &epoch, MergerTreeInfo &merger_tree);
-  void RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, MergerTreeInfo &merger_tree);
+  void Unbind(const Snapshot_t &epoch);
+  void RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap);
   HBTReal KineticDistance(const Halo_t &halo, const Snapshot_t &epoch);
   void TruncateSource();
   float GetMass() const
@@ -270,9 +269,9 @@ public:
   void UpdateMostBoundPosition(MpiWorker_t &world, const ParticleSnapshot_t &part_snap);
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
-  void RefineParticles(MergerTreeInfo &merger_tree);
+  void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
-  void MergeSubhalos(MergerTreeInfo &merger_tree);
+  void MergeSubhalos();
   HBTInt size() const
   {
     return Subhalos.size();

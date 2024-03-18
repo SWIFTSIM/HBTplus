@@ -12,7 +12,6 @@ using namespace std;
 #include "src/particle_exchanger.h"
 #include "src/snapshot.h"
 #include "src/subhalo.h"
-#include "src/merger_tree.h"
 
 #include "git_version_info.h"
 
@@ -101,17 +100,15 @@ int main(int argc, char **argv)
     timer.Tick(world.Communicator);
     if (world.rank() == 0)
       cout << "unbinding...\n";
-    MergerTreeInfo merger_tree;
-    subsnap.RefineParticles(merger_tree);
+    subsnap.RefineParticles();
 
     timer.Tick(world.Communicator);
-    subsnap.MergeSubhalos(merger_tree);
+    subsnap.MergeSubhalos();
 
     timer.Tick(world.Communicator);
     subsnap.UpdateTracks(world, halosnap);
 
     timer.Tick(world.Communicator);
-    merger_tree.FindDescendants(subsnap.Subhalos, world);
     subsnap.Save(world);
 
     timer.Tick(world.Communicator);

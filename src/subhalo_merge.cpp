@@ -220,7 +220,7 @@ void FillHelpers(vector<SubHelper_t> &Helpers, const vector<Subhalo_t> &Subhalos
   FillHostTrackIds(Helpers, Subhalos);
   FillCores(Helpers, Subhalos);
 }
-void SubhaloSnapshot_t::MergeSubhalos(MergerTreeInfo &merger_tree)
+void SubhaloSnapshot_t::MergeSubhalos()
 {
   HBTInt NumHalos = MemberTable.SubGroups.size();
   vector<SubHelper_t> Helpers(Subhalos.size());
@@ -243,7 +243,7 @@ void SubhaloSnapshot_t::MergeSubhalos(MergerTreeInfo &merger_tree)
 #pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
       if (Helpers[subid].IsMerged)
-        Subhalos[subid].Unbind(*this, merger_tree);
+        Subhalos[subid].Unbind(*this);
 #pragma omp parallel for
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
       if (Helpers[subid].IsMerged)
