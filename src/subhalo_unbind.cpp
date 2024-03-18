@@ -9,7 +9,6 @@
 #include "snapshot_number.h"
 #include "subhalo.h"
 
-
 struct ParticleEnergy_t
 {
   HBTInt pid;
@@ -319,7 +318,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   HBTxyz OldRefPos, OldRefVel;
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
-  
+
   auto OldMostboundParticle = Particles[0]; // backup
   GravityTree_t tree;
   tree.Reserve(Particles.size());
