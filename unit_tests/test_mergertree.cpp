@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 
   // Check results
   for(int i=0; i<subhalos_per_rank; i+=1) {
-    assert(Subhalo[i].DescendantTrackId==Subhalo[i].TrackId);
+    verify(Subhalo[i].DescendantTrackId==Subhalo[i].TrackId);
   }
   
   MPI_Finalize();
