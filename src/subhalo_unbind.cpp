@@ -415,7 +415,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       if (IsAlive())
         SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
 
-      /* We briefly allow for a 1-particle sized orphan, which corresponds to 
+      // NOTE: Everything done below is also done for fake tracks, which get removed
+      // before saving catalogues. Hence we do not need to do any additional checks.
+
+      /* We briefly allow for a 1-particle sized orphan, which corresponds to
        * its the most bound tracer that remains after masking. */
       for (auto &&p : Particles)
       {
