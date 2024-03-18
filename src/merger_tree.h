@@ -17,7 +17,7 @@ private:
 public:
 
   void Clear();
-  void StoreTracerIds(SubhaloList_t &Subhalos, HBTInt nr_tracers);
+  void StoreTracerIds(SubhaloList_t &Subhalos, int nr_tracers);
   void FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world);
   
 };

@@ -12,6 +12,7 @@ using namespace std;
 #include "src/particle_exchanger.h"
 #include "src/snapshot.h"
 #include "src/subhalo.h"
+#include "src/merger_tree.h"
 
 #include "git_version_info.h"
 
@@ -95,6 +96,8 @@ int main(int argc, char **argv)
 
     timer.Tick(world.Communicator);
     subsnap.AssignHosts(world, halosnap, partsnap);
+    MergerTreeInfo merger_tree;
+    merger_tree.StoreTracerIds(subsnap.Subhalos, HBTConfig.NumTracersForDescendants);
     subsnap.PrepareCentrals(world, halosnap);
 
     timer.Tick(world.Communicator);

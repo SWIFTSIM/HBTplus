@@ -15,7 +15,7 @@ void MergerTreeInfo::Clear() {
   DescendantTracerIds.clear();
 }
 
-void MergerTreeInfo::StoreTracerIds(SubhaloList_t &subhalos, HBTInt nr_tracers) {
+void MergerTreeInfo::StoreTracerIds(SubhaloList_t &subhalos, int nr_tracers) {
   // Store tracers for all resolved subhalos
   for(auto &sub : subhalos) {
     if(sub.Nbound > 1) {
