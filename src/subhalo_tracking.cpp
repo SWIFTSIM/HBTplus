@@ -871,11 +871,11 @@ public:
     auto tracer = subhalo.Particles[0];
     for (auto it = subhalo.Particles.begin(); it != subhalo.Particles.end(); ++it)
     {
-        if (it->IsTracer())
-        {
-          tracer = *it;
-          break;
-        }
+      if (it->IsTracer())
+      {
+        tracer = *it;
+        break;
+      }
     }
     if (!tracer.IsTracer())
     {
@@ -889,10 +889,12 @@ public:
       auto insert_status = ExclusionList.insert(it->Id);
       if (insert_status.second) // inserted, meaning not excluded
       {
-        if (!hasTracer) {
-            if (it->IsTracer()) {
-                hasTracer = true;
-            }
+        if (!hasTracer)
+        {
+          if (it->IsTracer())
+          {
+            hasTracer = true;
+          }
         }
         if (it != it_save)
           *it_save = move(*it);
@@ -900,15 +902,16 @@ public:
       }
     }
     // If all tracers have been removed during masking, add back the most bound
-    if (!hasTracer) {
-        *it_save = tracer;
-        // TODO: Update tracerindex? Don't think I should need to
-        // subhalo.SetTracerIndex(it_save - it_begin)
-        ++it_save;
+    if (!hasTracer)
+    {
+      *it_save = tracer;
+      // TODO: Update tracerindex? Don't think I should need to
+      // subhalo.SetTracerIndex(it_save - it_begin)
+      ++it_save;
     }
     subhalo.Particles.resize(it_save - it_begin);
   }
-//TODO: Remove introduced TODO comments and run formatter
+  // TODO: Remove introduced TODO comments and run formatter
 };
 
 void SubhaloSnapshot_t::MaskSubhalos()
