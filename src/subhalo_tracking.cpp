@@ -226,11 +226,11 @@ bool GetTracerHosts(vector<HBTInt>::iterator particle_hosts, vector<HBTInt>::con
 
     /* We cannot find the particle in the current rank. We will therefore need to
      * try to find it in other ranks (and hence delay making a host decision) */
-    if ((particle_hosts[BoundRanking] == -1) &&
-        (part_snap.GetIndex(particle_ids[BoundRanking]) == SpecialConst::NullParticleId))
+    if (particle_hosts[BoundRanking] == -1)
     {
-      particle_hosts[BoundRanking]--; // Turns it to -2
-      MakeDecision = false;
+      MakeDecision = false; // Defer making a decision until we have all info.
+      if (part_snap.GetIndex(particle_ids[BoundRanking]) == SpecialConst::NullParticleId)
+        particle_hosts[BoundRanking]--; // Turns it to -2
     }
   }
 
