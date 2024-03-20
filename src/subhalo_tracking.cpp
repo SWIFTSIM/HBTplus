@@ -3,6 +3,7 @@
 #include <new>
 #include <omp.h>
 #include <unordered_set>
+#include <unordered_map>
 
 #include "datatypes.h"
 #include "snapshot_number.h"
@@ -175,6 +176,156 @@ inline HBTInt GetLocalHostId(HBTInt pid, const HaloSnapshot_t &halo_snap, const 
   }
   return hostid;
 }
+
+/* Identify and store the particle IDs of the most bound NumTracerHostFinding
+ * collisionless tracers. Used to identify host FOF groups. */
+void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhalo)
+{
+  /* Initialise vector. This will make it so the code knows when to stop looking
+   * for tracers, since orphans will have all but the first with NullParticleId */
+  fill(particle_ids, particle_ids + HBTConfig.NumTracerHostFinding, SpecialConst::NullParticleId);
+
+  /* Iterate over the particle list to find tracers. */
+  int BoundRanking = 0;
+  for (auto particle = Subhalo.Particles.begin(); particle != Subhalo.Particles.begin() + Subhalo.Nbound; particle++)
+  {
+    if (particle->IsTracer()) // Only use tracers.
+      particle_ids[BoundRanking++] = particle->Id;
+
+    if (BoundRanking == HBTConfig.NumTracerHostFinding) // Use up to a user-defined number of tracers.
+      break;
+  }
+
+  /* Sanity checks */
+  assert(Subhalo.Particles.size() != 0); // Do not call the function for empty subhaloes.
+  assert(BoundRanking == min(Subhalo.Particles.size(),
+                             HBTConfig.NumTracerHostFinding)); // We found all expected particles
+}
+
+/* Identify which FOF is host to the particles. If we have a value of -2, that
+ * means the particle was not found in the particle information available to the
+ * local rank. */
+bool GetTracerHosts(vector<HBTInt>::iterator particle_hosts, vector<HBTInt>::const_iterator particle_ids,
+                    const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap)
+{
+  /* Initialise vector. This will make it so the code knows when to stop looking
+   * for tracers, since orphans will have all but the first with NullParticleId */
+  fill(particle_hosts, particle_hosts + HBTConfig.NumTracerHostFinding, -2);
+
+  bool MakeDecision = true;
+
+  /* Iterate over the particle list to find hosts. */
+  for (int BoundRanking = 0; BoundRanking < HBTConfig.NumTracerHostFinding; BoundRanking++)
+  {
+    // No more tracers left (should only occur for orphans!)
+    if (particle_ids[BoundRanking] == SpecialConst::NullParticleId)
+      break;
+
+    // Get host, which can be -1
+    particle_hosts[BoundRanking] = halo_snap.ParticleHash.GetIndex(particle_ids[BoundRanking]);
+
+    /* We cannot find the particle in the current rank. We will therefore need to
+     * try to find it in other ranks (and hence delay making a host decision) */
+    if (particle_hosts[BoundRanking] == -1)
+    {
+      MakeDecision = false; // Defer making a decision until we have all info.
+      if (part_snap.GetIndex(particle_ids[BoundRanking]) == SpecialConst::NullParticleId)
+        particle_hosts[BoundRanking]--; // Turns it to -2
+    }
+  }
+
+  return MakeDecision;
+}
+
+/* Assign a host to a given subgroup based on the FoF membership of the
+ * NumTracerHostFinding most bound collisionless particles. This decision is
+ * weighted by the binding energy ranking the particles had in the previous
+ * output. */
+HBTInt DecideLocalHostId(vector<HBTInt>::const_iterator particle_hosts)
+{
+  /* To store unique host candidates, and the matching score. */
+  unordered_map<HBTInt, float> CandidateHosts;
+
+  /* Iterate over the particle list, and weight each candidate score by how
+   * bound was the particle is */
+  for (int BoundRanking = 0; BoundRanking < HBTConfig.NumTracerHostFinding; BoundRanking++)
+  {
+    // Not a valid tracer (NOTE: should we break or continue here?)
+    if (particle_hosts[BoundRanking] == -2)
+      continue;
+
+    /* If the key is not present, the score gets zero-initialised by default */
+    CandidateHosts[particle_hosts[BoundRanking]] += 1.0 / (1 + pow(float(BoundRanking), 0.5));
+  }
+
+  /* Select candidate host with the highest score. */
+  HBTInt HostId = -2; // Default value
+  float MaximumScore = 0;
+
+  for (auto candidate : CandidateHosts)
+  {
+    if (candidate.second > MaximumScore)
+    {
+      HostId = candidate.first;
+      MaximumScore = candidate.second;
+    }
+  }
+
+  return HostId;
+}
+
+/* Assign a host to a given subgroup based on the FoF membership of the
+ * NumTracerHostFinding most bound collisionless particles. This decision is
+ * weighted by the binding energy ranking the particles had in the previous
+ * output. Used during search across multiple tasks.*/
+IdRank_t DecideLocalHostId(vector<IdRank_t>::const_iterator particle_hosts)
+{
+  /* To store unique host candidates, their rank, and the matching score. */
+  unordered_map<HBTInt, float> CandidateHosts, CandidateHostRank;
+
+  /* Iterate over the particle list, and weight each candidate score by how
+   * bound was the particle is */
+  for (int BoundRanking = 0; BoundRanking < HBTConfig.NumTracerHostFinding; BoundRanking++)
+  {
+    // Not a valid tracer (NOTE: should we break or continue here?)
+    if (particle_hosts[BoundRanking].Id == -2)
+      continue;
+
+    /* If the key is not present, the score gets zero-initialised by default */
+    CandidateHosts[particle_hosts[BoundRanking].Id] += 1.0 / (1 + pow(float(BoundRanking), 0.5));
+
+    /* If we have hostless particles, we assign the rank to be the one where the
+     * most bound hostless particle is present. */
+    if (particle_hosts[BoundRanking].Id == -1)
+    {
+      auto findit = CandidateHostRank.find(particle_hosts[BoundRanking].Id);
+      if (findit == CandidateHostRank.end()) // First time we find a hostless particle.
+        CandidateHostRank[particle_hosts[BoundRanking].Id] = particle_hosts[BoundRanking].Rank;
+    }
+
+    // Store its rank
+    CandidateHostRank[particle_hosts[BoundRanking].Id] = particle_hosts[BoundRanking].Rank;
+  }
+
+  /* Select candidate host with the highest score. */
+  IdRank_t HostIdRank {-2, -1};
+  float MaximumScore = 0;
+
+  for (auto candidate : CandidateHosts)
+  {
+    if (candidate.second > MaximumScore)
+    {
+      HostIdRank.Id = candidate.first;
+      MaximumScore = candidate.second;
+    }
+  }
+
+  /* Assign target rank where the subhalo will be moved to. */
+  HostIdRank.Rank = CandidateHostRank[HostIdRank.Id];
+
+  return HostIdRank;
+}
+
 void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap, vector<Subhalo_t> &Subhalos,
                     vector<Subhalo_t> &LocalSubhalos)
 {
@@ -183,9 +334,18 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
   {
     if (Subhalos[subid].Particles.size())
     {
-      /* We can safely use the TracerIndex to retrieve tracer */
-      Subhalos[subid].HostHaloId =
-        GetLocalHostId(Subhalos[subid].Particles[Subhalos[subid].GetTracerIndex()].Id, halo_snap, part_snap);
+      /* Create a list of tracer particle IDs*/
+      vector<HBTInt> TracerParticleIds(HBTConfig.NumTracerHostFinding);
+      GetTracerIds(TracerParticleIds.begin(), Subhalos[subid]);
+
+      /* Identify which FOFs those IDs are located in. */
+      vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
+      bool MakeDecision = GetTracerHosts(TracerHosts.begin(), TracerParticleIds.cbegin(), halo_snap, part_snap);
+
+      /* If we found all tracers in the current rank, make a host decision.
+       * Otherwise, we will need to use information from other ranks to be sure
+       * of where the track is. */
+      Subhalos[subid].HostHaloId = (MakeDecision) ? DecideLocalHostId(TracerHosts.cbegin()) : -2;
     }
     else
       Subhalos[subid].HostHaloId = -1;
@@ -220,42 +380,59 @@ void FindOtherHosts(MpiWorker_t &world, int root, const HaloSnapshot_t &halo_sna
   if (thisrank == root)
   {
     NumSubhalos = Subhalos.size();
-    if (NumSubhalos > INT_MAX)
+    if (NumSubhalos * HBTConfig.NumTracerHostFinding > INT_MAX)
       throw runtime_error("Error: in FindOtherHosts(), sending more subhaloes than INT_MAX will cause MPI message to "
                           "overflow. Please try more MPI threads. aborting.\n");
   }
   MPI_Bcast(&NumSubhalos, 1, MPI_HBT_INT, root, world.Communicator);
-  TrackParticleIds.resize(NumSubhalos);
-  if (thisrank == root)
-  {
-    for (HBTInt i = 0; i < Subhalos.size(); i++)
-      TrackParticleIds[i] = Subhalos[i].Particles[Subhalos[i].GetTracerIndex()].Id;
-  }
-  MPI_Bcast(TrackParticleIds.data(), NumSubhalos, MPI_HBT_INT, root, world.Communicator);
 
-  // find hosts
-  vector<IdRank_t> LocalHostIds(NumSubhalos), GlobalHostIds(NumSubhalos);
+  /* Create vector to hold the IDs of particles to look out for. We assign a
+   * conservative value of NumTracerHostFinding particles per subhalo, even
+   * though we may have orphans in the mix (only require one entry) */
+  vector<HBTInt> TracerParticleIds(NumSubhalos * HBTConfig.NumTracerHostFinding);
+
+  /* Populate the vectors with the ParticleIDs of tracers belonging to the subhaloes
+   * of the root task */
   if (thisrank == root)
   {
 #pragma omp parallel for if (NumSubhalos > 20)
     for (HBTInt i = 0; i < NumSubhalos; i++)
-    {
-      LocalHostIds[i].Id = Subhalos[i].HostHaloId; // already found previously
-      LocalHostIds[i].Rank = thisrank;
-    }
-  }
-  else
-  {
-#pragma omp parallel for if (NumSubhalos > 20)
-    for (HBTInt i = 0; i < NumSubhalos; i++)
-    {
-      LocalHostIds[i].Id = GetLocalHostId(TrackParticleIds[i], halo_snap, part_snap);
-      LocalHostIds[i].Rank = thisrank;
-    }
+      GetTracerIds(TracerParticleIds.begin() + i * HBTConfig.NumTracerHostFinding, Subhalos[i]);
   }
 
-  MPI_Allreduce(LocalHostIds.data(), GlobalHostIds.data(), NumSubhalos, MPI_HBTRankPair, MPI_MAXLOC,
-                world.Communicator);
+  /* Tell other tasks which IDs to look out for. */
+  MPI_Bcast(TracerParticleIds.data(), TracerParticleIds.size(), MPI_HBT_INT, root, world.Communicator);
+
+  /* To find hosts in the current task  */
+  vector<IdRank_t> LocalHostRankPairs(NumSubhalos * HBTConfig.NumTracerHostFinding, IdRank_t{-2, thisrank});
+
+#pragma omp parallel for if (NumSubhalos > 20)
+  for (HBTInt i = 0; i < NumSubhalos; i++)
+  {
+    unsigned long long offset = HBTConfig.NumTracerHostFinding * i; // Start of subhalo
+
+    /* Identify which FOFs those IDs are located in. */
+    vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
+    GetTracerHosts(TracerHosts.begin(), TracerParticleIds.cbegin() + offset, halo_snap, part_snap);
+
+    /* Copy over to the vector-struct */
+    for (int BoundRanking = 0; BoundRanking < HBTConfig.NumTracerHostFinding; BoundRanking++)
+      LocalHostRankPairs[offset + BoundRanking].Id = TracerHosts[BoundRanking];
+  }
+
+  /* Communicate to all tasks */
+  vector<IdRank_t> GlobalHostRankPairs(NumSubhalos * HBTConfig.NumTracerHostFinding);
+  MPI_Allreduce(LocalHostRankPairs.data(), GlobalHostRankPairs.data(), LocalHostRankPairs.size(), MPI_HBTRankPair,
+                MPI_MAXLOC, world.Communicator);
+
+  /* Score each candidate, and identify the rank it lives in */
+  vector<IdRank_t> GlobalHostIds(NumSubhalos);
+#pragma omp parallel for if (NumSubhalos > 20)
+  for (HBTInt i = 0; i < NumSubhalos; i++)
+  {
+    unsigned long long offset = HBTConfig.NumTracerHostFinding * i; // Start of subhalo
+    GlobalHostIds[i] = DecideLocalHostId(GlobalHostRankPairs.cbegin() + offset);
+  }
 
   // scatter free subhaloes from root to everywhere
   // send particles and nests; no scatterw, do it manually
@@ -439,13 +616,21 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
 {
   ParallelizeHaloes = halo_snap.NumPartOfLargestHalo < 0.1 * halo_snap.TotNumberOfParticles; // no dominating objects
 
-  // exchange subhaloes according to hosts
+  /* To hold subhaloes with updated information. */
   vector<Subhalo_t> LocalSubhalos;
   LocalSubhalos.reserve(Subhalos.size());
+
+  /* Creates ParticleID - HostHalo information, local to the task. */
   halo_snap.FillParticleHash();
+
+  /* Try identifying which FOF hosts local subhaloes, using local information
+   * only. */
   FindLocalHosts(halo_snap, part_snap, Subhalos, LocalSubhalos);
+
+  /* Those which require information from external ranks are dealt with here. */
   for (int rank = 0; rank < world.size(); rank++)
     FindOtherHostsSafely(world, rank, halo_snap, part_snap, Subhalos, LocalSubhalos, MPI_HBT_SubhaloShell_t);
+
   Subhalos.swap(LocalSubhalos);
   halo_snap.ClearParticleHash();
 
