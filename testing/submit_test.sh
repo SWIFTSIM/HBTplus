@@ -3,8 +3,8 @@
 #SBATCH --ntasks 2
 #SBATCH --cpus-per-task=14
 #SBATCH -J HBT_TEST
-#SBATCH -o %x.%J.out
-#SBATCH -e %x.%J.err
+#SBATCH -o test_output/logs/%x.%J.out
+#SBATCH -e test_output/logs/%x.%J.err
 #SBATCH -p cosma7-rp
 #SBATCH -A dp004
 #SBATCH -t 00:20:00
