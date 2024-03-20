@@ -529,11 +529,13 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       central.Particles.swap(Host.Particles); // reuse the halo particles
       central.Nbound = central.Particles.size();
       {
-        auto mostbndid = Host.Particles[0].Id;
+        // TracerIndex exists for the subhalo instance, not the host one.
+        auto mostbndid = Host.Particles[central.GetTracerIndex()].Id;
         for (auto &p : central.Particles)
-          if (p.Id == mostbndid) // swap previous mostbound particle to the beginning
+          if (p.Id == mostbndid) // Swap previous tracer particle to the start (if contained within the FOF)
           {
             swap(p, central.Particles[0]);
+            central.SetTracerIndex(0);
             break;
           }
       }
