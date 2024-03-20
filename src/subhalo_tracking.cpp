@@ -528,16 +528,30 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       assert(central.Particles.size());
       central.Particles.swap(Host.Particles); // reuse the halo particles
       central.Nbound = central.Particles.size();
+      bool tracerIndexSet = false;
+      // Use the most bound tracer from the previous snapshot that remains
+      // in the FOF group as the tracer. We need this information for the masking.
+      for (HBTInt i = central.GetTracerIndex(); i < Host.Particles.size(); i++)
       {
-        // TracerIndex exists for the subhalo instance, not the host one.
-        auto mostbndid = Host.Particles[central.GetTracerIndex()].Id;
+        if (tracerIndexSet)
+          break;
+        while (!Host.Particles[i].IsTracer())
+          i++;
+        auto mostbndid = Host.Particles[i].Id;
         for (auto &p : central.Particles)
-          if (p.Id == mostbndid) // Swap previous tracer particle to the start (if contained within the FOF)
+        {
+          if (p.Id == mostbndid) // Swap previous tracer particle to the start
           {
             swap(p, central.Particles[0]);
             central.SetTracerIndex(0);
+            tracerIndexSet = true;
             break;
           }
+        }
+      }
+      if (!tracerIndexSet)
+      {
+        throw runtime_error("No tracer particle from previous snapshot found in FOF");
       }
     }
   }
@@ -866,19 +880,8 @@ public:
     if (subhalo.Nbound <= 1)
       return; // skip orphans
 
-    // Want to identify first tracer so we can add it back if all tracers are masked out
-    // Need to recalculate tracer index due to gas particles disappearing
-    // For DMO runs IsTracer will return 1 for all particles anyway
-    // TODO: Is this needed or will Victor set tracerIndex?
+    // Save first tracer so we can add it back if all tracers are masked out
     auto tracer = subhalo.Particles[0];
-    for (auto it = subhalo.Particles.begin(); it != subhalo.Particles.end(); ++it)
-    {
-      if (it->IsTracer())
-      {
-        tracer = *it;
-        break;
-      }
-    }
     if (!tracer.IsTracer())
     {
       throw runtime_error("No tracer particle found before masking");
