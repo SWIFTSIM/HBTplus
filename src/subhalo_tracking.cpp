@@ -536,8 +536,8 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       {
         if (tracerIndexSet)
           break;
-        while (!Host.Particles[i].IsTracer())
-          i++;
+        if (!Host.Particles[i].IsTracer())
+          continue;
         auto mostbndid = Host.Particles[i].Id;
         for (auto &p : central.Particles)
         {

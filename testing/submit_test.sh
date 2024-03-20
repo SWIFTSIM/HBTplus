@@ -5,12 +5,13 @@
 #SBATCH -J HBT_TEST
 #SBATCH -o %x.%J.out
 #SBATCH -e %x.%J.err
-#SBATCH -p cosma7
+#SBATCH -p cosma7-rp
 #SBATCH -A dp004
 #SBATCH -t 00:20:00
 
 module purge
-module load gnu_comp/11.1.0 hdf5/1.12.0 openmpi/4.1.1
+module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
+module load rockport-settings
 
 echo
 echo "Running on hosts: $SLURM_NODELIST"
@@ -24,7 +25,7 @@ echo
 sed -i "s|hbt_output|$PWD\/test_output|g" config_test.txt
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-mpirun -np $SLURM_NTASKS ./build/HBT config_test.txt
+mpirun $RP_OPENMPI_ARGS -np $SLURM_NTASKS ./build/HBT config_test.txt
 
 # Revert to the original value of the path
 sed -i "s|$PWD\/test_output|hbt_output|g" config_test.txt
