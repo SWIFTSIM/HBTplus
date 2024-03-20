@@ -881,14 +881,11 @@ public:
     if (subhalo.Nbound <= 1)
       return; // skip orphans
 
+    // The following procedure is only relevant for pre-existing subhalos, as
+    // newly created centrals cannot have any satellites by definition.
+    bool hasTracer = false;
     // Save first tracer so we can add it back if all tracers are masked out
     auto tracer = subhalo.Particles[0];
-    if (!tracer.IsTracer())
-    {
-      throw runtime_error("No tracer particle found before masking");
-    }
-
-    bool hasTracer = false;
     auto it_begin = subhalo.Particles.begin(), it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
     {
