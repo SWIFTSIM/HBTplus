@@ -119,6 +119,7 @@ public:
     SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;
     MostBoundParticleId = SpecialConst::NullParticleId;
+    TracerIndex = -1;
   }
   void Unbind(const Snapshot_t &epoch);
   void RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap);
