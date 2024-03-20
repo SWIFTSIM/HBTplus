@@ -527,7 +527,7 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       auto &central = Subhalos[Members[0]];
       assert(central.Particles.size());
       HBTInt tracerIndex = central.GetTracerIndex(); // Save tracerIndex before swap
-      central.Particles.swap(Host.Particles); // reuse the halo particles
+      central.Particles.swap(Host.Particles);        // reuse the halo particles
       central.Nbound = central.Particles.size();
       bool tracerIndexSet = false;
       // Use the most bound tracer from the previous snapshot that remains
@@ -911,13 +911,10 @@ public:
     if (!hasTracer)
     {
       *it_save = tracer;
-      // TODO: Update tracerindex? Don't think I should need to
-      // subhalo.SetTracerIndex(it_save - it_begin)
       ++it_save;
     }
     subhalo.Particles.resize(it_save - it_begin);
   }
-  // TODO: Remove introduced TODO comments and run formatter
 };
 
 void SubhaloSnapshot_t::MaskSubhalos()
