@@ -3,8 +3,6 @@
 #SBATCH --ntasks 2
 #SBATCH --cpus-per-task=14
 #SBATCH -J HBT_TEST
-#SBATCH -o test_output/logs/%x.%J.out
-#SBATCH -e test_output/logs/%x.%J.err
 #SBATCH -p cosma7-rp
 #SBATCH -A dp004
 #SBATCH -t 00:20:00
@@ -22,10 +20,14 @@ echo
 
 # Need to do this so that the catalogue parameter file reflects the absolute path.
 # Otherwise the HBT reader will not work.
-sed -i "s|hbt_output|$PWD\/test_output|g" config_test.txt
+sed -i "s|hbt_output|$OUTPUTDIR|g" config_test.txt
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 mpirun $RP_OPENMPI_ARGS -np $SLURM_NTASKS ./build/HBT config_test.txt
 
 # Revert to the original value of the path
-sed -i "s|$PWD\/test_output|hbt_output|g" config_test.txt
+sed -i "s|$OUTPUTDIR|hbt_output|g" config_test.txt
+
+echo
+echo "Job complete."
+echo

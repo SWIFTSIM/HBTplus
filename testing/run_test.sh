@@ -4,8 +4,9 @@ if [[ $(hostname) != *"login7"* ]]
 then
     echo "Trying to run test in a non-COSMA7 login node. Please switch to COSMA7."
 else
-    rm -rf test_output # Remove to prevent partially overwritting previous tests.
+    OUTPUTDIR=${1:-$PWD\/test_output}
+    rm -rf $OUTPUTDIR # Remove to prevent partially overwritting previous tests.
     bash compile.sh
-    mkdir -p test_output/logs
-    sbatch submit_test.sh
+    mkdir -p $OUTPUTDIR/logs
+    sbatch --export=OUTPUTDIR=$OUTPUTDIR --output $OUTPUTDIR/logs/output.out --error $OUTPUTDIR/logs/error.err submit_test.sh
 fi
