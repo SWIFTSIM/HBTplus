@@ -526,7 +526,7 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
     {
       auto &central = Subhalos[Members[0]];
       assert(central.Particles.size());
-      central.Particles.swap(Host.Particles);        // reuse the halo particles
+      central.Particles.swap(Host.Particles); // reuse the halo particles
       central.Nbound = central.Particles.size();
       bool tracerIndexSet = false;
       // Use the most bound tracer from the previous snapshot that remains
@@ -883,14 +883,19 @@ public:
     if (subhalo.SnapshotIndexOfBirth == SnapshotIndex)
       return; // skip newly created centrals
 
-    // The following procedure is only relevant for pre-existing subhalos, as
-    // newly created centrals cannot have any satellites by definition.
+    // If all tracers are removed during masking, we need to add one back
     bool hasTracer = false;
-    // Save first tracer so we can add it back if all tracers are masked out
-    auto tracer = subhalo.Particles[subhalo.GetTracerIndex()];
+    // Save the most bound tracer from the previous snapshot so we can add it back
+    // For centrals the first particle is guaranteed to be the most bound tracer
+    // For satellites this is not the case, so we use the first tracer we find
+    auto tracer = subhalo.Particles[0];
     auto it_begin = subhalo.Particles.begin(), it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
     {
+      if (!tracer.IsTracer() && it->IsTracer())
+      {
+        tracer = *it;
+      }
       auto insert_status = ExclusionList.insert(it->Id);
       if (insert_status.second) // inserted, meaning not excluded
       {
@@ -909,6 +914,7 @@ public:
     // If all tracers have been removed during masking, add back the most bound
     if (!hasTracer)
     {
+      assert(tracer.IsTracer());
       *it_save = tracer;
       ++it_save;
     }
