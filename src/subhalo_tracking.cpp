@@ -870,22 +870,25 @@ public:
   {
     ExclusionList.reserve(np_guess);
   }
-  void Mask(HBTInt subid, vector<Subhalo_t> &Subhalos)
+  void Mask(HBTInt subid, vector<Subhalo_t> &Subhalos, int SnapshotIndex)
   {
     auto &subhalo = Subhalos[subid];
     for (auto nestedid :
          subhalo
            .NestedSubhalos) // TODO: do we have to do it recursively? satellites are already masked among themselves?
-      Mask(nestedid, Subhalos);
+      Mask(nestedid, Subhalos, SnapshotIndex);
 
     if (subhalo.Nbound <= 1)
       return; // skip orphans
+
+    if (subhalo.SnapshotIndexOfBirth == SnapshotIndex)
+      return; // skip newly created centrals
 
     // The following procedure is only relevant for pre-existing subhalos, as
     // newly created centrals cannot have any satellites by definition.
     bool hasTracer = false;
     // Save first tracer so we can add it back if all tracers are masked out
-    auto tracer = subhalo.Particles[0];
+    auto tracer = subhalo.Particles[subhalo.GetTracerIndex()];
     auto it_begin = subhalo.Particles.begin(), it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
     {
@@ -929,7 +932,7 @@ void SubhaloSnapshot_t::MaskSubhalos()
     // update central member list (append other heads except itself)
     nest.insert(nest.end(), heads.begin() + 1, heads.end());
     SubhaloMasker_t Masker(central.Particles.size() * 1.2);
-    Masker.Mask(Group[0], Subhalos);
+    Masker.Mask(Group[0], Subhalos, SnapshotIndex);
     nest.resize(old_membercount); // TODO: better way to do this? or do not change the nest for central?
   }
 }
