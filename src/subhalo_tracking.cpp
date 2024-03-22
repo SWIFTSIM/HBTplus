@@ -526,13 +526,12 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
     {
       auto &central = Subhalos[Members[0]];
       assert(central.Particles.size());
-      HBTInt tracerIndex = central.GetTracerIndex(); // Save tracerIndex before swap
       central.Particles.swap(Host.Particles);        // reuse the halo particles
       central.Nbound = central.Particles.size();
       bool tracerIndexSet = false;
       // Use the most bound tracer from the previous snapshot that remains
       // in the FOF group as the tracer. We need this information for the masking.
-      for (HBTInt i = tracerIndex; i < Host.Particles.size(); i++)
+      for (HBTInt i = 0; i < Host.Particles.size(); i++)
       {
         if (tracerIndexSet)
           break;
