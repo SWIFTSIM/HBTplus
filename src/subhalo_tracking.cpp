@@ -886,25 +886,16 @@ public:
     // If all tracers are removed during masking, we need to add one back
     bool hasTracer = false;
     // Save the most bound tracer from the previous snapshot so we can add it back
-    // For centrals the first particle is guaranteed to be the most bound tracer
-    // For satellites this is not the case, so we use the first tracer we find
-    auto tracer = subhalo.Particles[0];
+    auto tracer = subhalo.Particles[subhalo.GetTracerIndex()];
     auto it_begin = subhalo.Particles.begin(), it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
     {
-      if (!tracer.IsTracer() && it->IsTracer())
-      {
-        tracer = *it;
-      }
       auto insert_status = ExclusionList.insert(it->Id);
       if (insert_status.second) // inserted, meaning not excluded
       {
-        if (!hasTracer)
+        if (!hasTracer && it->IsTracer())
         {
-          if (it->IsTracer())
-          {
-            hasTracer = true;
-          }
+          hasTracer = true;
         }
         if (it != it_save)
           *it_save = move(*it);
