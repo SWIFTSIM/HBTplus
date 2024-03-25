@@ -11,6 +11,7 @@
 #include "mpi_wrapper.h"
 #include "snapshot_number.h"
 
+
 enum class SubReaderDepth_t
 {
   SubTable,     // read only the properties of subhalos
@@ -88,6 +89,7 @@ public:
 
   // for merging
   HBTInt SinkTrackId;         // the trackId it sinked to, -1 if it hasn't sunk.
+  HBTInt DescendantTrackId;      // the trackId it merged with if it became unresolved without sinking
   HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
 
   ParticleList_t Particles;
@@ -113,6 +115,7 @@ public:
     SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
     SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;
+    DescendantTrackId = SpecialConst::NullTrackId;    
     MostBoundParticleId = SpecialConst::NullParticleId;
   }
   void Unbind(const Snapshot_t &epoch);
@@ -150,6 +153,7 @@ public:
     return SnapshotIndexOfSink == currentsnapshotindex;
   }
   void DuplicateMostBoundParticleId();
+  vector<HBTInt> GetMostBoundTracerIds(HBTInt n);
 };
 
 class MemberShipTable_t
