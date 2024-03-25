@@ -716,8 +716,12 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       central.Particles.swap(Host.Particles); // reuse the halo particles
       central.Nbound = central.Particles.size();
       bool tracerIndexSet = false;
+
       // Use the most bound tracer from the previous snapshot that remains
       // in the FOF group as the tracer. We need this information for the masking.
+
+      /* This is for resolved subhaloes. Automatically skipped if we are doing
+       * an orphan */
       for (HBTInt i = 0; i < Host.Particles.size(); i++)
       {
         if (tracerIndexSet)
@@ -736,10 +740,28 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
           }
         }
       }
-      if (!tracerIndexSet)
+
+      /* Orphans have no particles associated to them, and hence we need to 
+       * handle them separately. We are guaranteed to find it, since we used it 
+       * to find the host of the orphan. */
+      if(Host.Particles.size() == 0)
       {
-        throw runtime_error("No tracer particle from previous snapshot found in FOF");
+        auto mostbndid = central.MostBoundParticleId;
+        for (auto &p : central.Particles)
+        {
+          if (p.Id == mostbndid) // Swap previous tracer particle to the start
+          {
+            swap(p, central.Particles[0]);
+            central.SetTracerIndex(0);
+            tracerIndexSet = true;
+            break;
+          }
+        }
       }
+
+      // At this stage, we should have identified the tracer index. 
+      if (!tracerIndexSet)
+        throw runtime_error("No tracer particle from previous snapshot found in FOF");
     }
   }
   //   #pragma omp single
