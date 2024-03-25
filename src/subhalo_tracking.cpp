@@ -339,29 +339,24 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
 #pragma omp parallel for
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
-    if (Subhalos[subid].Particles.size())
-    {
-      /* Create a list of tracer particle IDs*/
-      vector<HBTInt> TracerParticleIds(HBTConfig.NumTracerHostFinding);
-      GetTracerIds(TracerParticleIds.begin(), Subhalos[subid]);
+    /* Create a list of tracer particle IDs*/
+    vector<HBTInt> TracerParticleIds(HBTConfig.NumTracerHostFinding);
+    GetTracerIds(TracerParticleIds.begin(), Subhalos[subid]);
 
-      /* Identify which FOFs those IDs are located in. */
-      vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
-      bool MakeDecision = GetTracerHosts(TracerHosts.begin(), TracerParticleIds.cbegin(), halo_snap, part_snap);
+    /* Identify which FOFs those IDs are located in. */
+    vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
+    bool MakeDecision = GetTracerHosts(TracerHosts.begin(), TracerParticleIds.cbegin(), halo_snap, part_snap);
 
-      /* If we found all tracers in the current rank, make a host decision.
-       * Otherwise, we will need to use information from other ranks to be sure
-       * of where the track is. */
-      Subhalos[subid].HostHaloId = (MakeDecision) ? DecideLocalHostId(TracerHosts.cbegin()) : -2;
-    }
-    else
-      Subhalos[subid].HostHaloId = -1;
+    /* If we found all tracers in the current rank, make a host decision.
+     * Otherwise, we will need to use information from other ranks to be sure
+     * of where the track is. */
+    Subhalos[subid].HostHaloId = (MakeDecision) ? DecideLocalHostId(TracerHosts.cbegin()) : -2;
   }
 
   HBTInt nsub = 0;
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
-    if (Subhalos[subid].HostHaloId < 0 && Subhalos[subid].Particles.size()) // only move nonempty subhalos
+    if (Subhalos[subid].HostHaloId < 0) // Move all subhaloes
     {
       if (subid > nsub)
         Subhalos[nsub] = move(Subhalos[subid]); // there should be a default move assignement operator.
