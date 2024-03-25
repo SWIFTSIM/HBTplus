@@ -4,7 +4,7 @@
 [Compulsary Params]
 SnapshotPath /cosma7/data/dp004/dc-foro1/colibre/ 
 HaloPath /cosma7/data/dp004/dc-foro1/colibre/
-SubhaloPath hbt_output
+SubhaloPath
 SnapshotFileBase colibre
 
 # These should be read in from swiftsim automatically
