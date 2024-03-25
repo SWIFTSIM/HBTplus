@@ -205,8 +205,7 @@ void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhal
   }
 
   /* Sanity checks */
-  assert(Subhalo.Particles.size() != 0); // Do not call the function for empty subhaloes.
-  assert(BoundRanking == min(Subhalo.Particles.size(),
+  assert(BoundRanking == min((int)Subhalo.Particles.size(),
                              HBTConfig.NumTracerHostFinding)); // We found all expected particles
 }
 
