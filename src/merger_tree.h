@@ -2,6 +2,7 @@
 #define MERGER_TREE_H
 
 #include <vector>
+#include <map>
 
 #include "datatypes.h"
 #include "subhalo.h"
