@@ -67,8 +67,8 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
     // Count the number of elements from ids and values to send to each rank.
     std::vector<HBTInt> sendcounts(comm_size, 0);
 #pragma omp parallel for
-    for(auto id: ids) {
-      HBTInt hash = HashInteger(id);
+    for(HBTInt i=0; i<ids.size(); i+=1) {
+      HBTInt hash = HashInteger(ids[i]);
       int dest = (std::abs(hash) % comm_size);
 #pragma omp atomic
       sendcounts[dest] += 1;
@@ -139,8 +139,8 @@ void LocateValuesById(const std::vector<HBTInt> &ids,
   {
     // Count the number of ids_to_find to send to each rank
 #pragma omp parallel for
-    for(auto id: ids_to_find) {
-      HBTInt hash = HashInteger(id);
+    for(HBTInt i=0; i<ids_to_find.size(); i+=1) {
+      HBTInt hash = HashInteger(ids_to_find[i]);
       int dest = (std::abs(hash) % comm_size);
 #pragma omp atomic
       imported_sendcounts[dest] += 1;
