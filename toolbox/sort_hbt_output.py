@@ -131,6 +131,10 @@ def read_particles(filenames, nr_local_subhalos):
         # Some ranks may have read zero files
         particle_ids = None
     particle_ids = virgo.mpi.util.replace_none_with_zero_size(particle_ids, comm=comm)
+
+    # Handle case of no subhalos on any rank
+    if particle_ids is None:
+        particle_ids = np.zeros(0, dtype=int)
     
     return particle_ids
     
