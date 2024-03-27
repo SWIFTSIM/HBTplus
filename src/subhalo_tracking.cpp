@@ -651,7 +651,7 @@ void SubhaloSnapshot_t::DecideCentrals(const HaloSnapshot_t &halo_snap)
     if (List.size() > 1)
     {
       int n_major;
-      HBTInt MassLimit = Subhalos[List[0]].Mbound * HBTConfig.MajorProgenitorMassRatio;
+      HBTReal MassLimit = Subhalos[List[0]].Mbound * HBTConfig.MajorProgenitorMassRatio;
       for (n_major = 1; n_major < List.size(); n_major++)
         if (Subhalos[List[n_major]].Mbound < MassLimit)
           break;

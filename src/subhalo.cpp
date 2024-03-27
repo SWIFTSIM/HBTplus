@@ -145,7 +145,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(Mbound, MPI_FLOAT, 1);
 #ifndef DM_ONLY
   RegisterAttr(NboundType, MPI_HBT_INT, TypeMax);
-  RegisterAttr(MboundType, MPI_HBT_INT, TypeMax);
+  RegisterAttr(MboundType, MPI_FLOAT, TypeMax);
 #endif
   RegisterAttr(TracerIndex, MPI_HBT_INT, 1);
 #ifdef CHECK_TRACER_INDEX
