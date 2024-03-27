@@ -712,8 +712,15 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
     else
     {
       auto &central = Subhalos[Members[0]];
-      assert(central.Particles.size());
-      central.Particles.swap(Host.Particles); // reuse the halo particles
+
+      // Only test whether we have particles for previously-resolved subhaloes
+      if(central.IsAlive())
+        assert(central.Particles.size());
+
+      /* The subhalo now contains all the host particles. Those belonging to 
+       * subhaloes will be masked during unbinding, if exclusive mass option is
+       * used. */
+      central.Particles.swap(Host.Particles);
       central.Nbound = central.Particles.size();
       bool tracerIndexSet = false;
 
