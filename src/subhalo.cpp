@@ -145,9 +145,12 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(Mbound, MPI_FLOAT, 1);
 #ifndef DM_ONLY
   RegisterAttr(NboundType, MPI_HBT_INT, TypeMax);
-  RegisterAttr(MboundType, MPI_HBT_INT, TypeMax);
+  RegisterAttr(MboundType, MPI_FLOAT, TypeMax);
 #endif
   RegisterAttr(TracerIndex, MPI_HBT_INT, 1);
+#ifdef CHECK_TRACER_INDEX
+  RegisterAttr(TracerId, MPI_HBT_INT, 1);
+#endif
   RegisterAttr(HostHaloId, MPI_HBT_INT, 1);
   RegisterAttr(Rank, MPI_HBT_INT, 1);
   RegisterAttr(Depth, MPI_INT, 1);
@@ -505,13 +508,12 @@ void Subhalo_t::CountParticleTypes()
   }
 
   // If we found no tracer in this subgroup, default to the most bound particle.
-  TracerIndex = (Tracer_Index_ParticleType.second == -1) ? 0 : Tracer_Index_ParticleType.first;
+  HBTInt index = (Tracer_Index_ParticleType.second == -1) ? 0 : Tracer_Index_ParticleType.first;
+  SetTracerIndex(index);
 
-  // Sanity check
-  assert(TracerIndex != numeric_limits<HBTInt>::max());
 #else
   // Always use the first particle in DMO runs
-  TracerIndex = 0;
+  SetTracerIndex(0);
 #endif
 }
 
@@ -544,6 +546,9 @@ HBTInt Subhalo_t::KickNullParticles()
     }
   }
   Particles.resize(it_save - it_begin);
+
+  // Temporary fix to update TracerIndex
+  CountParticleTypes();
 
   // if(it!=it_save) cout<<it-it_save<<" outof "<<np_old<<" particles consumed for track "<<TrackId<<"\n";
   return it - it_save;

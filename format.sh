@@ -14,7 +14,7 @@ then
   echo "Formatting environment not found, installing it..."
   python3 -m venv clang_formatting_env
   ./clang_formatting_env/bin/python3 -m pip install --upgrade pip # Need to access wheel  
-  ./clang_formatting_env/bin/python3 -m pip install clang-format
+  ./clang_formatting_env/bin/python3 -m pip install clang-format==17.0.6
 fi
 
 # Activate enviroment to enable clang-format command

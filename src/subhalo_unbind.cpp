@@ -288,7 +288,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   /* Need to initialise here, since orphans/disrupted objects do not call the
    * function used to set the value of TracerIndex (CountParticleTypes). This
    * prevents accessing entries beyond the corresponding particle array. */
-  TracerIndex = 0;
+  SetTracerIndex(0);
 
   if (Particles.size() < HBTConfig.MinNumPartOfSub) // not enough src particles, can be due to masking
   {
@@ -319,7 +319,20 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
 
-  auto OldMostboundParticle = Particles[0]; // backup
+  // Determine particle which will be used as the tracer if subhalo becomes unresolved.
+  // This is the most bound tracer type particle, or just the most bound if there are
+  // no tracers.
+  auto OldMostboundParticle = Particles[0];
+  for (HBTInt i = 0; i < Nbound; i += 1)
+  {
+    const auto &p = Particles[i];
+    if (p.IsTracer())
+    {
+      OldMostboundParticle = p;
+      break;
+    }
+  }
+
   GravityTree_t tree;
   tree.Reserve(Particles.size());
   Nbound = Particles.size(); // start from full set
@@ -414,6 +427,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         if (p.Id == OldMostboundParticle.Id)
         {
           swap(p, Particles[0]); // restore old most-bound to beginning
+          SetTracerIndex(0);     // update location of the tracer
           break;
         }
       }
