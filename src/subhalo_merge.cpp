@@ -174,9 +174,13 @@ void DetectTraps(vector<Subhalo_t> &Subhalos, vector<SubHelper_t> &Helpers, int 
 #pragma omp for schedule(dynamic, 1)
   for (HBTInt i = 0; i < Subhalos.size(); i++)
   {
-    // 	  if(Subhalos[i].Nbound<=1) continue;//skip orphans? no.
+    /* Do not test objects that merged in the past*/
     if (Subhalos[i].IsTrapped())
       continue;
+
+    /* Iterate over the whole geneaology of subgroups, first test parent, then 
+     * grand-parent, etc. We will stop once we found the object has merged, or
+     * we tested the central of its host. */
     HBTInt HostId = Helpers[i].HostTrackId;
     while (HostId >= 0)
     {
@@ -188,11 +192,16 @@ void DetectTraps(vector<Subhalo_t> &Subhalos, vector<SubHelper_t> &Helpers, int 
           Subhalos[i].SinkTrackId =
             HostId; // these are local ids for the merging tracks. Those already merged ones retain their global ids.
           Subhalos[i].SnapshotIndexOfSink = isnap;
-          if (Subhalos[i].Nbound > 1) // only need to unbind if a real sub sinks
+          
+          /* The subgroup that receives the particles from a (resolved) merged 
+           * track will need to be subject to unbinding once again. Flag it. */
+          if (Subhalos[i].Nbound > 1)
             Helpers[HostId].IsMerged = true;
           break;
         }
       }
+
+      /* Move one level up the hierarchy. */
       HostId = Helpers[HostId].HostTrackId;
     }
   }
@@ -238,14 +247,19 @@ void SubhaloSnapshot_t::MergeSubhalos()
 
   if (HBTConfig.MergeTrappedSubhalos)
   {
+    /* Remove particles from merged tracks, and store when this happened */
 #pragma omp parallel for schedule(dynamic, 1)
     for (HBTInt grpid = 0; grpid < NumHalos; grpid++)
       if (MemberTable.SubGroups[grpid].size())
         MergeRecursive(MemberTable.SubGroups[grpid][0]);
+
+    /* Subgroups receiving particles from merged ones are subject to unbinding*/
 #pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
       if (Helpers[subid].IsMerged)
         Subhalos[subid].Unbind(*this);
+
+    /* Truncate the source of the subhaloes we just updated. */
 #pragma omp parallel for
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
       if (Helpers[subid].IsMerged)
