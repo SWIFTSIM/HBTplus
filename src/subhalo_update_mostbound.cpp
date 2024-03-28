@@ -68,6 +68,8 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
       {
         copyXYZ(sub.ComovingMostBoundPosition, p.ComovingPosition);
         copyXYZ(sub.PhysicalMostBoundVelocity, p.PhysicalVelocity);
+        copyXYZ(sub.ComovingAveragePosition, sub.ComovingMostBoundPosition);
+        copyXYZ(sub.PhysicalAverageVelocity, sub.PhysicalMostBoundVelocity);
       }
       nr_zero += 1;
     }

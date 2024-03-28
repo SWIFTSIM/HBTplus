@@ -240,14 +240,16 @@ void SubhaloSnapshot_t::ParticleIndexToId()
 
 void Subhalo_t::AverageCoordinates()
 {
-  // 	int coresize=GetCoreSize(Nbound);
+  /* We do not need to handle orphans here, since their most bound particle
+   * position and velocity is set in UpdateMostBoundPosition*/
   if (Particles.size())
   {
     copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
     copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
+    
+    AveragePosition(ComovingAveragePosition, Particles.data(), Nbound);
+    AverageVelocity(PhysicalAverageVelocity, Particles.data(), Nbound);
   }
-  AveragePosition(ComovingAveragePosition, Particles.data(), Nbound);
-  AverageVelocity(PhysicalAverageVelocity, Particles.data(), Nbound);
 }
 
 inline bool CompProfRadius(const RadMassVel_t &a, const RadMassVel_t &b)

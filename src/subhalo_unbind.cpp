@@ -281,6 +281,23 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
 }
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
+
+  /* We skip already existing orphans */
+  if(!Particles.size())
+  {
+    Nbound = Particles.size();
+    CountParticles(); // Should we remove?
+#ifdef SAVE_BINDING_ENERGY
+    Energies.clear();
+#endif
+    return;
+  }
+
+  /* We only expect (potentially) resolved subhaloes to make it here, or masked 
+   * out subhaloes (which should have at least one tracer particle if everything 
+   * is working correctly) */
+  assert(Particles.size() >= 1);
+  
   HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
   bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
   HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
@@ -290,38 +307,13 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * prevents accessing entries beyond the corresponding particle array. */
   SetTracerIndex(0);
 
-  if (Particles.size() < HBTConfig.MinNumPartOfSub) // not enough src particles, can be due to masking
-  {
-    if (IsAlive())
-      SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
-  }
-
-  if (Particles.size() == 0)
-  {
-    Nbound = 0;
-    CountParticles();
-#ifdef SAVE_BINDING_ENERGY
-    Energies.clear();
-#endif
-    return;
-  }
-  if (Particles.size() == 1)
-  {
-    Nbound = 1;
-    CountParticles();
-#ifdef SAVE_BINDING_ENERGY
-    Energies.resize(1);
-    Energies[0] = 0.;
-#endif
-    return;
-  }
   HBTxyz OldRefPos, OldRefVel;
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
 
-  // Determine particle which will be used as the tracer if subhalo becomes unresolved.
-  // This is the most bound tracer type particle, or just the most bound if there are
-  // no tracers.
+  /* Determine particle which will be used as the tracer if subhalo becomes unresolved.
+   * This is the most bound tracer type particle, or just the most bound if there are
+   * no tracers. */
   auto OldMostboundParticle = Particles[0];
   for (HBTInt i = 0; i < Nbound; i += 1)
   {
@@ -416,24 +408,45 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     }
 #endif
 
-    if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub)) // disruption
+    /* Object has disrupted */
+    if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub))
     {
-      Nbound = 1;
-      Nlast = 1;
+      /* Store when it disrupted. */
       if (IsAlive())
         SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
+
+      // NOTE: Everything done below is also done for fake tracks, which get removed
+      // before saving catalogues. Hence we do not need to do any additional checks.
+
+      /* We briefly allow for a 1-particle sized orphan, which corresponds to
+       * its the most bound tracer that remains after masking. */
       for (auto &&p : Particles)
       {
         if (p.Id == OldMostboundParticle.Id)
         {
-          swap(p, Particles[0]); // restore old most-bound to beginning
-          SetTracerIndex(0);     // update location of the tracer
+          swap(p, Particles[0]); // Restore old most-bound to beginning
+          SetTracerIndex(0);     // Update location of the tracer
           break;
         }
       }
+
+      /* We will copy the information required to save the orphan in this output.
+       * For future outputs, we will rely on UpdateMostBoundPosition instead. */
+      copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
+      copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
       copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
       copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
+
       Mbound = Particles[0].Mass;
+
+      /* Used to trace orphans without a Particle explicitly associated to them */
+      MostBoundParticleId = Particles[GetTracerIndex()].Id;
+
+      /* Do not allow the orphan to have any particles, so they can be subject to 
+       * unbinding in their parent. The particle array will be updated after this
+       * subhalo has been done. */
+      Nbound = 0;
+
       break;
     }
     else
