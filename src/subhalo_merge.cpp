@@ -24,15 +24,16 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
   // Could be slow if a halo with many particles has
   // 1 <= nr_tracers < NumPartCoreMax (which should be unlikely?).
   //
-  if (0 == sub.Nbound)
+
+  /* We should not have orphans with a single particle. */
+  assert(sub.Nbound != 1);
+
+  /* Need to handle orphans differently, since they have no particles 
+   * associated to them explicitly*/
+  if(sub.Nbound == 0)
   {
     ComovingSigmaR = 0.;
-    return;
-  }
-  if (1 == sub.Nbound)
-  {
-    ComovingSigmaR = 0.;
-    copyHBTxyz(ComovingPosition, sub.Particles[0].ComovingPosition);
+    copyHBTxyz(ComovingPosition, sub.ComovingMostBoundPosition);
     return;
   }
 
@@ -98,15 +99,16 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
 
 void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
 {
-  if (0 == sub.Nbound)
+
+  /* We should not have orphans with a single particle. */
+  assert(sub.Nbound != 1);
+
+  /* Need to handle orphans differently, since they have no particles 
+   * associated to them explicitly*/
+  if(sub.Nbound == 0)
   {
     PhysicalSigmaV = 0.;
-    return;
-  }
-  if (1 == sub.Nbound)
-  {
-    PhysicalSigmaV = 0.;
-    copyHBTxyz(PhysicalVelocity, sub.Particles[0].GetPhysicalVelocity());
+    copyHBTxyz(PhysicalVelocity, sub.PhysicalMostBoundVelocity);
     return;
   }
 
