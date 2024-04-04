@@ -450,7 +450,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           Elist[i].pid = i; // update particle index in Elist as well.
         }
         Particles.swap(p);
-        // update mostbound coordinate
+
+        /* Update the most bound coordinate. Note that for resolved subhaloes,
+         * this is not necceserally a tracer particle. */ 
         copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
         copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
         break;
