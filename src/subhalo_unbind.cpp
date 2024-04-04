@@ -421,8 +421,6 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
       copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
 
-      Mbound = Particles[0].Mass;
-
       /* Used to trace orphans without a Particle explicitly associated to them */
       MostBoundParticleId = Particles[GetTracerIndex()].Id;
 
