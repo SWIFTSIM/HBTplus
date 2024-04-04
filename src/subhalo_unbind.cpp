@@ -415,25 +415,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       if (IsAlive())
         SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
 
-      // NOTE: Everything done below is also done for fake tracks, which get removed
-      // before saving catalogues. Hence we do not need to do any additional checks.
-
-      /* We briefly allow for a 1-particle sized orphan, which corresponds to
-       * its the most bound tracer that remains after masking. */
-      for (auto &&p : Particles)
-      {
-        if (p.Id == OldMostboundParticle.Id)
-        {
-          swap(p, Particles[0]); // Restore old most-bound to beginning
-          SetTracerIndex(0);     // Update location of the tracer
-          break;
-        }
-      }
-
-      /* We will copy the information required to save the orphan in this output.
-       * For future outputs, we will rely on UpdateMostBoundPosition instead. */
-      copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
-      copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
+      /* The most bound positions of the new orphan were found when updating
+       * every subhalo particles. Copy over to the comoving ones. For future 
+       * outputs, we will rely on UpdateMostBoundPosition instead */
       copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
       copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
 
