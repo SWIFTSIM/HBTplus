@@ -311,20 +311,6 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
 
-  /* Determine particle which will be used as the tracer if subhalo becomes unresolved.
-   * This is the most bound tracer type particle, or just the most bound if there are
-   * no tracers. */
-  auto OldMostboundParticle = Particles[0];
-  for (HBTInt i = 0; i < Nbound; i += 1)
-  {
-    const auto &p = Particles[i];
-    if (p.IsTracer())
-    {
-      OldMostboundParticle = p;
-      break;
-    }
-  }
-
   GravityTree_t tree;
   tree.Reserve(Particles.size());
   Nbound = Particles.size(); // start from full set
@@ -477,6 +463,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   ESnap.AverageKinematics(SpecificSelfPotentialEnergy, SpecificSelfKineticEnergy, SpecificAngularMomentum, Nbound,
                           RefPos, RefVel); // only use CoM frame when unbinding and calculating Kinematics
   CountParticleTypes();
+
+  /* At this stage we know the updated TracerIndex, and that the subhalo is
+   * bound. */
+  MostBoundParticleId = Particles[GetTracerIndex()].Id;
+
 #ifdef SAVE_BINDING_ENERGY
   Energies.resize(Nbound);
 #pragma omp paralle for if (Nbound > 100)

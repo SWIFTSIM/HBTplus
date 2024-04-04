@@ -101,11 +101,6 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   H5Tclose(H5T_FloatVec3);
   H5Tclose(H5T_HBTxyz);
 }
-inline void Subhalo_t::DuplicateMostBoundParticleId()
-{
-  if (Nbound > 0)
-    MostBoundParticleId = Particles[GetTracerIndex()].Id;
-}
 string SubhaloSnapshot_t::GetSubDir()
 {
   stringstream formater;
@@ -428,7 +423,6 @@ void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
       offset += Subhalos[i].Particles.size();
       for (auto &&p : Subhalos[i].Particles)
         IdBuffer.push_back(p.Id);
-      Subhalos[i].DuplicateMostBoundParticleId(); // dump for galform
     }
   }
   writeHDFmatrix(file, vl.data(), "SubhaloParticles", ndim, dim_sub, H5T_HBTIntArr);

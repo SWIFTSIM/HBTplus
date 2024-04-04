@@ -155,7 +155,6 @@ public:
   {
     return SnapshotIndexOfSink == currentsnapshotindex;
   }
-  void DuplicateMostBoundParticleId();
   HBTInt GetTracerIndex()
   {
     assert(TracerIndex >= 0);
