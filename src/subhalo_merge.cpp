@@ -317,7 +317,10 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
   SetTracerIndex(0);
 
   /* We will copy the information required to save the orphan in this output.
-   * For future outputs, we will rely on UpdateMostBoundPosition instead. */
+   * For future outputs, we will rely on UpdateMostBoundPosition instead. We need
+   * to do it here, since the MostBoundPosition and MostBoundVelocity of tracks
+   * are based on the ACTUAL MOST BOUND PARTICLE. Orphans are based on the 
+   * MOST BOUND TRACER PARTICLE. */
   copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
   copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
   copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
