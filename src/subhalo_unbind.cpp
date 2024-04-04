@@ -463,9 +463,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
                           RefPos, RefVel); // only use CoM frame when unbinding and calculating Kinematics
   CountParticleTypes();
 
-  /* At this stage we know the updated TracerIndex, and that the subhalo is
-   * bound. */
-  MostBoundParticleId = Particles[GetTracerIndex()].Id;
+  /* At this stage we know the updated TracerIndex, so if we are bound we should
+   * update the most bound ID. */
+  if(IsAlive())
+    MostBoundParticleId = Particles[GetTracerIndex()].Id;
 
 #ifdef SAVE_BINDING_ENERGY
   Energies.resize(Nbound);
