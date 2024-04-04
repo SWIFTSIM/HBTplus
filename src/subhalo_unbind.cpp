@@ -407,9 +407,6 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
       copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
       copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
 
-      /* Used to trace orphans without a Particle explicitly associated to them */
-      MostBoundParticleId = Particles[GetTracerIndex()].Id;
-
       /* Do not allow the orphan to have any particles, so they can be subject to 
        * unbinding in their parent. The particle array will be updated after this
        * subhalo has been done. */
