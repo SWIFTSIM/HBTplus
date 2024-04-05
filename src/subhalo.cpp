@@ -249,7 +249,7 @@ void Subhalo_t::AverageCoordinates()
 
     /* Copy the mass, in case this object becomes an orphan in the current output. */
     Mbound = Particles[GetTracerIndex()].Mass;
-    
+
     AveragePosition(ComovingAveragePosition, Particles.data(), Nbound);
     AverageVelocity(PhysicalAverageVelocity, Particles.data(), Nbound);
   }

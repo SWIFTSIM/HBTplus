@@ -80,7 +80,7 @@ void MemberShipTable_t::FillMemberLists(const SubhaloList_t &Subhalos, bool incl
   {
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
     {
-      /* We should have assigned a HostHaloId >= -1, if everything went well 
+      /* We should have assigned a HostHaloId >= -1, if everything went well
        * during host deciding. */
       assert(Subhalos[subid].HostHaloId != -2);
 
@@ -194,7 +194,7 @@ void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhal
 
   /* Handle orphans by manually copying over the tracer particle ID, since we do
    * not have any particles associated to them. */
-  if(!Subhalo.Particles.size())
+  if (!Subhalo.Particles.size())
   {
     particle_ids[0] = Subhalo.MostBoundParticleId;
     return;
@@ -322,7 +322,7 @@ IdRank_t DecideLocalHostId(vector<IdRank_t>::const_iterator particle_hosts)
   }
 
   /* Select candidate host with the highest score. */
-  IdRank_t HostIdRank {-2, -1};
+  IdRank_t HostIdRank{-2, -1};
   float MaximumScore = 0;
 
   for (auto candidate : CandidateHosts)
@@ -721,10 +721,10 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
       auto &central = Subhalos[Members[0]];
 
       // Only test whether we have particles for previously-resolved subhaloes
-      if(central.IsAlive())
+      if (central.IsAlive())
         assert(central.Particles.size());
 
-      /* The subhalo now contains all the host particles. Those belonging to 
+      /* The subhalo now contains all the host particles. Those belonging to
        * subhaloes will be masked during unbinding, if exclusive mass option is
        * used. */
       central.Particles.swap(Host.Particles);
@@ -755,10 +755,10 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
         }
       }
 
-      /* Orphans have no particles associated to them, and hence we need to 
-       * handle them separately. We are guaranteed to find it, since we used it 
+      /* Orphans have no particles associated to them, and hence we need to
+       * handle them separately. We are guaranteed to find it, since we used it
        * to find the host of the orphan. */
-      if(Host.Particles.size() == 0)
+      if (Host.Particles.size() == 0)
       {
         auto mostbndid = central.MostBoundParticleId;
         for (auto &p : central.Particles)
@@ -773,7 +773,7 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
         }
       }
 
-      // At this stage, we should have identified the tracer index. 
+      // At this stage, we should have identified the tracer index.
       if (!tracerIndexSet)
         throw runtime_error("No tracer particle from previous snapshot found in FOF");
     }
