@@ -322,7 +322,7 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
    * are based on the ACTUAL MOST BOUND PARTICLE. Orphans are based on the 
    * MOST BOUND TRACER PARTICLE. */
   copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
-  copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].PhysicalVelocity);
+  copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
   copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
   copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
 
