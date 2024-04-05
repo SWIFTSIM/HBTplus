@@ -79,7 +79,14 @@ void MemberShipTable_t::FillMemberLists(const SubhaloList_t &Subhalos, bool incl
   if (include_orphans)
   {
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
+    {
+      /* We should have assigned a HostHaloId >= -1, if everything went well 
+       * during host deciding. */
+      assert(Subhalos[subid].HostHaloId != -2);
+
+      /* Populate FOFs with substructure. */
       SubGroups[Subhalos[subid].HostHaloId].PushBack(subid);
+    }
   }
   else
   {
