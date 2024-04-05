@@ -169,6 +169,12 @@ def determine_descendants(catalogue_path, snapshot_paths, output_index):
     # Iterate over all previously existing subgroups, identify a host fof and 
     # check if it agrees with the internal decision made by HBT.
     for trackid in range(number_subhaloes):
+        
+        # Skip orphans, since in the current version they have no associated
+        # particles. To include them in the future, we will need to change the 
+        # way in which the ordered outputs are created!
+        if(hbt_lengths[trackid] == 0):
+            continue
 
         # Get all particle types.
         subgroup_particle_ids = hbt_ids[hbt_offsets[trackid] : hbt_offsets[trackid] + hbt_lengths[trackid]]
