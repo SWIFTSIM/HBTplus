@@ -29,9 +29,12 @@ VelInKmS 1
 
 MaxConcurrentIO 28 # Number of cores in a cosma7 node                    
 
+# Slower, but it makes outputs reproducible  
+BoundMassPrecision 1
+MaxSampleSizeOfPotentialEstimate 0
+
 # Optional parameters; default values are shown here
 #MinNumPartOfSub 20
-#BoundMassPrecision 0.995
 #PeriodicBoundaryOn 1
 #SaveSubParticleProperties 0
 #TracerParticleTypes 1 4 
