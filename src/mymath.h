@@ -114,6 +114,8 @@ public:
   }
 };
 
+extern Timer_t global_timer;
+
 #define myfopen(filepointer, filename, filemode)                                                                       \
   if (!((filepointer) = fopen(filename, filemode)))                                                                    \
   {                                                                                                                    \
