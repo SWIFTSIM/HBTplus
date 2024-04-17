@@ -71,7 +71,7 @@ int main(int argc, char **argv)
   /* Main loop, iterate over chosen data outputs */
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
   {
-    timer.Tick(world.Communicator);
+    timer.Tick("start", world.Communicator);
     ParticleSnapshot_t partsnap;
     partsnap.Load(world, isnap);
     subsnap.SetSnapshotIndex(isnap);
@@ -83,44 +83,46 @@ int main(int argc, char **argv)
     if ((isnap == snapshot_start) && (world.rank() == 0))
       HBTConfig.DumpParameters();
 
-    timer.Tick(world.Communicator);
+    timer.Tick("read_particles", world.Communicator);
     halosnap.UpdateParticles(world, partsnap);
-    timer.Tick(world.Communicator);
+    timer.Tick("update_halo_particles", world.Communicator);
     subsnap.UpdateParticles(world, partsnap);
     subsnap.UpdateMostBoundPosition(world, partsnap);
 
     // Don't need the particle data after this point, so save memory
     partsnap.ClearParticles();
 
-    timer.Tick(world.Communicator);
+    timer.Tick("update_subhalo_particles", world.Communicator);
     subsnap.AssignHosts(world, halosnap, partsnap);
     MergerTreeInfo merger_tree;
     merger_tree.StoreTracerIds(subsnap.Subhalos, HBTConfig.NumTracersForDescendants);
     subsnap.PrepareCentrals(world, halosnap);
 
-    timer.Tick(world.Communicator);
+    timer.Tick("assign_hosts", world.Communicator);
     if (world.rank() == 0)
       cout << "unbinding...\n";
     subsnap.RefineParticles();
 
-    timer.Tick(world.Communicator);
+    timer.Tick("unbind", world.Communicator);
     subsnap.MergeSubhalos();
 
-    timer.Tick(world.Communicator);
+    timer.Tick("merge", world.Communicator);
     subsnap.UpdateTracks(world, halosnap);
 
-    timer.Tick(world.Communicator);
+    timer.Tick("update_tracks", world.Communicator);
     merger_tree.FindDescendants(subsnap.Subhalos, world);
+
+    timer.Tick("merger_tree", world.Communicator);
     subsnap.Save(world);
 
-    timer.Tick(world.Communicator);
+    timer.Tick("write_subhalos", world.Communicator);
 
     /* Save measured timing information */
     if (world.rank() == 0)
     {
       time_log << isnap << "\t" << subsnap.GetSnapshotId();
       for (int i = 1; i < timer.Size(); i++)
-        time_log << "\t" << timer.GetSeconds(i);
+        time_log << "\t" << timer.names[i] << "=" << timer.GetSeconds(i);
       time_log << endl;
     }
     timer.Reset();
