@@ -40,9 +40,10 @@ struct SwiftSimHeader_t
 
 void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype);
 
+// Dummy struct at the moment. Remove in future if neccessary.
 struct SwiftParticleHost_t : public Particle_t
 {
-  HBTInt HostId;
+  // HBTInt HostId;
 };
 
 class SwiftSimReader_t

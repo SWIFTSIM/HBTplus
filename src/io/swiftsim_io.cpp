@@ -430,6 +430,20 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
     }
 #endif
 
+    // Hostid
+    {
+      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
+      {
+        hsize_t count = read_count - offset;
+        if (count > chunksize)
+          count = chunksize;
+        vector<HBTInt> id(count);
+        ReadPartialDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data(), offset + read_offset, count);
+        for (hsize_t i = 0; i < count; i += 1)
+          ParticlesToRead[offset + i].HostId = id[i];
+      }
+    }
+  
     // Advance to next particle type
     H5Gclose(particle_data);
     ParticlesToRead += read_count;
