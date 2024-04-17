@@ -72,9 +72,13 @@ int main(int argc, char **argv)
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
   {
     timer.Tick(world.Communicator);
+
+    /* Load particle information */
     ParticleSnapshot_t partsnap;
     partsnap.Load(world, isnap);
     subsnap.SetSnapshotIndex(isnap);
+
+    /* Load FOF group information */
     HaloSnapshot_t halosnap;
     halosnap.Load(world, isnap);
 
