@@ -4,6 +4,8 @@
 
 #include "mymath.h"
 
+Timer_t global_timer;
+
 int GetGrid(HBTReal x, HBTReal step, int dim)
 {
   int i = floor(x / step);
