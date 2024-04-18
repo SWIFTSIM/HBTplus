@@ -11,7 +11,6 @@
 #include "mpi_wrapper.h"
 #include "snapshot_number.h"
 
-
 enum class SubReaderDepth_t
 {
   SubTable,     // read only the properties of subhalos
