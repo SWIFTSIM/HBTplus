@@ -79,7 +79,14 @@ void MemberShipTable_t::FillMemberLists(const SubhaloList_t &Subhalos, bool incl
   if (include_orphans)
   {
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
+    {
+      /* We should have assigned a HostHaloId >= -1, if everything went well
+       * during host deciding. */
+      assert(Subhalos[subid].HostHaloId != -2);
+
+      /* Populate FOFs with substructure. */
       SubGroups[Subhalos[subid].HostHaloId].PushBack(subid);
+    }
   }
   else
   {
@@ -185,6 +192,14 @@ void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhal
    * for tracers, since orphans will have all but the first with NullParticleId */
   fill(particle_ids, particle_ids + HBTConfig.NumTracerHostFinding, SpecialConst::NullParticleId);
 
+  /* Handle orphans by manually copying over the tracer particle ID, since we do
+   * not have any particles associated to them. */
+  if (!Subhalo.Particles.size())
+  {
+    particle_ids[0] = Subhalo.MostBoundParticleId;
+    return;
+  }
+
   /* Iterate over the particle list to find tracers. */
   int BoundRanking = 0;
   for (auto particle = Subhalo.Particles.begin(); particle != Subhalo.Particles.begin() + Subhalo.Nbound; particle++)
@@ -197,8 +212,7 @@ void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhal
   }
 
   /* Sanity checks */
-  assert(Subhalo.Particles.size() != 0); // Do not call the function for empty subhaloes.
-  assert(BoundRanking == min(Subhalo.Particles.size(),
+  assert(BoundRanking == min((int)Subhalo.Particles.size(),
                              HBTConfig.NumTracerHostFinding)); // We found all expected particles
 }
 
@@ -308,7 +322,7 @@ IdRank_t DecideLocalHostId(vector<IdRank_t>::const_iterator particle_hosts)
   }
 
   /* Select candidate host with the highest score. */
-  IdRank_t HostIdRank {-2, -1};
+  IdRank_t HostIdRank{-2, -1};
   float MaximumScore = 0;
 
   for (auto candidate : CandidateHosts)
@@ -332,29 +346,24 @@ void FindLocalHosts(const HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &p
 #pragma omp parallel for
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
-    if (Subhalos[subid].Particles.size())
-    {
-      /* Create a list of tracer particle IDs*/
-      vector<HBTInt> TracerParticleIds(HBTConfig.NumTracerHostFinding);
-      GetTracerIds(TracerParticleIds.begin(), Subhalos[subid]);
+    /* Create a list of tracer particle IDs*/
+    vector<HBTInt> TracerParticleIds(HBTConfig.NumTracerHostFinding);
+    GetTracerIds(TracerParticleIds.begin(), Subhalos[subid]);
 
-      /* Identify which FOFs those IDs are located in. */
-      vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
-      bool MakeDecision = GetTracerHosts(TracerHosts.begin(), TracerParticleIds.cbegin(), halo_snap, part_snap);
+    /* Identify which FOFs those IDs are located in. */
+    vector<HBTInt> TracerHosts(HBTConfig.NumTracerHostFinding);
+    bool MakeDecision = GetTracerHosts(TracerHosts.begin(), TracerParticleIds.cbegin(), halo_snap, part_snap);
 
-      /* If we found all tracers in the current rank, make a host decision.
-       * Otherwise, we will need to use information from other ranks to be sure
-       * of where the track is. */
-      Subhalos[subid].HostHaloId = (MakeDecision) ? DecideLocalHostId(TracerHosts.cbegin()) : -2;
-    }
-    else
-      Subhalos[subid].HostHaloId = -1;
+    /* If we found all tracers in the current rank, make a host decision.
+     * Otherwise, we will need to use information from other ranks to be sure
+     * of where the track is. */
+    Subhalos[subid].HostHaloId = (MakeDecision) ? DecideLocalHostId(TracerHosts.cbegin()) : -2;
   }
 
   HBTInt nsub = 0;
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
-    if (Subhalos[subid].HostHaloId < 0 && Subhalos[subid].Particles.size()) // only move nonempty subhalos
+    if (Subhalos[subid].HostHaloId < 0) // Move all subhaloes
     {
       if (subid > nsub)
         Subhalos[nsub] = move(Subhalos[subid]); // there should be a default move assignement operator.
@@ -710,12 +719,23 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
     else
     {
       auto &central = Subhalos[Members[0]];
-      assert(central.Particles.size());
-      central.Particles.swap(Host.Particles); // reuse the halo particles
+
+      // Only test whether we have particles for previously-resolved subhaloes
+      if (central.IsAlive())
+        assert(central.Particles.size());
+
+      /* The subhalo now contains all the host particles. Those belonging to
+       * subhaloes will be masked during unbinding, if exclusive mass option is
+       * used. */
+      central.Particles.swap(Host.Particles);
       central.Nbound = central.Particles.size();
       bool tracerIndexSet = false;
+
       // Use the most bound tracer from the previous snapshot that remains
       // in the FOF group as the tracer. We need this information for the masking.
+
+      /* This is for resolved subhaloes. Automatically skipped if we are doing
+       * an orphan */
       for (HBTInt i = 0; i < Host.Particles.size(); i++)
       {
         if (tracerIndexSet)
@@ -734,10 +754,28 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
           }
         }
       }
-      if (!tracerIndexSet)
+
+      /* Orphans have no particles associated to them, and hence we need to
+       * handle them separately. We are guaranteed to find it, since we used it
+       * to find the host of the orphan. */
+      if (Host.Particles.size() == 0)
       {
-        throw runtime_error("No tracer particle from previous snapshot found in FOF");
+        auto mostbndid = central.MostBoundParticleId;
+        for (auto &p : central.Particles)
+        {
+          if (p.Id == mostbndid) // Swap previous tracer particle to the start
+          {
+            swap(p, central.Particles[0]);
+            central.SetTracerIndex(0);
+            tracerIndexSet = true;
+            break;
+          }
+        }
       }
+
+      // At this stage, we should have identified the tracer index.
+      if (!tracerIndexSet)
+        throw runtime_error("No tracer particle from previous snapshot found in FOF");
     }
   }
   //   #pragma omp single

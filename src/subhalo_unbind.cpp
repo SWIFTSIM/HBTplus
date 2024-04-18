@@ -281,6 +281,23 @@ inline void RefineBindingEnergyOrder(EnergySnapshot_t &ESnap, HBTInt Size, Gravi
 }
 void Subhalo_t::Unbind(const Snapshot_t &epoch)
 { // the reference frame (pos and vel) should already be initialized before unbinding.
+
+  /* We skip already existing orphans */
+  if (!Particles.size())
+  {
+    Nbound = Particles.size();
+    CountParticles(); // Should we remove?
+#ifdef SAVE_BINDING_ENERGY
+    Energies.clear();
+#endif
+    return;
+  }
+
+  /* We only expect (potentially) resolved subhaloes to make it here, or masked
+   * out subhaloes (which should have at least one tracer particle if everything
+   * is working correctly) */
+  assert(Particles.size() >= 1);
+
   HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
   bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
   HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
@@ -290,48 +307,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * prevents accessing entries beyond the corresponding particle array. */
   SetTracerIndex(0);
 
-  if (Particles.size() < HBTConfig.MinNumPartOfSub) // not enough src particles, can be due to masking
-  {
-    if (IsAlive())
-      SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
-  }
-
-  if (Particles.size() == 0)
-  {
-    Nbound = 0;
-    CountParticles();
-#ifdef SAVE_BINDING_ENERGY
-    Energies.clear();
-#endif
-    return;
-  }
-  if (Particles.size() == 1)
-  {
-    Nbound = 1;
-    CountParticles();
-#ifdef SAVE_BINDING_ENERGY
-    Energies.resize(1);
-    Energies[0] = 0.;
-#endif
-    return;
-  }
   HBTxyz OldRefPos, OldRefVel;
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
-
-  // Determine particle which will be used as the tracer if subhalo becomes unresolved.
-  // This is the most bound tracer type particle, or just the most bound if there are
-  // no tracers.
-  auto OldMostboundParticle = Particles[0];
-  for (HBTInt i = 0; i < Nbound; i += 1)
-  {
-    const auto &p = Particles[i];
-    if (p.IsTracer())
-    {
-      OldMostboundParticle = p;
-      break;
-    }
-  }
 
   GravityTree_t tree;
   tree.Reserve(Particles.size());
@@ -416,24 +394,24 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     }
 #endif
 
-    if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub)) // disruption
+    /* Object has disrupted */
+    if ((Nbound < HBTConfig.MinNumPartOfSub) || (Nbound_tracers < HBTConfig.MinNumTracerPartOfSub))
     {
-      Nbound = 1;
-      Nlast = 1;
+      /* Store when it disrupted. */
       if (IsAlive())
         SnapshotIndexOfDeath = epoch.GetSnapshotIndex();
-      for (auto &&p : Particles)
-      {
-        if (p.Id == OldMostboundParticle.Id)
-        {
-          swap(p, Particles[0]); // restore old most-bound to beginning
-          SetTracerIndex(0);     // update location of the tracer
-          break;
-        }
-      }
+
+      /* The most bound positions of the new orphan were found when updating
+       * every subhalo particles. Copy over to the comoving ones. For future
+       * outputs, we will rely on UpdateMostBoundPosition instead */
       copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
       copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
-      Mbound = Particles[0].Mass;
+
+      /* Do not allow the orphan to have any particles, so they can be subject to
+       * unbinding in their parent. The particle array will be updated after this
+       * subhalo has been done. */
+      Nbound = 0;
+
       break;
     }
     else
@@ -472,7 +450,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           Elist[i].pid = i; // update particle index in Elist as well.
         }
         Particles.swap(p);
-        // update mostbound coordinate
+
+        /* Update the most bound coordinate. Note that for resolved subhaloes,
+         * this is not necceserally a tracer particle. */
         copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
         copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
         break;
@@ -482,6 +462,12 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   ESnap.AverageKinematics(SpecificSelfPotentialEnergy, SpecificSelfKineticEnergy, SpecificAngularMomentum, Nbound,
                           RefPos, RefVel); // only use CoM frame when unbinding and calculating Kinematics
   CountParticleTypes();
+
+  /* At this stage we know the updated TracerIndex, so if we are bound we should
+   * update the most bound ID. */
+  if (IsAlive())
+    MostBoundParticleId = Particles[GetTracerIndex()].Id;
+
 #ifdef SAVE_BINDING_ENERGY
   Energies.resize(Nbound);
 #pragma omp paralle for if (Nbound > 100)
