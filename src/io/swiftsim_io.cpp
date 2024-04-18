@@ -1005,6 +1005,8 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
 
   ExchangeAndMerge(world, Halos);
 
+  global_timer.Tick("halo_comms", world.Communicator);
+  
   HBTConfig.GroupLoadedFullParticle = true;
 }
 
