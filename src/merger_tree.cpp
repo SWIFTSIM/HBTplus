@@ -7,7 +7,6 @@
 #include "subhalo.h"
 #include "locate_ids.h"
 #include "argsort.h"
-#include "reorder.h"
 
 
 void MergerTreeInfo::Clear() {
