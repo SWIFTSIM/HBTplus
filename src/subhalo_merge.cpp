@@ -309,27 +309,17 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
   host.Nbound += Nbound;
 #endif
 
-  /* To keep using a collisionless tracer after merging the respective subhalo,
-   * we need to place it at the beginning of the particle array. */
-  swap(Particles[0], Particles[GetTracerIndex()]);
-
-  // Update the location of the tracer
-  SetTracerIndex(0);
-
   /* We will copy the information required to save the orphan in this output.
    * For future outputs, we will rely on UpdateMostBoundPosition instead. We need
    * to do it here, since the MostBoundPosition and MostBoundVelocity of tracks
    * are based on the ACTUAL MOST BOUND PARTICLE. Orphans are based on the
    * MOST BOUND TRACER PARTICLE. */
-  copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
-  copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
+  Mbound = Particles[GetTracerIndex()].Mass;
+  MostBoundParticleId = Particles[GetTracerIndex()].Id;
+  copyHBTxyz(ComovingMostBoundPosition, Particles[GetTracerIndex()].ComovingPosition);
+  copyHBTxyz(PhysicalMostBoundVelocity, Particles[GetTracerIndex()].GetPhysicalVelocity());
   copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
   copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
-
-  Mbound = Particles[0].Mass;
-
-  /* Used to trace orphans without a Particle explicitly associated to them */
-  MostBoundParticleId = Particles[0].Id;
 
   /* Do not allow the orphan to have any particles, so they can be subject to
    * unbinding in their parent. The particle array will be updated after this
