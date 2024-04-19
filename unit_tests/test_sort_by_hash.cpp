@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
     }
   
     // Verify that offsets are correct
+    HBTInt nr_correct = 0;
     for(int i=0; i<comm_size; i+=1) {
       HBTInt start = offset[i];
       HBTInt end;
@@ -53,8 +54,11 @@ int main(int argc, char *argv[])
       for(HBTInt j=0; j<num; j+=1) {
         int dest = RankFromIdHash(Particle[start+j].Id, comm_size);
         verify(dest==i);
+        nr_correct += 1;
       }
     }
+    verify(nr_correct==N); // Should have checked every particle
+    
   }
   
   return 0;
