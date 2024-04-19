@@ -31,9 +31,9 @@ inline int AssignCell(HBTxyz &Pos, const HBTReal step[3], const vector<int> &dim
   return GRIDtoRank(GID(0), GID(1), GID(2));
 }
 
-void ParticleSnapshot_t::PartitionParticles(MpiWorker_t &world, vector<HBTInt> &offset)
+vector<HBTInt> ParticleSnapshot_t::PartitionParticles(MpiWorker_t &world)
 {
-  offset = sort_by_hash(Particles, world.size());
+  return sort_by_hash(Particles, world.size());
 }
 
 inline bool CompParticleId(const Particle_t &a, const Particle_t &b)
@@ -56,9 +56,9 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
     MPI_Allreduce(&np, &NumberOfParticlesOnAllNodes, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
   }
 
-  vector<HBTInt> SendOffsets(world.size() + 1), SendSizes(world.size(), 0);
-  PartitionParticles(world, SendOffsets);
-  SendOffsets.back() = Particles.size();
+  vector<HBTInt> SendOffsets = PartitionParticles(world);
+  SendOffsets.push_back(Particles.size());
+  vector<HBTInt> SendSizes(world.size(), 0);
   for (int i = 0; i < world.size(); i++)
     SendSizes[i] = SendOffsets[i + 1] - SendOffsets[i];
 
