@@ -14,7 +14,7 @@ template <typename Particle_t> std::vector<HBTInt> sort_by_hash(std::vector<Part
   // First we need to count the number of elements to send to each rank
   std::vector<HBTInt> count(comm_size, 0);
   for(HBTInt i=0; i<Particles.size(); i+=1) {
-    int dest = std::abs(HashInteger(Particles[i].Id)) % comm_size;
+    int dest = RankFromIdHash(Particles[i].Id, comm_size);
     count[dest] += 1;
   }
 
@@ -33,7 +33,7 @@ template <typename Particle_t> std::vector<HBTInt> sort_by_hash(std::vector<Part
   // Populate the output array in sorted order
   // TODO: can we parallelize this somehow?
   for(HBTInt i=0; i<Particles.size(); i+=1) {
-    int dest = std::abs(HashInteger(Particles[i].Id)) % comm_size;
+    int dest = RankFromIdHash(Particles[i].Id, comm_size);
     HBTInt j = offset[dest] + count[dest];
     SortedParticles[j] = Particles[i];
     count[dest] += 1;

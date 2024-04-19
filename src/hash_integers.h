@@ -24,3 +24,11 @@ inline HBTInt HashInteger(HBTInt x) {
 #endif
   return y;
 }
+
+
+/*
+  Function to assign particle ID to an MPI rank based on hashing the ID
+*/
+inline int RankFromIdHash(HBTInt Id, int comm_size) {
+  return std::abs(HashInteger(Id)) % comm_size;
+}

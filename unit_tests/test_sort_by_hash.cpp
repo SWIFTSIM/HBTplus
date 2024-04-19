@@ -34,9 +34,9 @@ int main(int argc, char *argv[])
     std::vector<HBTInt> offset = sort_by_hash(Particle, comm_size);
 
     // Verify that output is ordered correctly
-    for(HBTInt i=1; i<N; i+=1) {
-      int dest1 = std::abs(HashInteger(Particle[i-1].Id)) % comm_size;
-      int dest2 = std::abs(HashInteger(Particle[i].Id)) % comm_size;
+    for(HBTInt i=1; i<N; i+=1) {      
+      int dest1 = RankFromIdHash(Particle[i-1].Id, comm_size);
+      int dest2 = RankFromIdHash(Particle[i].Id, comm_size);
       verify(dest2 >= dest1);
     }
   
@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
       }
       HBTInt num = end - start;
       for(HBTInt j=0; j<num; j+=1) {
-        int dest = std::abs(HashInteger(Particle[start+j].Id)) % comm_size;
-      verify(dest==i);
+        int dest = RankFromIdHash(Particle[start+j].Id, comm_size);
+        verify(dest==i);
       }
     }
   }
