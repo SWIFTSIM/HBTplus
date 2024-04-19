@@ -67,6 +67,20 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
   vector<Particle_t> ReceivedParticles;
   ReceivedParticles.resize(CompileOffsets(ReceiveSizes, ReceiveOffsets));
 
+#ifndef NDEBUG
+  // Bounds check offsets and counts in debug mode
+  for(int rank=0; rank<world.size(); rank+=1) {
+    if(SendSizes[rank] > 0) {
+      assert(SendOffsets[rank] >= 0);
+      assert(SendOffsets[rank] + SendSizes[rank] <= Particles.size());
+    }
+    if(ReceiveSizes[rank] > 0) {
+      assert(ReceiveOffsets[rank] >= 0);
+      assert(ReceiveOffsets[rank] + ReceiveSizes[rank] <= ReceivedParticles.size());
+    }
+  }
+#endif
+  
   MPI_Datatype MPI_HBT_Particle;
   Particle_t().create_MPI_type(MPI_HBT_Particle);
 
