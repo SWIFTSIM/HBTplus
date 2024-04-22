@@ -97,13 +97,18 @@ int main(int argc, char **argv)
     // Don't need the particle data after this point, so save memory
     partsnap.ClearParticles();
 
+    /* We assign a FOF host to every pre-existing subhalo, and decide which ones
+     * are the centrals. Centrals get assigned all the particles in the FOF that
+     * do not belong to secondary subhaloes. All particles belonging to a 
+     * secondary subhalo are constrained to be within the FOF assigned to the
+     * subhalo they belong to. */
     timer.Tick(world.Communicator);
     subsnap.AssignHosts(world, halosnap, partsnap);
     subsnap.PrepareCentrals(world, halosnap);
 
     timer.Tick(world.Communicator);
     if (world.rank() == 0)
-      cout << "unbinding...\n";
+      cout << "Unbinding...\n";
     subsnap.RefineParticles();
 
     timer.Tick(world.Communicator);
