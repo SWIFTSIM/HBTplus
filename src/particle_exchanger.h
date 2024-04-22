@@ -198,8 +198,12 @@ void ParticleExchanger_t<Halo_T>::QueryParticles()
   snap.GetIndices(RoamParticles);
   for (auto &&p : RoamParticles)
   {
-    if (p.Id != SpecialConst::NullParticleId)
+    if (p.Id != SpecialConst::NullParticleId) {
       p = snap.Particles[p.Id]; // query the particle property; may need to spawn particles due to star formation here.
+    } else {
+      /* Not found, so it must NOT be a DM or star particle because they can't disappear */
+      assert((p.Type != TypeDM) && (p.Type != TypeStar));
+    }
   }
 
   ParticleExchangeComp::RestoreParticleOrder(RoamParticles);
