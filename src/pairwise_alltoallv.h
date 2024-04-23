@@ -11,7 +11,8 @@
 */
 template<typename T>
 int Pairwise_Alltoallv(const void *sendbuf, const T *sendcounts, const T *sdispls, MPI_Datatype sendtype,
-                       void *recvbuf, const T *recvcounts, const T *rdispls, MPI_Datatype recvtype, MPI_Comm comm)
+                       void *recvbuf, const T *recvcounts, const T *rdispls, MPI_Datatype recvtype,
+                       MPI_Comm comm, const size_t max_send_size = (1 << 30))
 {
 
   int comm_size;
@@ -43,7 +44,7 @@ int Pairwise_Alltoallv(const void *sendbuf, const T *sendcounts, const T *sdispl
 
       while (sendcount > 0 || recvcount > 0)
       {
-        size_t max_bytes = 1 << 30;
+        size_t max_bytes = max_send_size;
         size_t max_num_send = max_bytes / send_type_size;
         size_t max_num_recv = max_bytes / recv_type_size;
         size_t num_send = sendcount <= max_num_send ? sendcount : max_num_send;
@@ -79,10 +80,12 @@ int Pairwise_Alltoallv(const void *sendbuf, const T *sendcounts, const T *sdispl
 */
 template<typename T, typename U, typename V>
 int Pairwise_Alltoallv(const std::vector<U> &sendbuf, const std::vector<T> &sendcounts, const std::vector<T> &sdispls, MPI_Datatype sendtype,
-                       std::vector<V> &recvbuf, const std::vector<T> &recvcounts, const std::vector<T> &rdispls, MPI_Datatype recvtype, MPI_Comm comm)
+                       std::vector<V> &recvbuf, const std::vector<T> &recvcounts, const std::vector<T> &rdispls, MPI_Datatype recvtype,
+                       MPI_Comm comm, const size_t max_send_size = (1 << 30))
 {
   return Pairwise_Alltoallv(sendbuf.data(), sendcounts.data(), sdispls.data(), sendtype,
-                            recvbuf.data(), recvcounts.data(), rdispls.data(), recvtype, comm);
+                            recvbuf.data(), recvcounts.data(), rdispls.data(), recvtype,
+                            comm, max_send_size);
 }
 
 /*
@@ -117,7 +120,7 @@ void ExchangeCounts(const std::vector<T> &sendcounts, std::vector<T> &sdispls,
   rdispls[0] = 0;
   for(int i=1; i<comm_size; i+=1) {
     sdispls[i] = sdispls[i-1] + sendcounts[i-1];
-    rdispls[i] = rdispls[i-1] + recvcounts[i-1];    
+    rdispls[i] = rdispls[i-1] + recvcounts[i-1];
   }
 }
 
