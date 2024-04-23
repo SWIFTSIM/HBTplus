@@ -201,8 +201,13 @@ void ParticleExchanger_t<Halo_T>::QueryParticles()
     if (p.Id != SpecialConst::NullParticleId) {
       p = snap.Particles[p.Id]; // query the particle property; may need to spawn particles due to star formation here.
     } else {
-      /* Not found, so it must NOT be a DM or star particle because they can't disappear */
+#ifdef DM_ONLY
+      /* All DM particles should be found */
+      assert(false); // Assume p.Type=TypeDM since type is not stored explicitly
+#else
+      /* In hydro runs DM and star particles are not expected to disappear */
       assert((p.Type != TypeDM) && (p.Type != TypeStar));
+#endif
     }
   }
 
