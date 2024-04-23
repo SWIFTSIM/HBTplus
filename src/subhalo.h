@@ -125,6 +125,7 @@ public:
   void RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap);
   HBTReal KineticDistance(const Halo_t &halo, const Snapshot_t &epoch);
   void TruncateSource();
+  void RemoveOtherHostParticles(const HBTInt &GlobalHostHaloId);
   float GetMass() const
   {
     return Mbound; // accumulate(begin(MboundType), end(MboundType), (HBTReal)0.);
@@ -295,6 +296,7 @@ public:
   //   void ParticleIndexToId();
   void UpdateMostBoundPosition(MpiWorker_t &world, const ParticleSnapshot_t &part_snap);
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
+  void ConstrainToSingleHost(const HaloSnapshot_t &halo_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
