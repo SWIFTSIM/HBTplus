@@ -24,6 +24,7 @@ void create_Mpi_RemoteParticleType(MPI_Datatype &dtype)
     i++;                                                                                                               \
   }
   RegisterAttr(Id, MPI_HBT_INT, 1);
+  RegisterAttr(HostId, MPI_HBT_INT, 1);
   RegisterAttr(ComovingPosition, MPI_HBT_REAL, 3);
   RegisterAttr(PhysicalVelocity, MPI_HBT_VEL, 3);
   RegisterAttr(Mass, MPI_HBT_MASS, 1);
