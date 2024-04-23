@@ -129,7 +129,7 @@ void VectorAllToAll(MpiWorker_t &world, vector<vector<T>> &SendVecs, vector<vect
 template <class Particle_T, class InParticleIterator_T, class OutParticleIterator_T>
 void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleIterator,
                 const vector<HBTInt> &InParticleCount, vector<OutParticleIterator_T> OutParticleIterator,
-                MPI_Datatype MPI_Particle_T)
+                MPI_Datatype MPI_Particle_T, const HBTInt chunksize=1024*1024)
 /*break the task into smaller pieces to avoid message size overflow
  * allocate a temporary buffer of type Particle_T to copy from InParticleIterator, send around, and copy out to
  OutParticleIterator. InParticleIterator should point to data directly assignable to Particle_T. OutParticleIterator
@@ -137,7 +137,6 @@ void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleItera
  */
 {
   // determine loops
-  const HBTInt chunksize = 1024 * 1024;
   HBTInt InParticleSum = accumulate(InParticleCount.begin(), InParticleCount.end(), (HBTInt)0);
   HBTInt Nloop = InParticleSum / chunksize;
   if((InParticleSum % chunksize) != 0)Nloop += 1;
