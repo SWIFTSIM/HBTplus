@@ -174,7 +174,7 @@ void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleItera
                    world.Communicator);
 
     // Allocate receive buffer
-    HBTInt RecvCountTotal = std::accumulate(RecvParticleCounts.begin(), RecvParticleCounts.end(), 0);    
+    HBTInt RecvCountTotal = std::accumulate(RecvParticleCounts.begin(), RecvParticleCounts.end(), (HBTInt) 0);    
     RecvBuffer.resize(RecvCountTotal);
     
     // pack
