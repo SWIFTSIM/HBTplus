@@ -121,7 +121,7 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
     offset = 0
     local_incorrect_fof_count = 0
 
-    for i, (subhalo_trackid, subhalo_length) in enumerate(zip(data['TrackId'],data['Nsource'])):
+    for i, subhalo_length in enumerate(data['Nsource']):
 
         # Skip orphans
         if subhalo_length == 0:
@@ -141,9 +141,6 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
 
         offset += subhalo_length
     
-    if comm_rank == 0:
-        print("DONE")
-
     #===========================================================================
     # Compare our results to what HBT says they should be
     #===========================================================================
