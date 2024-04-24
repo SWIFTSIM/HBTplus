@@ -651,7 +651,9 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
 }
 
 /* Constrains subhaloes to only exist within a single host. This prevents
- * particles from belonging to more than duplications from occuring. */
+ * duplications from occuring as a result of this. For example, a particle 
+ * associated to a satellite subhalo that is in a different FOF, hence being 
+ * fed to its corresponding central. */
 void SubhaloSnapshot_t::ConstrainToSingleHost(const HaloSnapshot_t &halo_snap)
 {
   /* Remove particles assigned to a host different to the one assigned to the
