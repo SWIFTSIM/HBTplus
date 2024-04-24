@@ -101,7 +101,7 @@ int main(int argc, char **argv)
      * are the centrals. Centrals get assigned all the particles in the FOF that
      * do not belong to secondary subhaloes. All particles belonging to a
      * secondary subhalo are constrained to be within the FOF assigned to the
-     * subhalo they belong to. */
+     * subhalo they belong to. Constraint not applied if particles are fof-less.*/
     timer.Tick(world.Communicator);
     subsnap.AssignHosts(world, halosnap, partsnap);
     subsnap.PrepareCentrals(world, halosnap);
