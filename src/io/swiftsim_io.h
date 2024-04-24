@@ -31,7 +31,7 @@ struct SwiftSimHeader_t
   double mass_conversion;
   double velocity_conversion;
   double energy_conversion;
-  int NullGroupId;
+  HBTInt NullGroupId;
   double DM_comoving_softening;
   double DM_maximum_physical_softening;
   double baryon_comoving_softening;         // NOTE: currently being loaded but unused

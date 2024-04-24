@@ -52,7 +52,7 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(mass_conversion, MPI_DOUBLE, 1);
   RegisterAttr(velocity_conversion, MPI_DOUBLE, 1);
   RegisterAttr(energy_conversion, MPI_DOUBLE, 1);
-  RegisterAttr(NullGroupId, MPI_INTEGER, 1);
+  RegisterAttr(NullGroupId, MPI_HBT_INT, 1);
   RegisterAttr(DM_comoving_softening, MPI_DOUBLE, 1);
   RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
   RegisterAttr(baryon_comoving_softening, MPI_DOUBLE, 1);
@@ -163,7 +163,7 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   /* Read group ID used to indicate that a particle is in no FoF group */
   string buf;
   ReadAttribute(file, "Parameters", "FOF:group_id_default", buf);
-  Header.NullGroupId = std::stoi(buf);
+  Header.NullGroupId = (HBTInt)std::stoll(buf);
 
   /* Compute conversion from SWIFT's unit system to HBT's unit system (apart from any a factors) */
   Header.length_conversion = (length_cgs / (1.0e6 * parsec_cgs)) * Header.h / HBTConfig.LengthInMpch;
