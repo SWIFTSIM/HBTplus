@@ -100,6 +100,7 @@ set(HBT_SRC
   src/hdf_wrapper.cpp
   src/linkedlist_base.cpp
   src/linkedlist.cpp
+  src/merger_tree.cpp
   src/mpi_wrapper.cpp
   src/mymath.cpp
   src/particle_exchanger.cpp
@@ -118,7 +119,6 @@ set(HBT_SRC
   src/io/snapshot_io.cpp
   src/io/subhalo_io.cpp
   src/io/exchange_and_merge.cpp
-  src/pairwise_alltoallv.cpp
   )
 
 #
