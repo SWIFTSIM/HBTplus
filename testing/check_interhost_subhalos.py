@@ -99,7 +99,7 @@ def read_source_particles(filenames, nr_local_subhalos, nr_files):
     nr_files = comm.bcast(nr_files)
     subhalos_per_file = np.asarray(comm.bcast(subhalos_per_file), dtype=int)
     first_subhalo_in_file = np.cumsum(subhalos_per_file) - subhalos_per_file
-    print(subhalos_per_file)
+
     # Determine offset to first subhalo this rank reads
     first_local_subhalo = comm.scan(nr_local_subhalos) - nr_local_subhalos
 
