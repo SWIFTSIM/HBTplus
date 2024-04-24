@@ -1,5 +1,5 @@
 #!/bin/env python
-from tqdm import tqdm
+
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
@@ -12,14 +12,26 @@ import virgo.mpi.util
 import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 
-def sort_hbt_output(basedir, hbt_nr, snap_nr, snapshot_file):
+def check_consistency_orphan_tracers(basedir, hbt_nr):
 
     """
-    This reorganizes a set of HBT SubSnap files into a single file which
-    contains one HDF5 dataset for each subhalo property. Subhalos are written
-    in order of TrackId.
+    This checks if the particle IDs of orphan tracers remain the same between 
+    snapshots. The check excludes orphans that formed through mergers, since
+    they were found to be bound before merging, and hence the tracer id is 
+    expected to change.
 
-    Particle IDs in groups can be optionally copied to the output.
+    Parameters
+    ----------
+    basedir : str    
+        Location of the HBT catalogues.
+    hbt_nr : int
+        Snapshot index to take as a reference. Values will be checked against 
+        snapshot index + 1.
+    
+    Returns
+    -------
+    total_number_disagreements : int
+        Total number of orphans with incorrect tracer ids.
     """
 
     # Read in the input subhalos
@@ -105,6 +117,8 @@ def sort_hbt_output(basedir, hbt_nr, snap_nr, snapshot_file):
     if comm_rank == 0:
         print(f"{total_number_disagreements} out of {total_number_checks} orphans disagree.")                
 
+    return total_number_disagreements
+
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
@@ -112,9 +126,7 @@ if __name__ == "__main__":
     parser = MPIArgumentParser(comm, description="Reorganize HBTplus SubSnap outputs")
     parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
-    parser.add_argument("snap_nr", type=int, help="Index of the snapshot to process")
-    parser.add_argument("--snapshot-file", type=str, help="Format string for snapshot files (f-string using {snap_nr}, {file_nr})")
 
     args = parser.parse_args()
 
-    sort_hbt_output(**vars(args))
+    check_consistency_orphan_tracers(**vars(args))
