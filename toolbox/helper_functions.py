@@ -1,5 +1,5 @@
 #!/bin/env python
-from tqdm import tqdm
+
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
@@ -7,7 +7,6 @@ comm_size = comm.Get_size()
 
 import h5py
 import numpy as np
-
 import virgo.mpi.util
 import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
@@ -236,3 +235,48 @@ def read_source_particles(filenames, nr_local_subhalos, nr_files):
     
     # Need to return track ids, since the catalogues do not know Nsource
     return particle_ids, Nsource
+
+def rank_weight(rank):
+    '''
+    Function used to weigh the contribution of each particle towards a host FOF
+    decision, based on its boundness ranking.
+
+    Parameters
+    -----------
+    rank : np.ndarray
+        Boundness ranking of the particle, in the previous output..
+
+    Returns
+    -----------
+    np.ndarray
+        The weight of the particle used to score candidates.
+    '''
+    return 1 / (1 + np.sqrt(rank))
+
+def score_function(fof_groups):
+    '''
+    Score each candidate FOF based on several particles. Return the host with the
+    highest score.
+
+    Parameters
+    -----------
+    fof_groups : np.ndarray
+        The FOF group membership of a series of particles, previously sorted
+        descending boundness ranking order.
+
+    Returns
+    -----------
+    int
+        The highest scoring FOF candidate.
+    '''
+    weights = rank_weight(np.arange(len(fof_groups)))
+    
+    unique_candidates = np.unique(fof_groups)
+    scores = {}
+    for cand in unique_candidates:
+        scores[cand] = np.sum(weights[fof_groups == cand])
+
+    temp = max(scores.values())
+    result = [key for key in scores if scores[key] == temp][0] 
+    if result == 2147483647: result =-1 
+    return result
