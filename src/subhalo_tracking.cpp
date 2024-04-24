@@ -674,7 +674,7 @@ void Subhalo_t::RemoveOtherHostParticles(const HBTInt &GlobalHostHaloId)
    * subgroup. We use NullGroupId rather than -1, since the value is input 
    * dependent. */
   auto foreign_particles = std::remove_if(Particles.begin(), Particles.end(), [&](Particle_t const &particle) \
-  {return (particle.HostId != (GlobalHostHaloId)) && (particle.HostId != 2147483647); });
+  {return (particle.HostId != (GlobalHostHaloId)) && (particle.HostId != HBTConfig.ParticleGroupNullId); });
 
   /* Remove from vector */
   Particles.erase(foreign_particles, Particles.end());

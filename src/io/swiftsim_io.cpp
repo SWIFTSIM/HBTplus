@@ -689,6 +689,10 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   HBTConfig.TreeNodeResolution = HBTConfig.SofteningHalo * 0.1;
   HBTConfig.TreeNodeResolutionHalf = HBTConfig.TreeNodeResolution / 2.;
 
+  /* This will be used to determine which particles are hostless when 
+   * constraining subhaloes to their assigned hosts. */
+  HBTConfig.ParticleGroupNullId = Header.NullGroupId;
+
   // Decide how many particles this MPI rank will read
   HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt)0);
   HBTInt np_local = np_total / world.size();
