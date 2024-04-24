@@ -151,6 +151,7 @@ void MergerTreeInfo::FindDescendants(SubhaloList_t &Subhalos, MpiWorker_t world)
   {
     // Make a sorting index for the subhalos
     std::vector<HBTInt> subhalo_trackid;
+    subhalo_trackid.reserve(Subhalos.size());
     for(auto &sub : Subhalos)
       subhalo_trackid.push_back(sub.TrackId);
     std::vector<HBTInt> subhalo_order = argsort<HBTInt,HBTInt>(subhalo_trackid);
