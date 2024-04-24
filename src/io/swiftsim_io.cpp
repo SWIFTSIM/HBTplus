@@ -11,7 +11,7 @@ using namespace std;
 #include <sstream>
 #include <string>
 #include <typeinfo>
-
+#include <stdexcept>
 #include "../config_parser.h"
 #include "../hdf_wrapper.h"
 #include "../mymath.h"
@@ -163,7 +163,11 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   /* Read group ID used to indicate that a particle is in no FoF group */
   string buf;
   ReadAttribute(file, "Parameters", "FOF:group_id_default", buf);
-  Header.NullGroupId = (HBTInt)std::stoll(buf);
+  // Check if using HBTInt would not overflow value 
+  long long NullGroupId = std::stoll(buf);
+  if(NullGroupId > std::numeric_limits<HBTInt>::max())
+    throw std::overflow_error("The precision of HBTInt is insufficient to hold the value of NullGroupId");
+  Header.NullGroupId = (HBTInt)NullGroupId;
 
   /* Compute conversion from SWIFT's unit system to HBT's unit system (apart from any a factors) */
   Header.length_conversion = (length_cgs / (1.0e6 * parsec_cgs)) * Header.h / HBTConfig.LengthInMpch;
