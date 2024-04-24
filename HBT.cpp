@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 
     /* We assign a FOF host to every pre-existing subhalo, and decide which ones
      * are the centrals. Centrals get assigned all the particles in the FOF that
-     * do not belong to secondary subhaloes. All particles belonging to a 
+     * do not belong to secondary subhaloes. All particles belonging to a
      * secondary subhalo are constrained to be within the FOF assigned to the
      * subhalo they belong to. */
     timer.Tick(world.Communicator);

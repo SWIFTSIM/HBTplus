@@ -645,36 +645,37 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
 
   MemberTable.Build(halo_snap.Halos.size(), Subhalos, true);
 
-  /* We constrain particles to belong to FOF that hosts the subhalo they are 
+  /* We constrain particles to belong to FOF that hosts the subhalo they are
    * associated to. */
   ConstrainToSingleHost(halo_snap);
 }
 
-/* Constrains subhaloes to only exist within a single host. This prevents 
+/* Constrains subhaloes to only exist within a single host. This prevents
  * particles from belonging to more than duplications from occuring. */
 void SubhaloSnapshot_t::ConstrainToSingleHost(const HaloSnapshot_t &halo_snap)
 {
-  /* Remove particles assigned to a host different to the one assigned to the 
-   * subhalo. Need to pass entry from halo_snap.Halos, because HostHaloId in 
+  /* Remove particles assigned to a host different to the one assigned to the
+   * subhalo. Need to pass entry from halo_snap.Halos, because HostHaloId in
    * subhalos is local value, rather than global. */
 #pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
-      Subhalos[subid].RemoveOtherHostParticles(halo_snap.Halos[Subhalos[subid].HostHaloId].HaloId);
+    Subhalos[subid].RemoveOtherHostParticles(halo_snap.Halos[Subhalos[subid].HostHaloId].HaloId);
 }
 
-/* This will remove from the source of the current subhalo all particles that 
- * belong to a FOF different to the one formally assigned to it, unless the 
+/* This will remove from the source of the current subhalo all particles that
+ * belong to a FOF different to the one formally assigned to it, unless the
  * particle is hostless. We do not need to worry about orphans; they will always
- * be in the host of its tracer at this point. Centrals get applied this 
- * function (since current depth value is not reflective of hierarchy) but the 
+ * be in the host of its tracer at this point. Centrals get applied this
+ * function (since current depth value is not reflective of hierarchy) but the
  * particles get swapped with those of the FOF anyway. */
 void Subhalo_t::RemoveOtherHostParticles(const HBTInt &GlobalHostHaloId)
 {
-  /* Identify (FOF-hosted) particles not present in the one assigned to the 
-   * subgroup. We use NullGroupId rather than -1, since the value is input 
+  /* Identify (FOF-hosted) particles not present in the one assigned to the
+   * subgroup. We use NullGroupId rather than -1, since the value is input
    * dependent. */
-  auto foreign_particles = std::remove_if(Particles.begin(), Particles.end(), [&](Particle_t const &particle) \
-  {return (particle.HostId != (GlobalHostHaloId)) && (particle.HostId != HBTConfig.ParticleGroupNullId); });
+  auto foreign_particles = std::remove_if(Particles.begin(), Particles.end(), [&](Particle_t const &particle) {
+    return (particle.HostId != (GlobalHostHaloId)) && (particle.HostId != HBTConfig.ParticleGroupNullId);
+  });
 
   /* Remove from vector */
   Particles.erase(foreign_particles, Particles.end());

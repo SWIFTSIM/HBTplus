@@ -310,7 +310,8 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncReal(TreeNodeResolutionHalf);
   _SyncReal(BoxHalf);
 
-  _SyncAtom(ParticleGroupNullId, MPI_HBT_INT); // Sync here for consistency, but uninitialised until read from snapshots.
+  _SyncAtom(ParticleGroupNullId,
+            MPI_HBT_INT); // Sync here for consistency, but uninitialised until read from snapshots.
 
   _SyncBool(GroupLoadedFullParticle);
   _SyncAtom(TracerParticleBitMask, MPI_INT);

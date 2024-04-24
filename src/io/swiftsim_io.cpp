@@ -443,7 +443,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
           ParticlesToRead[offset + i].HostId = id[i];
       }
     }
-  
+
     // Advance to next particle type
     H5Gclose(particle_data);
     ParticlesToRead += read_count;
@@ -689,7 +689,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   HBTConfig.TreeNodeResolution = HBTConfig.SofteningHalo * 0.1;
   HBTConfig.TreeNodeResolutionHalf = HBTConfig.TreeNodeResolution / 2.;
 
-  /* This will be used to determine which particles are hostless when 
+  /* This will be used to determine which particles are hostless when
    * constraining subhaloes to their assigned hosts. */
   HBTConfig.ParticleGroupNullId = Header.NullGroupId;
 
