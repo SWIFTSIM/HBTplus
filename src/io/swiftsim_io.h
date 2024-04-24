@@ -40,12 +40,6 @@ struct SwiftSimHeader_t
 
 void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype);
 
-// Dummy struct at the moment. Remove in future if neccessary.
-struct SwiftParticleHost_t : public Particle_t
-{
-  // HBTInt HostId;
-};
-
 class SwiftSimReader_t
 {
   string SnapshotName;
@@ -57,7 +51,7 @@ class SwiftSimReader_t
   void ReadUnits(HBTReal &MassInMsunh, HBTReal &LengthInMpch, HBTReal &VelInKmS);
   HBTInt CompileFileOffsets(int nfiles);
   void ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count);
-  void ReadGroupParticles(int ifile, SwiftParticleHost_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
+  void ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
                           bool FlagReadParticleId);
   void GetFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);

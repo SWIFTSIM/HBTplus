@@ -451,7 +451,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
   H5Fclose(file);
 }
 
-void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *ParticlesInFile, HBTInt file_start,
+void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start,
                                           HBTInt file_count, bool FlagReadParticleId)
 {
   hid_t file = OpenFile(ifile);
@@ -811,7 +811,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
 #endif
 }
 
-inline bool CompParticleHost(const SwiftParticleHost_t &a, const SwiftParticleHost_t &b)
+inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
 {
   return a.HostId < b.HostId;
 }
@@ -856,7 +856,7 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
   assert(local_last_offset < np_total);
 
   // Allocate storage for the particles
-  vector<SwiftParticleHost_t> ParticleHosts;
+  vector<Particle_t> ParticleHosts;
   ParticleHosts.resize(np_local);
 
   bool FlagReadId = true; //! HBTConfig.GroupLoadedIndex;
