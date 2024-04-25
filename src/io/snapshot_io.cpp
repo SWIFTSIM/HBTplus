@@ -51,12 +51,12 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
 
   ExchangeParticles(world);
 
-  global_timer.Tick("snapshot_exchange", world.Communicator);
+  global_timer.Tick("snap_exchange", world.Communicator);
   
   if (fill_particle_hash)
     FillParticleHash();
 
-  global_timer.Tick("snapshot_hash", world.Communicator);
+  global_timer.Tick("snap_hash", world.Communicator);
   
   if (world.rank() == 0)
     cout << NumberOfParticlesOnAllNodes << " particles loaded at Snapshot " << snapshot_index << "(" << SnapshotId
