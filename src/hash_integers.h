@@ -10,7 +10,8 @@
   See https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
 */
 
-inline HBTInt HashInteger(HBTInt x) {
+inline HBTInt HashInteger(HBTInt x)
+{
 #ifdef HBT_INT8
   uint64_t y = x;
   y = (y ^ (y >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);

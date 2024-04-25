@@ -31,7 +31,7 @@ struct SwiftSimHeader_t
   double mass_conversion;
   double velocity_conversion;
   double energy_conversion;
-  int NullGroupId;
+  HBTInt NullGroupId;
   double DM_comoving_softening;
   double DM_maximum_physical_softening;
   double baryon_comoving_softening;         // NOTE: currently being loaded but unused
@@ -39,11 +39,6 @@ struct SwiftSimHeader_t
 };
 
 void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype);
-
-struct SwiftParticleHost_t : public Particle_t
-{
-  HBTInt HostId;
-};
 
 class SwiftSimReader_t
 {
@@ -56,7 +51,7 @@ class SwiftSimReader_t
   void ReadUnits(HBTReal &MassInMsunh, HBTReal &LengthInMpch, HBTReal &VelInKmS);
   HBTInt CompileFileOffsets(int nfiles);
   void ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count);
-  void ReadGroupParticles(int ifile, SwiftParticleHost_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
+  void ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
                           bool FlagReadParticleId);
   void GetFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);

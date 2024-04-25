@@ -247,8 +247,8 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
     }
   }
 
-  Pairwise_Alltoallv(Particles, SendSizes, SendOffsets, MPI_HBT_Particle, ReceivedParticles,
-                     ReceiveSizes, ReceiveOffsets, MPI_HBT_Particle, world.Communicator);
+  Pairwise_Alltoallv(Particles, SendSizes, SendOffsets, MPI_HBT_Particle, ReceivedParticles, ReceiveSizes,
+                     ReceiveOffsets, MPI_HBT_Particle, world.Communicator);
 
   MPI_Barrier(world.Communicator);
 
