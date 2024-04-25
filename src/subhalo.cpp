@@ -590,7 +590,8 @@ void Subhalo_t::CountParticles()
   Return the IDs of the N most bound tracer particles.
   Will return non-tracers if there are not enough tracers.
 */
-vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n) {
+vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n)
+{
 
   // Allocate the output vector
   std::vector<HBTInt> Ids(0);
@@ -598,18 +599,18 @@ vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n) {
 
   // Store IDs of tracers
   for (int pass_nr = 0; pass_nr < 2; pass_nr += 1)
+  {
+    for (HBTInt i = 0; i < Nbound; i++)
     {
-      for (HBTInt i = 0; i < Nbound; i++)
-        {
-          const int is_tracer = Particles[i].IsTracer();          
-          if ((is_tracer && (pass_nr == 0)) || ((!is_tracer) && (pass_nr == 1)))
-            Ids.push_back(Particles[i].Id);
-          if (Ids.size() == n)
-            break;
-        }
+      const int is_tracer = Particles[i].IsTracer();
+      if ((is_tracer && (pass_nr == 0)) || ((!is_tracer) && (pass_nr == 1)))
+        Ids.push_back(Particles[i].Id);
       if (Ids.size() == n)
         break;
     }
+    if (Ids.size() == n)
+      break;
+  }
 
   return Ids;
 }

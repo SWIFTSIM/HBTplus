@@ -163,9 +163,9 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   /* Read group ID used to indicate that a particle is in no FoF group */
   string buf;
   ReadAttribute(file, "Parameters", "FOF:group_id_default", buf);
-  // Check if using HBTInt would not overflow value 
+  // Check if using HBTInt would not overflow value
   long long NullGroupId = std::stoll(buf);
-  if(NullGroupId > std::numeric_limits<HBTInt>::max())
+  if (NullGroupId > std::numeric_limits<HBTInt>::max())
     throw std::overflow_error("The precision of HBTInt is insufficient to hold the value of NullGroupId");
   Header.NullGroupId = (HBTInt)NullGroupId;
 
@@ -455,8 +455,8 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
   H5Fclose(file);
 }
 
-void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start,
-                                          HBTInt file_count, bool FlagReadParticleId)
+void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start, HBTInt file_count,
+                                          bool FlagReadParticleId)
 {
   hid_t file = OpenFile(ifile);
   vector<int> np_this(TypeMax);
