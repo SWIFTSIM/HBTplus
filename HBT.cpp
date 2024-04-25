@@ -72,9 +72,13 @@ int main(int argc, char **argv)
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
   {
     timer.Tick(world.Communicator);
+
+    /* Load particle information */
     ParticleSnapshot_t partsnap;
     partsnap.Load(world, isnap);
     subsnap.SetSnapshotIndex(isnap);
+
+    /* Load FOF group information */
     HaloSnapshot_t halosnap;
     halosnap.Load(world, isnap);
 
@@ -93,13 +97,18 @@ int main(int argc, char **argv)
     // Don't need the particle data after this point, so save memory
     partsnap.ClearParticles();
 
+    /* We assign a FOF host to every pre-existing subhalo, and decide which ones
+     * are the centrals. Centrals get assigned all the particles in the FOF that
+     * do not belong to secondary subhaloes. All particles belonging to a
+     * secondary subhalo are constrained to be within the FOF assigned to the
+     * subhalo they belong to. Constraint not applied if particles are fof-less.*/
     timer.Tick(world.Communicator);
     subsnap.AssignHosts(world, halosnap, partsnap);
     subsnap.PrepareCentrals(world, halosnap);
 
     timer.Tick(world.Communicator);
     if (world.rank() == 0)
-      cout << "unbinding...\n";
+      cout << "Unbinding...\n";
     subsnap.RefineParticles();
 
     timer.Tick(world.Communicator);

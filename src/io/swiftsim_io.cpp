@@ -11,7 +11,7 @@ using namespace std;
 #include <sstream>
 #include <string>
 #include <typeinfo>
-
+#include <stdexcept>
 #include "../config_parser.h"
 #include "../hdf_wrapper.h"
 #include "../mymath.h"
@@ -52,7 +52,7 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(mass_conversion, MPI_DOUBLE, 1);
   RegisterAttr(velocity_conversion, MPI_DOUBLE, 1);
   RegisterAttr(energy_conversion, MPI_DOUBLE, 1);
-  RegisterAttr(NullGroupId, MPI_INTEGER, 1);
+  RegisterAttr(NullGroupId, MPI_HBT_INT, 1);
   RegisterAttr(DM_comoving_softening, MPI_DOUBLE, 1);
   RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
   RegisterAttr(baryon_comoving_softening, MPI_DOUBLE, 1);
@@ -163,7 +163,11 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   /* Read group ID used to indicate that a particle is in no FoF group */
   string buf;
   ReadAttribute(file, "Parameters", "FOF:group_id_default", buf);
-  Header.NullGroupId = std::stoi(buf);
+  // Check if using HBTInt would not overflow value 
+  long long NullGroupId = std::stoll(buf);
+  if(NullGroupId > std::numeric_limits<HBTInt>::max())
+    throw std::overflow_error("The precision of HBTInt is insufficient to hold the value of NullGroupId");
+  Header.NullGroupId = (HBTInt)NullGroupId;
 
   /* Compute conversion from SWIFT's unit system to HBT's unit system (apart from any a factors) */
   Header.length_conversion = (length_cgs / (1.0e6 * parsec_cgs)) * Header.h / HBTConfig.LengthInMpch;
@@ -430,6 +434,20 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
     }
 #endif
 
+    // Hostid
+    {
+      for (hsize_t offset = 0; offset < read_count; offset += chunksize)
+      {
+        hsize_t count = read_count - offset;
+        if (count > chunksize)
+          count = chunksize;
+        vector<HBTInt> id(count);
+        ReadPartialDataset(particle_data, "FOFGroupIDs", H5T_HBTInt, id.data(), offset + read_offset, count);
+        for (hsize_t i = 0; i < count; i += 1)
+          ParticlesToRead[offset + i].HostId = id[i];
+      }
+    }
+
     // Advance to next particle type
     H5Gclose(particle_data);
     ParticlesToRead += read_count;
@@ -437,7 +455,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
   H5Fclose(file);
 }
 
-void SwiftSimReader_t::ReadGroupParticles(int ifile, SwiftParticleHost_t *ParticlesInFile, HBTInt file_start,
+void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile, HBTInt file_start,
                                           HBTInt file_count, bool FlagReadParticleId)
 {
   hid_t file = OpenFile(ifile);
@@ -675,6 +693,10 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   HBTConfig.TreeNodeResolution = HBTConfig.SofteningHalo * 0.1;
   HBTConfig.TreeNodeResolutionHalf = HBTConfig.TreeNodeResolution / 2.;
 
+  /* This will be used to determine which particles are hostless when
+   * constraining subhaloes to their assigned hosts. */
+  HBTConfig.ParticleNullGroupId = Header.NullGroupId;
+
   // Decide how many particles this MPI rank will read
   HBTInt np_total = accumulate(np_file.begin(), np_file.end(), (HBTInt)0);
   HBTInt np_local = np_total / world.size();
@@ -793,7 +815,7 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
 #endif
 }
 
-inline bool CompParticleHost(const SwiftParticleHost_t &a, const SwiftParticleHost_t &b)
+inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
 {
   return a.HostId < b.HostId;
 }
@@ -838,7 +860,7 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
   assert(local_last_offset < np_total);
 
   // Allocate storage for the particles
-  vector<SwiftParticleHost_t> ParticleHosts;
+  vector<Particle_t> ParticleHosts;
   ParticleHosts.resize(np_local);
 
   bool FlagReadId = true; //! HBTConfig.GroupLoadedIndex;
