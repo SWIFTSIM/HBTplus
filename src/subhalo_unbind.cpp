@@ -286,7 +286,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   if (!Particles.size())
   {
     Nbound = Particles.size();
-    CountParticles(); // Should we remove?
+    CountParticles();
 #ifdef SAVE_BINDING_ENERGY
     Energies.clear();
 #endif

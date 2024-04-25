@@ -70,7 +70,7 @@ public:
   HBTReal TreeAllocFactor;
   HBTReal TreeNodeOpenAngle;
   HBTInt TreeMinNumOfCells;
-  HBTInt ParticleNullGroupId; // SWIFT reads this as an int, so we cannot overflow
+  HBTInt ParticleNullGroupId;
 
   HBTInt MaxSampleSizeOfPotentialEstimate;
   bool RefineMostboundParticle; // whether to further improve mostbound particle accuracy in case a
