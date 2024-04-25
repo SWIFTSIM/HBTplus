@@ -11,6 +11,8 @@ module purge
 module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
 module load rockport-settings
 
+set -e # Abort if a command exits with non-zero status
+
 echo
 echo "Running on hosts: $SLURM_NODELIST"
 echo "Running on $SLURM_NNODES nodes."
