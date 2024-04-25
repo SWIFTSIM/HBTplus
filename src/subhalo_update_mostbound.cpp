@@ -40,6 +40,9 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
       ZeroSizeSubhalo[nr_zero] = sub;
       ZeroSizeSubhalo[nr_zero].Particles.resize(1);
       ZeroSizeSubhalo[nr_zero].Particles[0] = Particle_t(sub.MostBoundParticleId);
+#ifndef NDEBUG
+      ZeroSizeSubhalo[nr_zero].Particles[0].Type = TypeMax; // Particle type is not known
+#endif
       nr_zero += 1;
     }
   }

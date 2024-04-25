@@ -205,7 +205,9 @@ void ParticleExchanger_t<Halo_T>::QueryParticles()
       /* All DM particles should be found */
       assert(false); // Assume p.Type=TypeDM since type is not stored explicitly
 #else
-      /* In hydro runs DM and star particles are not expected to disappear */
+      /* In hydro runs DM and star particles are not expected to disappear.
+         Type=TypeMax indicates that the type associated with the particle ID
+         is not known so we can't do the consistency check. */
       assert((p.Type != TypeDM) && (p.Type != TypeStar));
 #endif
     }
