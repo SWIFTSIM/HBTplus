@@ -93,7 +93,8 @@ public:
 
   // for merging
   HBTInt SinkTrackId;         // the trackId it sinked to, -1 if it hasn't sunk.
-  HBTInt DescendantTrackId;   // the trackId it merged with if it became unresolved without sinking
+  HBTInt DescendantTrackId;   // the trackId containing a subset of the particles most bound to this object in the
+                              // previous output
   HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
 
   ParticleList_t Particles;
