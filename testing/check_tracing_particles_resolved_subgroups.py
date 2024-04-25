@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
     
-    parser = MPIArgumentParser(comm, description="Reorganize HBTplus SubSnap outputs")
+    parser = MPIArgumentParser(comm, description="Check correctness of the FOF hosts assigned to resolved subgroups by HBT")
     parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
     parser.add_argument("snap_nr", type=int, help="Index of the snapshot to process")

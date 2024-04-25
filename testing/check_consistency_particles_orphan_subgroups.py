@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
     
-    parser = MPIArgumentParser(comm, description="Reorganize HBTplus SubSnap outputs")
+    parser = MPIArgumentParser(comm, description="Check that the tracer ID of orphans does not change across consecutive outputs.")
     parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
 
