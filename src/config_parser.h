@@ -43,6 +43,7 @@ public:
   int MinNumPartOfSub;
   int MinNumTracerPartOfSub;
   int NumTracerHostFinding;
+  int NumTracersForDescendants;
   long GroupParticleIdMask; // only used for a peculiar gadget format.
   HBTReal MassInMsunh;
   HBTReal LengthInMpch;
@@ -95,6 +96,7 @@ public:
     MinNumPartOfSub = 20;
     MinNumTracerPartOfSub = 10;
     NumTracerHostFinding = MinNumTracerPartOfSub;
+    NumTracersForDescendants = 10;
     GroupParticleIdMask = 0;
     MassInMsunh = 1e10;
     LengthInMpch = 1;

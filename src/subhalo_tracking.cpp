@@ -1259,5 +1259,9 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
   {
     Subhalos[i].CalculateProfileProperties(*this);
     Subhalos[i].CalculateShape();
+
+    for (int j = 0; j < 3; j++)
+      Subhalos[i].ComovingAveragePosition[j] =
+        position_modulus(Subhalos[i].ComovingAveragePosition[j], HBTConfig.BoxSize);
   }
 }

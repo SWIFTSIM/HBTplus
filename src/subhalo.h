@@ -93,6 +93,7 @@ public:
 
   // for merging
   HBTInt SinkTrackId;         // the trackId it sinked to, -1 if it hasn't sunk.
+  HBTInt DescendantTrackId;      // the trackId it merged with if it became unresolved without sinking
   HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
 
   ParticleList_t Particles;
@@ -118,6 +119,7 @@ public:
     SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
     SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;
+    DescendantTrackId = SpecialConst::NullTrackId;    
     MostBoundParticleId = SpecialConst::NullParticleId;
     TracerIndex = -1;
   }
@@ -182,6 +184,7 @@ public:
     }
 #endif
   }
+  vector<HBTInt> GetMostBoundTracerIds(HBTInt n);
 };
 
 class MemberShipTable_t
@@ -301,6 +304,7 @@ public:
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
   void MergeSubhalos();
+
   HBTInt size() const
   {
     return Subhalos.size();

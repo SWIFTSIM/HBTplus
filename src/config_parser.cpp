@@ -49,6 +49,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(MinNumPartOfSub);
   TrySetPar(MinNumTracerPartOfSub);
   TrySetPar(NumTracerHostFinding);
+  TrySetPar(NumTracersForDescendants);  
   TrySetPar(ParticleIdRankStyle);
   TrySetPar(ParticleIdNeedHash);
   TrySetPar(SnapshotIdUnsigned);
@@ -275,6 +276,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncAtom(MinNumPartOfSub, MPI_INT);
   _SyncAtom(MinNumTracerPartOfSub, MPI_INT);
   _SyncAtom(NumTracerHostFinding, MPI_INT);
+  _SyncAtom(NumTracersForDescendants, MPI_INT);  
   _SyncAtom(GroupParticleIdMask, MPI_LONG);
   _SyncReal(MassInMsunh);
   _SyncReal(LengthInMpch);
@@ -422,6 +424,7 @@ void Parameter_t::DumpParameters()
   DumpPar(MinNumPartOfSub);
   DumpPar(MinNumTracerPartOfSub);
   DumpPar(NumTracerHostFinding);
+  DumpPar(NumTracersForDescendants);  
   if (TracerParticleTypes.size())
   {
     version_file << "TracerParticleTypes";
