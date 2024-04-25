@@ -1145,31 +1145,16 @@ public:
     if (subhalo.SnapshotIndexOfBirth == SnapshotIndex)
       return; // skip newly created centrals
 
-    // If all tracers are removed during masking, we need to add one back
-    bool hasTracer = false;
-    // Save the most bound tracer from the previous snapshot so we can add it back
-    auto tracer = subhalo.Particles[subhalo.GetTracerIndex()];
     auto it_begin = subhalo.Particles.begin(), it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
     {
       auto insert_status = ExclusionList.insert(it->Id);
       if (insert_status.second) // inserted, meaning not excluded
       {
-        if (!hasTracer && it->IsTracer())
-        {
-          hasTracer = true;
-        }
         if (it != it_save)
           *it_save = move(*it);
         ++it_save;
       }
-    }
-    // If all tracers have been removed during masking, add back the most bound
-    if (!hasTracer)
-    {
-      assert(tracer.IsTracer());
-      *it_save = tracer;
-      ++it_save;
     }
     subhalo.Particles.resize(it_save - it_begin);
   }
