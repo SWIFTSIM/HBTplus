@@ -283,6 +283,25 @@ void SubhaloSnapshot_t::MergeRecursive(HBTInt subid)
   }
 }
 
+/* New method for doing merger checks within Unbind. */
+bool Subhalo_t::MergeRecursiveWithinUnbind()
+{
+  /* Iterate over all the subhaloes who share this subhalo in its hierarchy tree.
+   * NestedSubhalos */
+
+  /* If subhalo is not trapped already */
+
+    /* Compute phase-space distance with respect to subhalo that first called this 
+     * function (core velocity and position to be computed within unbind) */
+
+    /* Check sink distance. If sunk, update relevant entries in the subhalo. */
+    
+    /* If mergesubhalo option enabled, update the particle vectors and update 
+     * the boolean flag indicating whether to re-unbind the original object or
+     * not. */
+
+}
+
 /*
 struct ParticleHasher_t //to be passed as a template parameter to unordered_set
 {

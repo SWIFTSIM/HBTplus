@@ -505,6 +505,18 @@ void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
   /* Unbind the current subhalo */
   Unbind(snap);
 
+  /* Check if any of the subgroups deeper in this tree's hierarchy merge with it.
+   * We update the particle list and the entries of the merged subhaloes. */
+  // bool ExperiencedMerger = subhalo.MergeRecursiveWithinUnbind();
+
+  /* We need to subject the subhalo to unbinding once more, as it has accreted
+   * new particles as a result of mergers. */
+  // if(ExperiencedMerger)
+    // Unbind(snap);
+
+  /* We are now sure about which particles are bound to this subhalo, so we can
+   * safely pass the unbound ones to its parent and truncate the source.*/
+
   if (is_orphan)
     Particles.swap(particle_backup); // set to extended list, to feed to its host
 }

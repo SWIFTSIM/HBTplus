@@ -261,6 +261,7 @@ private:
   void FillDepthRecursive(HBTInt subid, int depth);
   void FillDepth();
   void MergeRecursive(HBTInt subid);
+  void MergeRecursiveWithinUnbind();
   void SetNestedParentIds();
 
 public:
