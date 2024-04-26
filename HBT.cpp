@@ -72,9 +72,13 @@ int main(int argc, char **argv)
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
   {
     timer.Tick(world.Communicator);
+
+    /* Load particle information */
     ParticleSnapshot_t partsnap;
     partsnap.Load(world, isnap);
     subsnap.SetSnapshotIndex(isnap);
+
+    /* Load FOF group information */
     HaloSnapshot_t halosnap;
     halosnap.Load(world, isnap);
 
@@ -93,29 +97,61 @@ int main(int argc, char **argv)
     partsnap.ClearParticles();
 
     timer.Tick(world.Communicator);
+
+    /* We assign a FOF host to every pre-existing subhalo. All particles belonging to a
+     * secondary subhalo are constrained to be within the FOF assigned to the
+     * subhalo they belong to. Constraint not applied if particles are fof-less.*/
     subsnap.AssignHosts(world, halosnap, partsnap);
+
+    /* Store the NumTracersForDescendants most bound particles of subhaloes
+     * resolved in the previous output. These will be used after unbinding to
+     * determine which subhalo has accreted them */
     MergerTreeInfo merger_tree;
     merger_tree.StoreTracerIds(subsnap.Subhalos, HBTConfig.NumTracersForDescendants);
+
+    /* We decide which subhaloes are the central of each FOF group. Centrals are
+     * assigned all the particles in the FOF that do not belong to secondary
+     * subhaloes. */
     subsnap.PrepareCentrals(world, halosnap);
 
     timer.Tick(world.Communicator);
+
+    /* We recursively unbind subhaloes in a depth-first approach, defined
+     * by hierarchical relationships. We also truncate the source of each
+     * subhalo based on its number of bound particles.  */
     if (world.rank() == 0)
-      cout << "unbinding...\n";
+      cout << "Unbinding...\n";
+
     subsnap.RefineParticles();
 
     timer.Tick(world.Communicator);
+
+    /* We check which subhaloes within the same structure hierarchy overlap in
+     * phase-space, and merge them if the option is enabled. If this occurs, the
+     * subhalo that accreted particles is subject to unbinding again. */
     subsnap.MergeSubhalos();
 
     timer.Tick(world.Communicator);
+
+    /* Assign a unique TrackId to newly created subgroups. Update depth values,
+     * hierarchical relationship, globalise FOF host values and compute other
+     * subhalo properties (e.g. Vmax) */
     subsnap.UpdateTracks(world, halosnap);
 
     timer.Tick(world.Communicator);
+
+    /* We locate where the tagged particles of previously bound subhaloes have
+     * ended up in. */
     merger_tree.FindDescendants(subsnap.Subhalos, world);
+
+    timer.Tick(world.Communicator);
+
+    /* Save */
     subsnap.Save(world);
 
     timer.Tick(world.Communicator);
 
-    /* Save measured timing information */
+    /* Output timing information */
     if (world.rank() == 0)
     {
       time_log << isnap << "\t" << subsnap.GetSnapshotId();

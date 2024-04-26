@@ -84,8 +84,11 @@ void ParticleSnapshot_t::ExchangeParticles(MpiWorker_t &world)
   MPI_Datatype MPI_HBT_Particle;
   Particle_t().create_MPI_type(MPI_HBT_Particle);
 
-  Pairwise_Alltoallv(Particles, SendSizes, SendOffsets, MPI_HBT_Particle, ReceivedParticles,
-                     ReceiveSizes, ReceiveOffsets, MPI_HBT_Particle, world.Communicator);
+  Pairwise_Alltoallv(Particles, SendSizes, SendOffsets, MPI_HBT_Particle, ReceivedParticles, ReceiveSizes,
+                     ReceiveOffsets, MPI_HBT_Particle, world.Communicator);
+
+  MPI_Barrier(world.Communicator);
+
   MPI_Type_free(&MPI_HBT_Particle);
 
   Particles.swap(ReceivedParticles);

@@ -43,6 +43,12 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
 #ifndef NDEBUG
       ZeroSizeSubhalo[nr_zero].Particles[0].Type = TypeMax; // Particle type is not known
 #endif
+      for (int j = 0; j < 3; j += 1)
+      {
+        /* Set default position and velocity for particles which no longer exist */
+        ZeroSizeSubhalo[nr_zero].Particles[0].ComovingPosition[j] = -1.0;
+        ZeroSizeSubhalo[nr_zero].Particles[0].PhysicalVelocity[j] = -1.0;
+      }
       nr_zero += 1;
     }
   }
@@ -61,8 +67,13 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
     if (sub.Particles.size() == 0)
     {
       Particle_t &p = ZeroSizeSubhalo[nr_zero].Particles[0];
-      copyXYZ(sub.ComovingMostBoundPosition, p.ComovingPosition);
-      copyXYZ(sub.PhysicalMostBoundVelocity, p.PhysicalVelocity);
+      if (p.Id != SpecialConst::NullParticleId)
+      {
+        copyXYZ(sub.ComovingMostBoundPosition, p.ComovingPosition);
+        copyXYZ(sub.PhysicalMostBoundVelocity, p.PhysicalVelocity);
+        copyXYZ(sub.ComovingAveragePosition, sub.ComovingMostBoundPosition);
+        copyXYZ(sub.PhysicalAverageVelocity, sub.PhysicalMostBoundVelocity);
+      }
       nr_zero += 1;
     }
   }
