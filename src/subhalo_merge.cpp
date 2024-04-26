@@ -288,6 +288,19 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
 {
   /* Initialise value */
   bool ExperiencedMerger = false;
+
+  /* Iterate over all the subhaloes who share this subhalo in its hierarchy 
+   * tree. */
+  for (HBTInt i = 0; i < NestedSubhalos.size(); i++)
+  {
+    /* One of the children of the current subhalo */
+    auto ChildIndex = NestedSubhalos[i];
+    auto &ChildSubhalo = Subhalos[ChildIndex];
+
+    /* Go further down the hierarchy if possible */
+    ExperiencedMerger = ChildSubhalo.MergeRecursiveWithinUnbind(Subhalos, snap, ParentSubhalo);
+  }
+
   return ExperiencedMerger;
 
   /* If subhalo is not trapped already */
