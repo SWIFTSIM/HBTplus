@@ -283,15 +283,22 @@ void SubhaloSnapshot_t::MergeRecursive(HBTInt subid)
   }
 }
 
-// TODO: Add relevant property calculation in Subhalo_t
-float SinkDistance(const Subhalo_t &cen, const Subhalo_t &sat)
+/* Computes distance in phase space between the current subhalo and a reference
+ * one. */
+float Subhalo_t::PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo)
 {
   // Uncommented as it will not compile due to missing properties, so returned
   // value is dummy for the time being.
-  // float d = PeriodicDistance(cen.ComovingPosition, sat.ComovingPosition);
-  // float v = Distance(cen.PhysicalVelocity, sat.PhysicalVelocity);
-  // return d / cen.ComovingSigmaR + v / cen.PhysicalSigmaV;
+  // float position_offset = PeriodicDistance(ReferenceSubhalo.ComovingPosition, ComovingPosition);
+  // float velocity_offset = Distance(ReferenceSubhalo.PhysicalVelocity, PhysicalVelocity);
+  // return position_offset / ReferenceSubhalo.ComovingSigmaR + velocity_offset / cen.PhysicalSigmaV;
   return 10; // This ensures no mergers occur.
+}
+
+/* Check if the current subhalo satisfies merger criterion with a reference one. */
+bool Subhalo_t::AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo)
+{
+  return PhaseSpaceDistance(ReferenceSubhalo) < DeltaCrit; 
 }
 
 /* New method for doing merger checks within Unbind. */
@@ -312,35 +319,28 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
     ExperiencedMerger = ChildSubhalo.MergeRecursiveWithinUnbind(Subhalos, snap, ReferenceSubhalo);
   }
 
-  /* Only analyse if the subhalo is not trapped already */
-  if(!IsTrapped())
+  /* Only analyse if the subhalo is not already trapped and overlaps with the 
+   * reference one. */
+  if(!IsTrapped() && AreOverlappingInPhaseSpace(ReferenceSubhalo))
   {
-    /* Compute phase-space distance with respect to subhalo that first called this 
-     * function (core velocity and position to be computed within unbind) */
-    float delta = SinkDistance(ReferenceSubhalo, *this);
+    /* Store when this occured */
+    SnapshotIndexOfSink = snap.GetSnapshotIndex();
 
-    /* They overlap in phase-space */
-    if (delta < DeltaCrit)
-    {    
-      /* Store when this occured */
-      SnapshotIndexOfSink = snap.GetSnapshotIndex();
+    /* Store which TrackId it merged with */
+    SinkTrackId = ReferenceSubhalo.TrackId; // TODO: are these local or global ids?
 
-      /* Store which TrackId it merged with */
-      SinkTrackId = ReferenceSubhalo.TrackId; // TODO: are these local or global ids?
+    /* Store its death output if this merger caused it. */
+    if(IsAlive())
+      SnapshotIndexOfDeath = snap.GetSnapshotIndex();
 
-      /* Store its death output if applicable. */
-      if(IsAlive())
-        SnapshotIndexOfDeath = snap.GetSnapshotIndex();
+    /* We will need to unbind the reference subhalo if this had bound particles
+     * it contributed. */
+    ExperiencedMerger = Nbound > 1;
 
-      /* We will need to unbind the reference subhalo if this had bound particles
-       * it contributed. */
-      ExperiencedMerger = Nbound > 1;
-
-      /* If mergesubhalo option enabled, update the particle vectors and update 
-       * the boolean flag indicating whether to re-unbind the original object or
-       * not. */
-      MergeTo(ReferenceSubhalo);
-    }
+    /* If mergesubhalo option enabled, update the particle vectors and update 
+      * the boolean flag indicating whether to re-unbind the original object or
+      * not. */
+    MergeTo(ReferenceSubhalo);
   }
 
   return ExperiencedMerger;
