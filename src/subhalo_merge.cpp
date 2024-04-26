@@ -343,6 +343,81 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
   return ExperiencedMerger;
 }
 
+/* Computes the mass-weighted position and velocity of a subset of the most bound
+ * particles, as well as the 1D dispersion of each quantity. */
+void Subhalo_t::GetCorePhaseSpaceProperties()
+{
+  /* Need to handle orphans differently, since they have no particles
+   * associated to them explicitly*/
+  if (Nbound == 0)
+  {
+    copyHBTxyz(CoreComovingPosition, ComovingMostBoundPosition);
+    copyHBTxyz(CorePhysicalVelocity, PhysicalMostBoundVelocity);
+    CoreComovingSigmaR = 0.;
+    CorePhysicalSigmaV = 0.;
+    return;
+  }
+
+  /* Initalize variables used to accumulate position, velocity, mass etc */
+  HBTInt NumPart = 0;
+  double msum = 0; 
+  vector<double> pos(3,0), pos2(3,0);
+  vector<double> vel(3,0), vel2(3,0);
+
+  // Might need to make two passes through the particles
+  for (int pass_nr = 0; pass_nr < 2; pass_nr += 1)
+  {
+    // Loop over particles in the subhalo
+    for (int i = 0; i < Nbound; i++)
+    {
+      const int is_tracer = Particles[i].IsTracer();
+
+      // First pass uses tracers only, whereas second pass uses non-tracers only
+      if ((is_tracer && (pass_nr == 0)) || (!is_tracer && (pass_nr == 1)))
+      {
+        NumPart += 1;
+        HBTReal m = Particles[i].Mass;
+        msum += m;
+
+        for(int dim = 0; dim < 3; dim++)
+        {
+          /* Handle position */
+          double dx = Particles[i].ComovingPosition[dim];
+          pos[dim] += m * dx;
+          pos2[dim] += m * dx * dx;
+          
+          /* Handle velocity */
+          double dv = Particles[i].PhysicalVelocity[dim];
+          vel[dim] += m * dv;
+          vel2[dim] += m * dv * dv;
+        }
+      }
+      if (NumPart == NumPartCoreMax)
+        break;
+      /* Next particle in subhalo */
+    }
+    if (NumPart == NumPartCoreMax)
+      break;
+    /* Next pass */
+  }
+
+  for(int dim = 0; dim < 3; dim++)
+  {
+    pos[dim] /= msum;
+    pos2[dim] /= msum;
+    CoreComovingPosition[dim] = pos[dim];
+    pos2[dim] -= pos[dim] * pos[dim];
+    
+    vel[dim]  /= msum;
+    vel2[dim]  /= msum;
+    CorePhysicalVelocity[dim] = vel[dim];
+    vel2[dim] -= vel[dim] * vel[dim];
+  }
+
+  CoreComovingSigmaR = sqrt(pos2[0] + pos2[1] + pos2[2]); 
+  CorePhysicalSigmaV = sqrt(vel2[0] + vel2[1] + vel2[2]);
+}
+
 /*
 struct ParticleHasher_t //to be passed as a template parameter to unordered_set
 {

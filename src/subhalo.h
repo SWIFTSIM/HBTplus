@@ -107,6 +107,7 @@ public:
   bool MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ReferenceSubhalo);
   bool AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo);
   float PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo);
+  void GetCorePhaseSpaceProperties();
 
   /* Properties relating to the new merging approach */
   HBTxyz CoreComovingPosition;
