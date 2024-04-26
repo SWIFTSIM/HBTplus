@@ -163,10 +163,12 @@ void ParticleExchanger_t<Halo_T>::SendParticles()
   LocalSizes.resize(world.size());
   LocalIterators.resize(world.size());
   int rank;
-  for(rank=0; rank<world.size(); rank++) {
+  for (rank = 0; rank < world.size(); rank++)
+  {
     LocalIterators[rank] = LocalParticles.begin() + offset[rank];
   }
-  for (rank = 0; rank < world.size() - 1; rank++) {
+  for (rank = 0; rank < world.size() - 1; rank++)
+  {
     LocalSizes[rank] = LocalIterators[rank + 1] - LocalIterators[rank];
   }
   LocalSizes[rank] = LocalParticles.end() - LocalIterators.back();
@@ -198,9 +200,12 @@ void ParticleExchanger_t<Halo_T>::QueryParticles()
   snap.GetIndices(RoamParticles);
   for (auto &&p : RoamParticles)
   {
-    if (p.Id != SpecialConst::NullParticleId) {
+    if (p.Id != SpecialConst::NullParticleId)
+    {
       p = snap.Particles[p.Id]; // query the particle property; may need to spawn particles due to star formation here.
-    } else {
+    }
+    else
+    {
 #ifdef DM_ONLY
       /* All DM particles should be found */
       assert(false); // Assume p.Type=TypeDM since type is not stored explicitly

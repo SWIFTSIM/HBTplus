@@ -8,22 +8,25 @@
 
 int main(int argc, char *argv[])
 {
-  
+
   // Set up repeatable RNG
   std::mt19937 rng;
   rng.seed(0);
 
-  for(int comm_size=1; comm_size<20; comm_size+=1) {
-  
+  for (int comm_size = 1; comm_size < 20; comm_size += 1)
+  {
+
     // Make an array of fake particles
-    typedef struct {
+    typedef struct
+    {
       HBTInt Id;
     } Particle_t;
     const HBTInt N = 100000;
     std::vector<Particle_t> Particle(N);
 
     // Assign IDs
-    for(HBTInt i=0; i<N; i+=1) {
+    for (HBTInt i = 0; i < N; i += 1)
+    {
       Particle[i].Id = i;
     }
 
@@ -34,32 +37,37 @@ int main(int argc, char *argv[])
     std::vector<HBTInt> offset = sort_by_hash(Particle, comm_size);
 
     // Verify that output is ordered correctly
-    for(HBTInt i=1; i<N; i+=1) {      
-      int dest1 = RankFromIdHash(Particle[i-1].Id, comm_size);
+    for (HBTInt i = 1; i < N; i += 1)
+    {
+      int dest1 = RankFromIdHash(Particle[i - 1].Id, comm_size);
       int dest2 = RankFromIdHash(Particle[i].Id, comm_size);
       verify(dest2 >= dest1);
     }
-  
+
     // Verify that offsets are correct
     HBTInt nr_correct = 0;
-    for(int i=0; i<comm_size; i+=1) {
+    for (int i = 0; i < comm_size; i += 1)
+    {
       HBTInt start = offset[i];
       HBTInt end;
-      if(i<comm_size-1) {
-        end = offset[i+1];
-      } else {
+      if (i < comm_size - 1)
+      {
+        end = offset[i + 1];
+      }
+      else
+      {
         end = N;
       }
       HBTInt num = end - start;
-      for(HBTInt j=0; j<num; j+=1) {
-        int dest = RankFromIdHash(Particle[start+j].Id, comm_size);
-        verify(dest==i);
+      for (HBTInt j = 0; j < num; j += 1)
+      {
+        int dest = RankFromIdHash(Particle[start + j].Id, comm_size);
+        verify(dest == i);
         nr_correct += 1;
       }
     }
-    verify(nr_correct==N); // Should have checked every particle
-    
+    verify(nr_correct == N); // Should have checked every particle
   }
-  
+
   return 0;
 }
