@@ -298,6 +298,20 @@ bool Subhalo_t::AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo)
   return PhaseSpaceDistance(ReferenceSubhalo) < PhaseSpaceDistanceThreshold; 
 }
 
+/* Store information about the merger that has just occured. */
+void Subhalo_t::SetMergerInformation(const int &ReferenceTrackId, const int &CurrentSnapshotIndex)
+{
+  /* Store when this occured */
+  SnapshotIndexOfSink = CurrentSnapshotIndex;
+  
+  /* Store which TrackId it merged with */
+  SinkTrackId = ReferenceTrackId; // TODO: are these local or global ids?
+
+  /* Store its death output if this merger caused it. */
+  if(IsAlive())
+    SnapshotIndexOfDeath = CurrentSnapshotIndex;
+}
+
 /* New method for doing merger checks within Unbind. */
 bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ReferenceSubhalo)
 {
@@ -316,26 +330,17 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
     ExperiencedMerger = ChildSubhalo.MergeRecursiveWithinUnbind(Subhalos, snap, ReferenceSubhalo);
   }
 
-  /* Only deal with subhalo if is not already trapped and overlaps with the 
-   * reference one. */
+  /* Only deal with present subhalo if is not already trapped and overlaps with 
+   * the reference one. */
   if(!IsTrapped() && AreOverlappingInPhaseSpace(ReferenceSubhalo))
   {
-    /* Store when this occured */
-    SnapshotIndexOfSink = snap.GetSnapshotIndex();
+    SetMergerInformation(ReferenceSubhalo.TrackId, snap.GetSnapshotIndex());
 
-    /* Store which TrackId it merged with */
-    SinkTrackId = ReferenceSubhalo.TrackId; // TODO: are these local or global ids?
-
-    /* Store its death output if this merger caused it. */
-    if(IsAlive())
-      SnapshotIndexOfDeath = snap.GetSnapshotIndex();
-
-    /* We will need to unbind the reference subhalo if this had bound particles
-     * it contributed. */
+    /* Flag if the subhalo was previously resolved, and hence the reference
+     * subhalo will accrete particles resulting from the merger. */
     ExperiencedMerger = Nbound > 1;
 
-    /* We pass the particles of the current subhalo to the subhalo it merged 
-     * with. */
+    /* If enabled, pass the particles to the reference subhalo we merged to. */
     if(HBTConfig.MergeTrappedSubhalos)
       MergeTo(ReferenceSubhalo);
   }

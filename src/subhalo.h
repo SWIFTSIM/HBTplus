@@ -108,6 +108,7 @@ public:
   bool AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo);
   float PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo);
   void GetCorePhaseSpaceProperties();
+  void SetMergerInformation(const int &ReferenceTrackId, const int &SnapshotIndex);
 
   /* Properties relating to the new merging approach */
   HBTxyz CoreComovingPosition;
