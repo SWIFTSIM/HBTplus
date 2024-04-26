@@ -319,7 +319,7 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
     ExperiencedMerger = ChildSubhalo.MergeRecursiveWithinUnbind(Subhalos, snap, ReferenceSubhalo);
   }
 
-  /* Only analyse if the subhalo is not already trapped and overlaps with the 
+  /* Only deal with subhalo if is not already trapped and overlaps with the 
    * reference one. */
   if(!IsTrapped() && AreOverlappingInPhaseSpace(ReferenceSubhalo))
   {
@@ -337,10 +337,10 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
      * it contributed. */
     ExperiencedMerger = Nbound > 1;
 
-    /* If mergesubhalo option enabled, update the particle vectors and update 
-      * the boolean flag indicating whether to re-unbind the original object or
-      * not. */
-    MergeTo(ReferenceSubhalo);
+    /* We pass the particles of the current subhalo to the subhalo it merged 
+     * with. */
+    if(HBTConfig.MergeTrappedSubhalos)
+      MergeTo(ReferenceSubhalo);
   }
 
   return ExperiencedMerger;
