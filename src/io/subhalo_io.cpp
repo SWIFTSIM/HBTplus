@@ -31,8 +31,10 @@ void SubhaloSnapshot_t::BuildHDFDataType()
 #endif
   H5Tclose(H5T_HBTIntArray_TypeMax);
   H5Tclose(H5T_FloatArray_TypeMax);
-
   InsertMember(TracerIndex, H5T_HBTInt);
+#ifdef CHECK_TRACER_INDEX
+  InsertMember(TracerId, H5T_HBTInt);
+#endif
   InsertMember(HostHaloId, H5T_HBTInt);
   InsertMember(Rank, H5T_HBTInt);
   InsertMember(Depth, H5T_NATIVE_INT);
@@ -80,6 +82,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(MostBoundParticleId, H5T_HBTInt);
 
   InsertMember(SinkTrackId, H5T_HBTInt);
+  InsertMember(DescendantTrackId, H5T_HBTInt);
   InsertMember(NestedParentTrackId, H5T_HBTInt);
 #undef InsertMember
   H5T_SubhaloInDisk = H5Tcopy(H5T_SubhaloInMem);
@@ -100,15 +103,6 @@ void SubhaloSnapshot_t::BuildHDFDataType()
 */
   H5Tclose(H5T_FloatVec3);
   H5Tclose(H5T_HBTxyz);
-}
-inline void Subhalo_t::DuplicateMostBoundParticleId()
-{
-  // Subhalos with no particles inherit their MostBoundID from their progenitor
-  // so all subhalos have a defined MostBoundID even if they contain zero particles.
-  if (Particles.size() > 0)
-  {
-    MostBoundParticleId = Particles[0].Id;
-  }
 }
 string SubhaloSnapshot_t::GetSubDir()
 {
@@ -432,7 +426,6 @@ void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
       offset += Subhalos[i].Particles.size();
       for (auto &&p : Subhalos[i].Particles)
         IdBuffer.push_back(p.Id);
-      Subhalos[i].DuplicateMostBoundParticleId(); // dump for galform
     }
   }
   writeHDFmatrix(file, vl.data(), "SubhaloParticles", ndim, dim_sub, H5T_HBTIntArr);
