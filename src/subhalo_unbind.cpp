@@ -287,6 +287,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   {
     Nbound = Particles.size();
     CountParticles();
+    GetCorePhaseSpaceProperties();
 #ifdef SAVE_BINDING_ENERGY
     Energies.clear();
 #endif
@@ -467,6 +468,8 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * update the most bound ID. */
   if (IsAlive())
     MostBoundParticleId = Particles[GetTracerIndex()].Id;
+
+  GetCorePhaseSpaceProperties();
 
 #ifdef SAVE_BINDING_ENERGY
   Energies.resize(Nbound);
