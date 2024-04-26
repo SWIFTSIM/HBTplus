@@ -108,6 +108,12 @@ public:
   bool AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo);
   float PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo);
 
+  /* Properties relating to the new merging approach */
+  HBTxyz CoreComovingPosition;
+  HBTxyz CorePhysicalVelocity;
+  float CoreComovingSigmaR;
+  float CorePhysicalSigmaV;
+
   Subhalo_t()
     : Nbound(0), Rank(0), Mbound(0), Depth(0)
 #ifndef DM_ONLY

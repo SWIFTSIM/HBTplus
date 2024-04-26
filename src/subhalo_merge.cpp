@@ -287,12 +287,9 @@ void SubhaloSnapshot_t::MergeRecursive(HBTInt subid)
  * one. */
 float Subhalo_t::PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo)
 {
-  // Uncommented as it will not compile due to missing properties, so returned
-  // value is dummy for the time being.
-  // float position_offset = PeriodicDistance(ReferenceSubhalo.ComovingPosition, ComovingPosition);
-  // float velocity_offset = Distance(ReferenceSubhalo.PhysicalVelocity, PhysicalVelocity);
-  // return position_offset / ReferenceSubhalo.ComovingSigmaR + velocity_offset / cen.PhysicalSigmaV;
-  return 10; // This ensures no mergers occur.
+  float position_offset = PeriodicDistance(ReferenceSubhalo.CoreComovingPosition, CoreComovingPosition);
+  float velocity_offset = Distance(ReferenceSubhalo.CorePhysicalVelocity, CorePhysicalVelocity);
+  return position_offset / ReferenceSubhalo.CoreComovingSigmaR + velocity_offset / ReferenceSubhalo.CorePhysicalSigmaV;
 }
 
 /* Check if the current subhalo satisfies merger criterion with a reference one. */
