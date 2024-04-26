@@ -103,7 +103,7 @@ public:
 #endif
   SubIdList_t NestedSubhalos; // list of sub-in-subs.
 
-  bool MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ParentSubhalo);
+  bool MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ReferenceSubhalo);
 
   Subhalo_t()
     : Nbound(0), Rank(0), Mbound(0), Depth(0)
