@@ -103,6 +103,8 @@ public:
 #endif
   SubIdList_t NestedSubhalos; // list of sub-in-subs.
 
+  bool MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ParentSubhalo);
+
   Subhalo_t()
     : Nbound(0), Rank(0), Mbound(0), Depth(0)
 #ifndef DM_ONLY
@@ -261,7 +263,6 @@ private:
   void FillDepthRecursive(HBTInt subid, int depth);
   void FillDepth();
   void MergeRecursive(HBTInt subid);
-  void MergeRecursiveWithinUnbind();
   void SetNestedParentIds();
 
 public:

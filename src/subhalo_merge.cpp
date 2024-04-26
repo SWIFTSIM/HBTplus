@@ -284,10 +284,11 @@ void SubhaloSnapshot_t::MergeRecursive(HBTInt subid)
 }
 
 /* New method for doing merger checks within Unbind. */
-bool Subhalo_t::MergeRecursiveWithinUnbind()
+bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ParentSubhalo)
 {
-  /* Iterate over all the subhaloes who share this subhalo in its hierarchy tree.
-   * NestedSubhalos */
+  /* Initialise value */
+  bool ExperiencedMerger = false;
+  return ExperiencedMerger;
 
   /* If subhalo is not trapped already */
 
