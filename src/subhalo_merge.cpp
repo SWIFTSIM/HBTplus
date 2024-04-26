@@ -9,7 +9,7 @@
 #include "subhalo.h"
 
 #define NumPartCoreMax 20
-#define DeltaCrit 2.
+#define PhaseSpaceDistanceThreshold 2.
 
 void SubHelper_t::BuildPosition(const Subhalo_t &sub)
 {
@@ -186,8 +186,8 @@ void DetectTraps(vector<Subhalo_t> &Subhalos, vector<SubHelper_t> &Helpers, int 
     {
       if (Subhalos[HostId].Nbound > 1) // avoid orphans or nulls as hosts
       {
-        float delta = SinkDistance(Helpers[i], Helpers[HostId]);
-        if (delta < DeltaCrit)
+        float PhaseSpaceDistance = SinkDistance(Helpers[i], Helpers[HostId]);
+        if (PhaseSpaceDistance < PhaseSpaceDistanceThreshold)
         {
           Subhalos[i].SinkTrackId =
             HostId; // these are local ids for the merging tracks. Those already merged ones retain their global ids.
@@ -298,7 +298,7 @@ float Subhalo_t::PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo)
 /* Check if the current subhalo satisfies merger criterion with a reference one. */
 bool Subhalo_t::AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo)
 {
-  return PhaseSpaceDistance(ReferenceSubhalo) < DeltaCrit; 
+  return PhaseSpaceDistance(ReferenceSubhalo) < PhaseSpaceDistanceThreshold; 
 }
 
 /* New method for doing merger checks within Unbind. */
