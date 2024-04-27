@@ -330,19 +330,22 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
     ExperiencedMerger = ChildSubhalo.MergeRecursiveWithinUnbind(Subhalos, snap, ReferenceSubhalo);
   }
 
-  /* Only deal with present subhalo if is not already trapped and overlaps with 
-   * the reference one. */
-  if(!IsTrapped() && AreOverlappingInPhaseSpace(ReferenceSubhalo))
+  /* Only deal with present subhalo if is not already trapped and it is not the 
+   * reference subhalo. */
+  if(!IsTrapped() && (this != &ReferenceSubhalo))
   {
-    SetMergerInformation(ReferenceSubhalo.TrackId, snap.GetSnapshotIndex());
+    if(AreOverlappingInPhaseSpace(ReferenceSubhalo))
+    {
+      SetMergerInformation(ReferenceSubhalo.TrackId, snap.GetSnapshotIndex());
 
-    /* Flag if the subhalo was previously resolved, and hence the reference
-     * subhalo will accrete particles resulting from the merger. */
-    ExperiencedMerger = Nbound > 1;
+      /* Flag if the subhalo was previously resolved, and hence the reference
+       * subhalo will accrete particles resulting from the merger. */
+      ExperiencedMerger = Nbound > 1;
 
-    /* If enabled, pass the particles to the reference subhalo we merged to. */
-    if(HBTConfig.MergeTrappedSubhalos)
-      MergeTo(ReferenceSubhalo);
+      /* If enabled, pass the particles to the reference subhalo we merged to. */
+      if(HBTConfig.MergeTrappedSubhalos)
+        MergeTo(ReferenceSubhalo);
+    }    
   }
 
   return ExperiencedMerger;
