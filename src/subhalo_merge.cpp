@@ -33,7 +33,7 @@ void Subhalo_t::SetMergerInformation(const int &ReferenceTrackId, const int &Cur
   SnapshotIndexOfSink = CurrentSnapshotIndex;
   
   /* Which TrackId it merged with */
-  SinkTrackId = ReferenceTrackId; // TODO: are these local or global ids?
+  SinkTrackId = ReferenceTrackId;
 
   /* Death time if this merger caused it. */
   if(IsAlive())
