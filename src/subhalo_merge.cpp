@@ -29,25 +29,27 @@ bool Subhalo_t::AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo)
 /* Store information about the merger that has just occured. */
 void Subhalo_t::SetMergerInformation(const int &ReferenceTrackId, const int &CurrentSnapshotIndex)
 {
-  /* Store when this occured */
+  /* When this occured */
   SnapshotIndexOfSink = CurrentSnapshotIndex;
   
-  /* Store which TrackId it merged with */
+  /* Which TrackId it merged with */
   SinkTrackId = ReferenceTrackId; // TODO: are these local or global ids?
 
-  /* Store its death output if this merger caused it. */
+  /* Death time if this merger caused it. */
   if(IsAlive())
     SnapshotIndexOfDeath = CurrentSnapshotIndex;
 }
 
-/* New method for doing merger checks within Unbind. */
+/* Recursively checks in a depth-first approach whether any of the subhaloes 
+ * contained within the hierarchical subtree of ReferenceSubhalo overlap in phase-
+ * space with it. If any resolved subhalo is found to be overlapping, we will
+ * unbind the ReferenceSubhalo once more. */
 bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ReferenceSubhalo)
 {
-  /* Initialise value */
   bool ExperiencedMerger = false;
 
-  /* Reproduce the previous behaviour, which is to not consider unbound subhaloes
-   * as eligible to accrete particles through a merger*/
+  /* Do not consider unbound subhaloes as eligible to accrete particles through 
+   * a merger*/
   if(ReferenceSubhalo.Nbound <= 1)
     return ExperiencedMerger;
 
@@ -85,7 +87,8 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
 }
 
 /* Computes the mass-weighted position and velocity of a subset of the most bound
- * particles, as well as the 1D dispersion of each quantity. */
+ * particles, as well as the 1D dispersion of each quantity. We first try using
+ * the tracer particles, but if they are insufficient in number, we use all types.*/
 void Subhalo_t::GetCorePhaseSpaceProperties()
 {
   /* Need to handle orphans differently, since they have no particles
