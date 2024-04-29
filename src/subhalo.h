@@ -4,6 +4,8 @@
 #include <iostream>
 #include <new>
 #include <vector>
+#include <cassert>
+#include <cstdlib>
 
 #include "datatypes.h"
 #include "halo.h"
@@ -34,6 +36,9 @@ public:
   float MboundType[TypeMax];
 #endif
   HBTInt TracerIndex; // Index of the most bound collisionless particle, used as tracer.
+#ifdef CHECK_TRACER_INDEX
+  HBTInt TracerId; // Id of the particle with index TracerIndex
+#endif
   HBTInt HostHaloId;
   HBTInt Rank; // 0 for central and field subs, >0 for satellites
   int Depth;   // depth of the subhalo: central=0, sub=1, sub-sub=2, ...
@@ -88,7 +93,8 @@ public:
 
   // for merging
   HBTInt SinkTrackId;         // the trackId it sinked to, -1 if it hasn't sunk.
-  HBTInt DescendantTrackId;      // the trackId it merged with if it became unresolved without sinking
+  HBTInt DescendantTrackId;   // the trackId containing a subset of the particles most bound to this object in the
+                              // previous output
   HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
 
   ParticleList_t Particles;
@@ -114,13 +120,15 @@ public:
     SnapshotIndexOfDeath = SpecialConst::NullSnapshotId;
     SnapshotIndexOfSink = SpecialConst::NullSnapshotId;
     SinkTrackId = SpecialConst::NullTrackId;
-    DescendantTrackId = SpecialConst::NullTrackId;    
+    DescendantTrackId = SpecialConst::NullTrackId;
     MostBoundParticleId = SpecialConst::NullParticleId;
+    TracerIndex = -1;
   }
   void Unbind(const Snapshot_t &epoch);
   void RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap);
   HBTReal KineticDistance(const Halo_t &halo, const Snapshot_t &epoch);
   void TruncateSource();
+  void RemoveOtherHostParticles(const HBTInt &GlobalHostHaloId);
   float GetMass() const
   {
     return Mbound; // accumulate(begin(MboundType), end(MboundType), (HBTReal)0.);
@@ -151,7 +159,32 @@ public:
   {
     return SnapshotIndexOfSink == currentsnapshotindex;
   }
-  void DuplicateMostBoundParticleId();
+  HBTInt GetTracerIndex()
+  {
+    assert(TracerIndex >= 0);
+    assert(TracerIndex < Particles.size());
+#ifdef CHECK_TRACER_INDEX
+    if (TracerId != Particles[TracerIndex].Id)
+    {
+      cerr << "Tracer particle ID is incorrect!" << endl;
+      abort();
+    }
+#endif
+    return TracerIndex;
+  }
+  void SetTracerIndex(const HBTInt index)
+  {
+    assert((index >= 0));
+    assert((index < Particles.size()) ||
+           ((Particles.size() == 0) && (index == 0))); // allow index=0 for halos with no particles
+    TracerIndex = index;
+#ifdef CHECK_TRACER_INDEX
+    if (Particles.size() > 0)
+    {
+      TracerId = Particles[index].Id;
+    }
+#endif
+  }
   vector<HBTInt> GetMostBoundTracerIds(HBTInt n);
 };
 
@@ -267,6 +300,7 @@ public:
   //   void ParticleIndexToId();
   void UpdateMostBoundPosition(MpiWorker_t &world, const ParticleSnapshot_t &part_snap);
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
+  void ConstrainToSingleHost(const HaloSnapshot_t &halo_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
