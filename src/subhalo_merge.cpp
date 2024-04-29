@@ -318,6 +318,11 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
   /* Initialise value */
   bool ExperiencedMerger = false;
 
+  /* Reproduce the previous behaviour, which is to not consider unbound subhaloes
+   * as eligible to accrete particles through a merger*/
+  if(ReferenceSubhalo.Nbound <= 1)
+    return ExperiencedMerger;
+
   /* Iterate over all the subhaloes who share this subhalo in its hierarchy 
    * tree. */
   for (HBTInt i = 0; i < NestedSubhalos.size(); i++)
