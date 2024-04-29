@@ -372,6 +372,12 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
   vector<double> pos(3,0), pos2(3,0);
   vector<double> vel(3,0), vel2(3,0);
 
+  // Use first particle as reference point for box wrap
+  vector<double> origin(3,0);
+  if (HBTConfig.PeriodicBoundaryOn)
+    for (int j = 0; j < 3; j++)
+      origin[j] = Particles[0].ComovingPosition[j];
+
   // Might need to make two passes through the particles
   for (int pass_nr = 0; pass_nr < 2; pass_nr += 1)
   {
@@ -389,8 +395,11 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
 
         for(int dim = 0; dim < 3; dim++)
         {
-          /* Handle position */
+          /* Handle position and PCB, if required */
           double dx = Particles[i].ComovingPosition[dim];
+          if (HBTConfig.PeriodicBoundaryOn)
+            dx = NEAREST(dx - origin[dim]);
+
           pos[dim] += m * dx;
           pos2[dim] += m * dx * dx;
           
@@ -414,6 +423,10 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
     pos[dim] /= msum;
     pos2[dim] /= msum;
     CoreComovingPosition[dim] = pos[dim];
+    
+    if (HBTConfig.PeriodicBoundaryOn)
+      CoreComovingPosition[dim] += origin[dim];
+
     pos2[dim] -= pos[dim] * pos[dim];
     
     vel[dim]  /= msum;
