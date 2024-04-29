@@ -104,7 +104,7 @@ public:
   SubIdList_t NestedSubhalos; // list of sub-in-subs.
 
   /* Methods relating to new merging approach */
-  bool MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ReferenceSubhalo);
+  bool MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ReferenceSubhalo);
   bool AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo);
   float PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo);
   void GetCorePhaseSpaceProperties();

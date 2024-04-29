@@ -511,7 +511,7 @@ void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
   /* Check if any of the subgroups deeper in this tree's hierarchy merge with it.
    * We update the particle list and the entries of the merged subhaloes if the
    * option is enabled. */
-  bool HasExperiencedMerger = MergeRecursiveWithinUnbind(Subhalos, snap, *this);
+  bool HasExperiencedMerger = MergeRecursively(Subhalos, snap, *this);
 
   /* We need to subject the subhalo to unbinding once more, as it has accreted
    * new particles as a result of mergers. */

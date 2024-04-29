@@ -44,7 +44,7 @@ void Subhalo_t::SetMergerInformation(const int &ReferenceTrackId, const int &Cur
  * contained within the hierarchical subtree of ReferenceSubhalo overlap in phase-
  * space with it. If any resolved subhalo is found to be overlapping, we will
  * unbind the ReferenceSubhalo once more. */
-bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ReferenceSubhalo)
+bool Subhalo_t::MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ReferenceSubhalo)
 {
   bool ExperiencedMerger = false;
 
@@ -62,7 +62,7 @@ bool Subhalo_t::MergeRecursiveWithinUnbind(SubhaloList_t &Subhalos, const Snapsh
     auto &ChildSubhalo = Subhalos[ChildIndex];
 
     /* Go further down the hierarchy if possible */
-    ExperiencedMerger = ChildSubhalo.MergeRecursiveWithinUnbind(Subhalos, snap, ReferenceSubhalo);
+    ExperiencedMerger = ChildSubhalo.MergeRecursively(Subhalos, snap, ReferenceSubhalo);
   }
 
   /* Only deal with present subhalo if is not already trapped and it is not the 
