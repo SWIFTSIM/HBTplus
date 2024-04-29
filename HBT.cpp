@@ -117,19 +117,14 @@ int main(int argc, char **argv)
     timer.Tick(world.Communicator);
 
     /* We recursively unbind subhaloes in a depth-first approach, defined
-     * by hierarchical relationships. We also truncate the source of each
+     * by hierarchical relationships. After unbinding a given object, we check
+     * wheteher any of its deeper subhaloes overlap in phase-space (if so, this
+     * triggers re-unbinding. We also truncate the source of each
      * subhalo based on its number of bound particles.  */
     if (world.rank() == 0)
       cout << "Unbinding...\n";
 
     subsnap.RefineParticles();
-
-    timer.Tick(world.Communicator);
-
-    /* We check which subhaloes within the same structure hierarchy overlap in
-     * phase-space, and merge them if the option is enabled. If this occurs, the
-     * subhalo that accreted particles is subject to unbinding again. */
-    subsnap.MergeSubhalos();
 
     timer.Tick(world.Communicator);
 

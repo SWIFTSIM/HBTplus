@@ -1131,39 +1131,6 @@ void SubhaloSnapshot_t::MaskSubhalos()
   }
 }
 
-void SubhaloSnapshot_t::GlueHeadNests()
-{
-#pragma omp single
-  RootNestSize.resize(MemberTable.SubGroups.size());
-#pragma omp for
-  for (HBTInt haloid = 0; haloid < RootNestSize.size(); haloid++)
-  { // restore nest to the state during unbinding
-    auto &subgroup = MemberTable.SubGroups[haloid];
-    if (subgroup.size() == 0)
-    {
-      RootNestSize[haloid] = 0;
-      continue;
-    }
-    auto &nests = Subhalos[subgroup[0]].NestedSubhalos;
-    RootNestSize[haloid] = nests.size(); // backup the original size
-    auto &heads = MemberTable.SubGroupsOfHeads[haloid];
-    nests.insert(nests.end(), heads.begin() + 1, heads.end());
-  }
-}
-
-void SubhaloSnapshot_t::UnglueHeadNests()
-{
-#pragma omp for
-  for (HBTInt haloid = 0; haloid < RootNestSize.size(); haloid++)
-  {
-    auto &subgroup = MemberTable.SubGroups[haloid];
-    if (subgroup.size())
-      Subhalos[subgroup[0]].NestedSubhalos.resize(RootNestSize[haloid]); // restore old satellite list
-  }
-#pragma omp single
-  RootNestSize.clear();
-}
-
 void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
 {
   /*renew ranks after unbinding*/

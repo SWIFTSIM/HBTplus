@@ -269,11 +269,8 @@ private:
   void NestSubhalos(MpiWorker_t &world);
   void MaskSubhalos();
   vector<int> RootNestSize; // buffer variable for temporary use.
-  void GlueHeadNests();
-  void UnglueHeadNests();
   void FillDepthRecursive(HBTInt subid, int depth);
   void FillDepth();
-  void MergeRecursive(HBTInt subid);
   void SetNestedParentIds();
 
 public:
@@ -317,7 +314,6 @@ public:
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
-  void MergeSubhalos();
 
   HBTInt size() const
   {
@@ -375,21 +371,6 @@ public:
   Index_t GetIndex(Index_t i) const
   {
     return i;
-  }
-};
-
-struct SubHelper_t
-{
-  HBTInt HostTrackId;
-  bool IsMerged;
-  HBTxyz ComovingPosition;
-  HBTxyz PhysicalVelocity;
-  float ComovingSigmaR;
-  float PhysicalSigmaV;
-  void BuildPosition(const Subhalo_t &sub);
-  void BuildVelocity(const Subhalo_t &sub);
-  SubHelper_t() : HostTrackId(-1), IsMerged(false)
-  {
   }
 };
 
