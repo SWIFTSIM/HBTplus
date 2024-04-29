@@ -280,3 +280,39 @@ def score_function(fof_groups):
     result = [key for key in scores if scores[key] == temp][0] 
     if result == 2147483647: result =-1 
     return result
+
+def match_single_track(original_catalogue_reader, new_catalogue_reader, original_TrackId):
+    '''
+    Identify the TrackId assigned to an object selected from an existing a 
+    HBT run in a new HBT catalogue. This should only be used for runs that use 
+    the same FOF catalogues and particle data.
+
+    Parameters
+    -----------
+    original_catalogue_reader : HBTReader instance
+        Initialised HBTReader of the catalogue where we identified the original
+        TrackId to match. 
+    new_catalogue_reader : HBTReader instance
+        Initialised HBTReader of the catalogue where we want to identify the 
+        new TrackId of the object.
+    original_TrackId: int
+        TrackId of the object in the original catalogue.
+ 
+    Returns
+    -----------
+    new_TrackId: int
+        TrackId of the object in the new catalogue.
+    '''
+    
+    # Get formation time of object
+    subs = original_catalogue_reader.LoadSubhalos(-1)
+    formation_snapshot  = subs['SnapshotIndexOfBirth'][subs['TrackId'] == original_TrackId]
+    
+    # Get FOF ID of where the object spawned 
+    subs = original_catalogue_reader.LoadSubhalos(formation_snapshot)
+    formation_host = subs['HostHaloId'][subs['TrackId'] == original_TrackId]
+
+    subs_new = new_catalogue_reader.LoadSubhalos(formation_snapshot)
+    new_track_id = subs_new['TrackId'][subs_new['HostHaloId'] == formation_host]
+
+    return new_track_id[0]
