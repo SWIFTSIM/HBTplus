@@ -119,7 +119,7 @@ int main(int argc, char **argv)
     /* We recursively unbind subhaloes in a depth-first approach, defined
      * by hierarchical relationships. After unbinding a given object, we check
      * wheteher any of its deeper subhaloes overlap in phase-space (if so, this
-     * triggers re-unbinding. We also truncate the source of each
+     * triggers re-unbinding). We also truncate the source of each
      * subhalo based on its number of bound particles.  */
     if (world.rank() == 0)
       cout << "Unbinding...\n";
