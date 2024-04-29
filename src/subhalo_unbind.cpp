@@ -515,7 +515,7 @@ void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 
   /* We need to subject the subhalo to unbinding once more, as it has accreted
    * new particles as a result of mergers. */
-  if(HBTConfig.MergeTrappedSubhalos && HasExperiencedMerger)
+  if (HBTConfig.MergeTrappedSubhalos && HasExperiencedMerger)
     Unbind(snap);
 
   /* We are now sure about which particles are bound to this subhalo, so we can

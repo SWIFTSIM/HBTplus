@@ -23,7 +23,7 @@ float Subhalo_t::PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo)
 /* Check if the current subhalo satisfies merger criterion with a reference one. */
 bool Subhalo_t::AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo)
 {
-  return PhaseSpaceDistance(ReferenceSubhalo) < PhaseSpaceDistanceThreshold; 
+  return PhaseSpaceDistance(ReferenceSubhalo) < PhaseSpaceDistanceThreshold;
 }
 
 /* Store information about the merger that has just occured. */
@@ -31,16 +31,16 @@ void Subhalo_t::SetMergerInformation(const int &ReferenceTrackId, const int &Cur
 {
   /* When this occured */
   SnapshotIndexOfSink = CurrentSnapshotIndex;
-  
+
   /* Which TrackId it merged with */
   SinkTrackId = ReferenceTrackId;
 
   /* Death time if this merger caused it. */
-  if(IsAlive())
+  if (IsAlive())
     SnapshotIndexOfDeath = CurrentSnapshotIndex;
 }
 
-/* Recursively checks in a depth-first approach whether any of the subhaloes 
+/* Recursively checks in a depth-first approach whether any of the subhaloes
  * contained within the hierarchical subtree of ReferenceSubhalo overlap in phase-
  * space with it. If any resolved subhalo is found to be overlapping, we will
  * unbind the ReferenceSubhalo once more. */
@@ -48,12 +48,12 @@ bool Subhalo_t::MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap
 {
   bool ExperiencedMerger = false;
 
-  /* Do not consider unbound subhaloes as eligible to accrete particles through 
+  /* Do not consider unbound subhaloes as eligible to accrete particles through
    * a merger*/
-  if(ReferenceSubhalo.Nbound <= 1)
+  if (ReferenceSubhalo.Nbound <= 1)
     return ExperiencedMerger;
 
-  /* Iterate over all the subhaloes who share this subhalo in its hierarchy 
+  /* Iterate over all the subhaloes who share this subhalo in its hierarchy
    * tree. */
   for (HBTInt i = 0; i < NestedSubhalos.size(); i++)
   {
@@ -65,11 +65,11 @@ bool Subhalo_t::MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap
     ExperiencedMerger = ChildSubhalo.MergeRecursively(Subhalos, snap, ReferenceSubhalo);
   }
 
-  /* Only deal with present subhalo if is not already trapped and it is not the 
+  /* Only deal with present subhalo if is not already trapped and it is not the
    * reference subhalo. */
-  if(!IsTrapped() && (this != &ReferenceSubhalo))
+  if (!IsTrapped() && (this != &ReferenceSubhalo))
   {
-    if(AreOverlappingInPhaseSpace(ReferenceSubhalo))
+    if (AreOverlappingInPhaseSpace(ReferenceSubhalo))
     {
       SetMergerInformation(ReferenceSubhalo.TrackId, snap.GetSnapshotIndex());
 
@@ -78,9 +78,9 @@ bool Subhalo_t::MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap
       ExperiencedMerger = Nbound > 1;
 
       /* If enabled, pass the particles to the reference subhalo we merged to. */
-      if(HBTConfig.MergeTrappedSubhalos)
+      if (HBTConfig.MergeTrappedSubhalos)
         MergeTo(ReferenceSubhalo);
-    }    
+    }
   }
 
   return ExperiencedMerger;
@@ -104,12 +104,12 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
 
   /* Initalize variables used to accumulate position, velocity, mass etc */
   HBTInt NumPart = 0;
-  double msum = 0; 
-  vector<double> pos(3,0), pos2(3,0);
-  vector<double> vel(3,0), vel2(3,0);
+  double msum = 0;
+  vector<double> pos(3, 0), pos2(3, 0);
+  vector<double> vel(3, 0), vel2(3, 0);
 
   // Use first particle as reference point for box wrap
-  vector<double> origin(3,0);
+  vector<double> origin(3, 0);
   if (HBTConfig.PeriodicBoundaryOn)
     for (int j = 0; j < 3; j++)
       origin[j] = Particles[0].ComovingPosition[j];
@@ -129,7 +129,7 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
         HBTReal m = Particles[i].Mass;
         msum += m;
 
-        for(int dim = 0; dim < 3; dim++)
+        for (int dim = 0; dim < 3; dim++)
         {
           /* Handle position and PCB, if required */
           double dx = Particles[i].ComovingPosition[dim];
@@ -138,7 +138,7 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
 
           pos[dim] += m * dx;
           pos2[dim] += m * dx * dx;
-          
+
           /* Handle velocity */
           double dv = Particles[i].PhysicalVelocity[dim];
           vel[dim] += m * dv;
@@ -154,24 +154,24 @@ void Subhalo_t::GetCorePhaseSpaceProperties()
     /* Next pass */
   }
 
-  for(int dim = 0; dim < 3; dim++)
+  for (int dim = 0; dim < 3; dim++)
   {
     pos[dim] /= msum;
     pos2[dim] /= msum;
     CoreComovingPosition[dim] = pos[dim];
-    
+
     if (HBTConfig.PeriodicBoundaryOn)
       CoreComovingPosition[dim] += origin[dim];
 
     pos2[dim] -= pos[dim] * pos[dim];
-    
-    vel[dim]  /= msum;
-    vel2[dim]  /= msum;
+
+    vel[dim] /= msum;
+    vel2[dim] /= msum;
     CorePhysicalVelocity[dim] = vel[dim];
     vel2[dim] -= vel[dim] * vel[dim];
   }
 
-  CoreComovingSigmaR = sqrt(pos2[0] + pos2[1] + pos2[2]); 
+  CoreComovingSigmaR = sqrt(pos2[0] + pos2[1] + pos2[2]);
   CorePhysicalSigmaV = sqrt(vel2[0] + vel2[1] + vel2[2]);
 }
 
