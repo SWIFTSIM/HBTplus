@@ -187,10 +187,6 @@ void DetectTraps(vector<Subhalo_t> &Subhalos, vector<SubHelper_t> &Helpers, int 
       if (Subhalos[HostId].Nbound > 1) // avoid orphans or nulls as hosts
       {
         float PhaseSpaceDistance = SinkDistance(Helpers[i], Helpers[HostId]);
-
-        float NewPhaseSpaceDistance = Subhalos[i].PhaseSpaceDistance(Subhalos[HostId]);
-        assert(PhaseSpaceDistance == NewPhaseSpaceDistance);
-
         if (PhaseSpaceDistance < PhaseSpaceDistanceThreshold)
         {
           Subhalos[i].SinkTrackId =
@@ -228,15 +224,6 @@ void FillCores(vector<SubHelper_t> &Helpers, const vector<Subhalo_t> &Subhalos)
   {
     Helpers[i].BuildPosition(Subhalos[i]);
     Helpers[i].BuildVelocity(Subhalos[i]);
-
-    /* Debuging purposes. Remove once we check calculations agree. */
-    for (int dim = 0; dim < 3; dim++)
-    {
-      assert(Helpers[i].ComovingPosition[dim] == Subhalos[i].CoreComovingPosition[dim]);
-      assert(Helpers[i].PhysicalVelocity[dim] == Subhalos[i].CorePhysicalVelocity[dim]);
-    }
-    assert(Helpers[i].ComovingSigmaR == Subhalos[i].CoreComovingSigmaR);
-    assert(Helpers[i].PhysicalSigmaV == Subhalos[i].CorePhysicalSigmaV);
   }
 }
 void FillHelpers(vector<SubHelper_t> &Helpers, const vector<Subhalo_t> &Subhalos)
