@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 
     halosnap.UpdateParticles(world, partsnap);
     global_timer.Tick("update_halo", world.Communicator);
-    
+
     subsnap.UpdateParticles(world, partsnap);
     subsnap.UpdateMostBoundPosition(world, partsnap);
     global_timer.Tick("update_subhalo", world.Communicator);
