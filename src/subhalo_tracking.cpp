@@ -672,12 +672,15 @@ void SubhaloSnapshot_t::ConstrainToSingleHost(const HaloSnapshot_t &halo_snap)
  * particles get swapped with those of the FOF anyway. */
 void Subhalo_t::RemoveOtherHostParticles(const HBTInt &GlobalHostHaloId)
 {
-  /* Identify (FOF-hosted) particles not present in the one assigned to the
-   * subgroup. We use NullGroupId rather than -1, since the value is input
-   * dependent. */
-  auto foreign_particles = std::remove_if(Particles.begin(), Particles.end(), [&](Particle_t const &particle) {
+  /* Criteria used to flag particles to remove. We use NullGroupId rather than -1,
+   * since the value is input dependent. */
+  auto CheckHostMembership = [&](Particle_t const &particle) {
     return (particle.HostId != (GlobalHostHaloId)) && (particle.HostId != HBTConfig.ParticleNullGroupId);
-  });
+  };
+
+  /* Identify (FOF-hosted) particles not present in the one assigned to the
+   * subgroup. */
+  auto foreign_particles = std::remove_if(Particles.begin(), Particles.end(), CheckHostMembership);
 
   /* Remove from vector */
   Particles.erase(foreign_particles, Particles.end());
