@@ -661,7 +661,12 @@ void SubhaloSnapshot_t::ConstrainToSingleHost(const HaloSnapshot_t &halo_snap)
    * subhalos is local value, rather than global. */
 #pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
-    Subhalos[subid].RemoveOtherHostParticles(halo_snap.Halos[Subhalos[subid].HostHaloId].HaloId);
+  {
+    /* Need to be careful with hostless haloes, as otherwise we try to access
+     * entry -1 */
+    HBTInt GlobalHostHaloId = (Subhalos[subid].HostHaloId == -1) ? HBTConfig.ParticleNullGroupId : halo_snap.Halos[Subhalos[subid].HostHaloId].HaloId;
+    Subhalos[subid].RemoveOtherHostParticles(GlobalHostHaloId);
+  }
 }
 
 /* This will remove from the source of the current subhalo all particles that
