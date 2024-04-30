@@ -105,10 +105,17 @@ int main(int argc, char **argv)
 
     /* Store the NumTracersForDescendants most bound particles of subhaloes
      * resolved in the previous output. These will be used after unbinding to
-     * determine which subhalo has accreted them */
+     * determine which subhalo has accreted them. Need to do here since 
+     * AssignHosts will mask out some particles, and hence change the Particle
+     * vector of subhaloes. */
     MergerTreeInfo merger_tree;
     merger_tree.StoreTracerIds(subsnap.Subhalos, HBTConfig.NumTracersForDescendants);
 
+    /* We constrain particles to belong to FOF that hosts the subhalo they are
+     * associated to. Need to do after StoringTracerIds, since this step can lead
+     * to the loss of some of the most bound tracer particles */
+    subsnap.ConstrainToSingleHost(halosnap);
+    
     /* We decide which subhaloes are the central of each FOF group. Centrals are
      * assigned all the particles in the FOF that do not belong to secondary
      * subhaloes. */

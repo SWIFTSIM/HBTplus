@@ -644,10 +644,6 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
   halo_snap.ClearParticleHash();
 
   MemberTable.Build(halo_snap.Halos.size(), Subhalos, true);
-
-  /* We constrain particles to belong to FOF that hosts the subhalo they are
-   * associated to. */
-  ConstrainToSingleHost(halo_snap);
 }
 
 /* Constrains subhaloes to only exist within a single host. This prevents
