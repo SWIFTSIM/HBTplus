@@ -612,5 +612,8 @@ vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n)
       break;
   }
 
+  /* We should have found sufficient tracers*/
+  assert(Ids.size() == n);
+
   return Ids;
 }
