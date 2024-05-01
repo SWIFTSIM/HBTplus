@@ -307,6 +307,11 @@ void SubhaloSnapshot_t::Save(MpiWorker_t &world)
 
   // Every rank should have executed the writing code exactly once
   assert(writes_done == 1);
+
+  /* Clean up the source of subhaloes from duplicate particles */
+  CleanTracks();
+  global_timer.Tick("clean_tracks", world.Communicator);
+
 }
 
 void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)

@@ -150,10 +150,6 @@ int main(int argc, char **argv)
     subsnap.Save(world);
     global_timer.Tick("write_subhalos", world.Communicator);
 
-    /* Clean up the source of subhaloes from duplicate particles */
-    subsnap.CleanTracks();
-    global_timer.Tick("clean_tracks", world.Communicator);
-
     /* Output timing information */
     if (world.rank() == 0)
     {
