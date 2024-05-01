@@ -57,7 +57,7 @@ public:
   float LastMaxVmaxPhysical;
   int SnapshotIndexOfLastMaxVmax; // the snapshot when it has the maximum Vmax, only considering past snapshots.
 
-  float REncloseComoving; // Radius of minimum sphere which contains all particles
+  float REncloseComoving; // Radius of minimum sphere which contains all bound particles
   float RHalfComoving;
 
   // SO properties using subhalo particles alone, meant for quick and dirty calculations
