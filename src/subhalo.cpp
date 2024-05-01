@@ -164,7 +164,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(VmaxPhysical, MPI_FLOAT, 1);
   RegisterAttr(LastMaxVmaxPhysical, MPI_FLOAT, 1);
   RegisterAttr(SnapshotIndexOfLastMaxVmax, MPI_INT, 1);
-  RegisterAttr(R2SigmaComoving, MPI_FLOAT, 1);
+  RegisterAttr(REncloseComoving, MPI_FLOAT, 1);
   RegisterAttr(RHalfComoving, MPI_FLOAT, 1);
   RegisterAttr(BoundR200CritComoving, MPI_FLOAT, 1);
   // RegisterAttr(R200MeanComoving, MPI_FLOAT, 1);
@@ -175,8 +175,6 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(SpecificSelfPotentialEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificSelfKineticEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificAngularMomentum[0], MPI_FLOAT, 3);
-// RegisterAttr(SpinPeebles[0], MPI_FLOAT, 3);
-// RegisterAttr(SpinBullock[0], MPI_FLOAT, 3);
 #ifdef HAS_GSL
   RegisterAttr(InertialEigenVector[0], MPI_FLOAT, 9);
   RegisterAttr(InertialEigenVectorWeighted[0], MPI_FLOAT, 9);
@@ -274,7 +272,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   HBTReal LastMaxVmax;
   HBTInt SnapshotIndexOfLastMaxVmax; //the snapshot when it has the maximum Vmax, only considering past snapshots.
 
-  HBTReal R2SigmaComoving;
+  HBTReal REncloseComoving;
   HBTReal RHalfComoving;
 
   HBTReal R200CritComoving;
@@ -288,7 +286,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   {
     RmaxComoving = 0.;
     VmaxPhysical = 0.;
-    R2SigmaComoving = 0.;
+    REncloseComoving = 0.;
     RHalfComoving = 0.;
     BoundR200CritComoving = 0.;
     // 	R200MeanComoving=0.;
@@ -296,13 +294,6 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
     BoundM200Crit = 0.;
     // 	M200Mean=0.;
     // 	MVir=0.;
-    /*
-    for(int i=0;i<3;i++)
-    {
-      SpinPeebles[i]=0.;
-      SpinBullock[i]=0.;
-    }
-    */
     return;
   }
   HBTReal VelocityUnit = PhysicalConst::G / epoch.Cosmology.ScaleFactor;
@@ -337,7 +328,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   RmaxComoving = maxprof->r;
   VmaxPhysical = sqrt(maxprof->v * VelocityUnit);
   RHalfComoving = prof[Nbound / 2].r;
-  R2SigmaComoving = prof[(HBTInt)(Nbound * 0.955)].r;
+  REncloseComoving = prof[Nbound-1].r;
 
   HBTReal virialF_tophat, virialF_b200, virialF_c200;
   epoch.HaloVirialFactors(virialF_tophat, virialF_b200, virialF_c200);
@@ -351,15 +342,6 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
     LastMaxVmaxPhysical = VmaxPhysical;
   }
 
-  /*the spin parameters are kind of ambiguous. do not provide*/
-  /*
-  for(int i=0;i<3;i++)
-  {
-    SpinPeebles[i]=SpecificAngularMomentum[i]*
-      sqrt(fabs(SpecificSelfPotentialEnergy+0.5*SpecificSelfKineticEnergy))/PhysicalConst::G/Mbound;
-    SpinBullock[i]=SpecificAngularMomentum[i]/sqrt(2.*PhysicalConst::G*Mbound*R2SigmaComoving);
-  }
-  */
 }
 
 void Subhalo_t::CalculateShape()
