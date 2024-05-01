@@ -1208,6 +1208,30 @@ void SubhaloSnapshot_t::MaskSubhalos()
   }
 }
 
+void SubhaloSnapshot_t::CleanTracks()
+{
+#pragma omp parallel for
+  for (HBTInt i = 0; i < MemberTable.SubGroups.size(); i++)
+  {    
+    auto &Group = MemberTable.SubGroups[i];
+    if (Group.size() == 0)
+      continue;
+
+    auto &central = Subhalos[Group[0]];
+    auto &nest = central.NestedSubhalos;
+    auto old_membercount = nest.size();
+    auto &heads = MemberTable.SubGroupsOfHeads[i];
+    // update central member list (append other heads except itself)
+    nest.insert(nest.end(), heads.begin() + 1, heads.end());
+    
+    /* We might run out of memory, since central.Particles.size now only refers to
+     * the bound component of the central, rather than total FOF. */
+    SubhaloMasker_t Masker(central.Particles.size() * 1.2);
+    Masker.MaskTopBottom(Group[0], Subhalos);
+    nest.resize(old_membercount);
+  }
+}
+
 void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)
 {
   /*renew ranks after unbinding*/
