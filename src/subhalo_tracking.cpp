@@ -1156,6 +1156,9 @@ public:
      * bound to it, hence we should have found a sufficient number. */
     assert(tracer_counter == HBTConfig.MinNumTracerPartOfSub);
     
+    /* Update TracerIndex value */
+    subhalo.SetTracerIndex(0); 
+
     /* We go deeper in the hierarchy*/
     // TODO: check whether the hierarchical pointers  are valid at this stage.
     for (auto nestedid :
