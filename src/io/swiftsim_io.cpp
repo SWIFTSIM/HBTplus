@@ -425,6 +425,10 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
         for (hsize_t i = 0; i < count; i += 1)
           ParticlesToRead[offset + i].InternalEnergy = u[i] * Header.energy_conversion * pow(Header.ScaleFactor, aexp);
       }
+    } else {
+      // Zero out internal energy for non-gas particles
+      for (hsize_t offset = 0; offset < read_count; offset += 1)
+        ParticlesToRead[offset].InternalEnergy = 0.0;
     }
 #endif
     { // type
