@@ -767,6 +767,8 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   // Every rank should have executed the reading code exactly once
   assert(reads_done == 1);
 
+  global_timer.Tick("snap_io", world.Communicator);
+
   // #define SNAPSHOT_IO_TEST
 #ifdef SNAPSHOT_IO_TEST
   // For testing: dump the snapshot to a new set of files
@@ -913,6 +915,8 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
   // Every rank should have executed the reading code exactly once
   assert(reads_done == 1);
 
+  global_timer.Tick("halo_io", world.Communicator);
+
   // #define HALO_IO_TEST
 #ifdef HALO_IO_TEST
   //
@@ -1021,6 +1025,8 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
   VectorFree(ParticleHosts);
 
   ExchangeAndMerge(world, Halos);
+
+  global_timer.Tick("halo_comms", world.Communicator);
 
   HBTConfig.GroupLoadedFullParticle = true;
 }
