@@ -1118,7 +1118,7 @@ public:
 
   /* This routine masks particles by giving priority to subhaloes shallower
    * in the hierarchy. */
-  void MaskTopBottom(HBTInt subid, vector<Subhalo_t> &Subhalos)
+  void MaskTopBottom(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
   {
     /* We perform the masking first */
     auto &subhalo = Subhalos[subid];
@@ -1159,12 +1159,11 @@ public:
     /* Update TracerIndex value */
     subhalo.SetTracerIndex(0); 
 
-    /* We go deeper in the hierarchy*/
-    // TODO: check whether the hierarchical pointers  are valid at this stage.
+    /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
     for (auto nestedid :
          subhalo
            .NestedSubhalos)
-      MaskTopBottom(nestedid, Subhalos);
+      MaskTopBottom(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
 
     /* At this point, we have navigated towards the bottom of the hierarchy.
      * Start masking bottom up. The iterators start after the last tracer we 
@@ -1210,26 +1209,24 @@ void SubhaloSnapshot_t::MaskSubhalos()
 
 void SubhaloSnapshot_t::CleanTracks()
 {
-#pragma omp parallel for
-  for (HBTInt i = 0; i < MemberTable.SubGroups.size(); i++)
-  {    
-    auto &Group = MemberTable.SubGroups[i];
-
+  /* Create correspondence between TrackId and index in Subhalo array */
+  TrackKeyList_t Ids(*this);
+  MappedIndexTable_t<HBTInt, HBTInt> TrackHash;
+  TrackHash.Fill(Ids, SpecialConst::NullTrackId);
+  
+  /* Iterate over all FOF groups in the present rank. */
+  #pragma omp parallel for
+  for (HBTInt grpid = 0; grpid < MemberTable.SubGroups.size(); grpid++)
+  {
+    auto &Group = MemberTable.SubGroups[grpid];
     if (Group.size() <= 1)
       continue;
 
+    /* We need to use the TrackHash here, since the subids have been converted 
+     * to the global values. */
     auto &central = Subhalos[Group[0]];
-    auto &nest = central.NestedSubhalos;
-    auto old_membercount = nest.size();
-    auto &heads = MemberTable.SubGroupsOfHeads[i];
-    // update central member list (append other heads except itself)
-    nest.insert(nest.end(), heads.begin() + 1, heads.end());
-    
-    /* We might run out of memory, since central.Particles.size now only refers to
-     * the bound component of the central, rather than total FOF. */
     SubhaloMasker_t Masker(central.Particles.size() * 1.2);
-    Masker.MaskTopBottom(Group[0], Subhalos);
-    nest.resize(old_membercount);
+    Masker.MaskTopBottom(Group[0], Subhalos, TrackHash);
   }
 }
 
