@@ -1162,8 +1162,27 @@ public:
          subhalo
            .NestedSubhalos)
       MaskTopBottom(nestedid, Subhalos);
-  }
 
+    /* At this point, we have navigated towards the bottom of the hierarchy.
+     * Start masking bottom up. The iterators start after the last tracer we 
+     * shifted is. */
+    auto it_begin = subhalo.Particles.begin() + tracer_counter, it_save = it_begin + tracer_counter;
+    for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
+    {
+      auto insert_status = ExclusionList.insert(it->Id);
+      if (insert_status.second) // inserted, meaning not excluded
+      {
+        if (it != it_save)
+          *it_save = move(*it);
+        ++it_save;
+      }
+    }
+
+    /* Resize to achieve a clean source subhalo, i.e. no duplicate IDs across 
+     * subhaloes in the same FOF. This will prevent duplicates if the subhaloes
+     * diverge in the next output*/
+    subhalo.Particles.resize(it_save - subhalo.Particles.begin());
+  }
 };
 
 void SubhaloSnapshot_t::MaskSubhalos()
