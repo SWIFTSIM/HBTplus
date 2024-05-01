@@ -1154,7 +1154,8 @@ public:
 
     /* Each resolved subhalo should contain at least this number of tracers 
      * bound to it, hence we should have found a sufficient number. */
-    assert(tracer_counter == HBTConfig.MinNumTracerPartOfSub);
+    if(subhalo.Nbound > 0)
+      assert(tracer_counter == HBTConfig.MinNumTracerPartOfSub);
     
     /* Update TracerIndex value */
     subhalo.SetTracerIndex(0); 
