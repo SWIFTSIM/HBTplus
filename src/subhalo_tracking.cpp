@@ -1185,6 +1185,7 @@ public:
      * subhaloes in the same FOF. This will prevent duplicates if the subhaloes
      * diverge in the next output*/
     subhalo.Particles.resize(it_save - subhalo.Particles.begin());
+    subhalo.Nbound = subhalo.Particles.size(); // NOTE: Nbound no longer refers to number of bound particles
   }
 };
 
