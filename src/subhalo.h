@@ -57,7 +57,7 @@ public:
   float LastMaxVmaxPhysical;
   int SnapshotIndexOfLastMaxVmax; // the snapshot when it has the maximum Vmax, only considering past snapshots.
 
-  float R2SigmaComoving; // 95.5% containment radius, close to tidal radius?
+  float REncloseComoving; // Radius of minimum sphere which contains all particles
   float RHalfComoving;
 
   // SO properties using subhalo particles alone, meant for quick and dirty calculations
@@ -74,8 +74,6 @@ public:
                                      // counting of mutual potential.
   float SpecificSelfKineticEnergy;   //<0.5*v^2>
   float SpecificAngularMomentum[3];  //<Rphysical x Vphysical>
-  //   float SpinPeebles[3];
-  //   float SpinBullock[3];
 
   // shapes
 #ifdef HAS_GSL

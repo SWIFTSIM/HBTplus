@@ -48,7 +48,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(VmaxPhysical, H5T_NATIVE_FLOAT);
   InsertMember(LastMaxVmaxPhysical, H5T_NATIVE_FLOAT);
   InsertMember(SnapshotIndexOfLastMaxVmax, H5T_NATIVE_INT);
-  InsertMember(R2SigmaComoving, H5T_NATIVE_FLOAT);
+  InsertMember(REncloseComoving, H5T_NATIVE_FLOAT);
   InsertMember(RHalfComoving, H5T_NATIVE_FLOAT);
   InsertMember(BoundR200CritComoving, H5T_NATIVE_FLOAT);
   //   InsertMember(R200MeanComoving, H5T_NATIVE_FLOAT);
@@ -59,8 +59,6 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(SpecificSelfPotentialEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificSelfKineticEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificAngularMomentum, H5T_FloatVec3);
-//   InsertMember(SpinPeebles, H5T_FloatVec3);
-//   InsertMember(SpinBullock, H5T_FloatVec3);
 #ifdef HAS_GSL
   dims[0] = 3;
   dims[1] = 3;
