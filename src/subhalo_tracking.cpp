@@ -1086,6 +1086,8 @@ public:
   {
     ExclusionList.reserve(np_guess);
   }
+  /* This routine masks particles by giving preference to subhaloes deeper in
+   * the hierarchy. */
   void Mask(HBTInt subid, vector<Subhalo_t> &Subhalos, int SnapshotIndex)
   {
     auto &subhalo = Subhalos[subid];
@@ -1113,6 +1115,55 @@ public:
     }
     subhalo.Particles.resize(it_save - it_begin);
   }
+
+  /* This routine masks particles by giving priority to subhaloes shallower
+   * in the hierarchy. */
+  void MaskTopBottom(HBTInt subid, vector<Subhalo_t> &Subhalos)
+  {
+    /* We perform the masking first */
+    auto &subhalo = Subhalos[subid];
+    
+    /* To keep track of how many tracers we have encountered so far. */
+    HBTInt tracer_counter = 0;
+
+    for (HBTInt i = 0; i < subhalo.Particles.size(); i++)
+    {
+      /* We have now ensured to keep the required number of most bound subset of 
+       * tracers for this subhalo. */
+      if(tracer_counter == HBTConfig.MinNumTracerPartOfSub)
+        break;
+      
+      /* Only mask tracers */
+      if(subhalo.Particles[i].IsTracer())
+      {
+        /* We insert in the exclusion list so that more deeply nested subhaloes
+         * do not remove this tracer when masking from bottom to top. */
+        auto insert_status = ExclusionList.insert(subhalo.Particles[i].Id);
+        
+        /* We should have only just one bound unique tracer within the FOF level,
+         * so we should not fail the insertion. */
+        assert(insert_status.second == true);
+
+        /* Since we do not change the size of subhalo particles at this stage, 
+         * we move forward the tracers, so we know how many to skip in the bottom
+         * to top masking step. */
+        std::swap(subhalo.Particles[i], subhalo.Particles[tracer_counter++]); 
+      }
+
+    }
+
+    /* Each resolved subhalo should contain at least this number of tracers 
+     * bound to it, hence we should have found a sufficient number. */
+    assert(tracer_counter == HBTConfig.MinNumTracerPartOfSub);
+    
+    /* We go deeper in the hierarchy*/
+    // TODO: check whether the hierarchical pointers  are valid at this stage.
+    for (auto nestedid :
+         subhalo
+           .NestedSubhalos)
+      MaskTopBottom(nestedid, Subhalos);
+  }
+
 };
 
 void SubhaloSnapshot_t::MaskSubhalos()
