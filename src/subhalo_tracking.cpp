@@ -1214,7 +1214,8 @@ void SubhaloSnapshot_t::CleanTracks()
   for (HBTInt i = 0; i < MemberTable.SubGroups.size(); i++)
   {    
     auto &Group = MemberTable.SubGroups[i];
-    if (Group.size() == 0)
+
+    if (Group.size() <= 1)
       continue;
 
     auto &central = Subhalos[Group[0]];
