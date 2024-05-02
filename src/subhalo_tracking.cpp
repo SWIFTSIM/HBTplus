@@ -1208,6 +1208,9 @@ public:
      * subhaloes in the same FOF. This will prevent duplicates if the subhaloes
      * diverge in the next output*/
     subhalo.Particles.resize(it_save - subhalo.Particles.begin());
+
+    /* This is being updated for consistency, but having an updated Nbound is 
+     * not a requirement within the code until after Unbinding the next output. */
     subhalo.Nbound -= NboundChange;
   }
 };
