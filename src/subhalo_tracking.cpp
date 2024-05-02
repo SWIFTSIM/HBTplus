@@ -1157,13 +1157,17 @@ public:
       assert(tracer_counter == HBTConfig.MinNumTracerPartOfSub);
     
     /* Update TracerIndex value */
-    subhalo.SetTracerIndex(0); 
+    subhalo.SetTracerIndex(0);
 
     /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
     for (auto nestedid :
          subhalo
            .NestedSubhalos)
       MaskTopBottom(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
+
+    /* To update the value of Nbound after masking. Not needed in the top-bottom
+     * masking since by construction we will find the tracers as bound particles. */
+    HBTInt NboundChange = 0; 
 
     /* At this point, we have navigated towards the bottom of the hierarchy.
      * Start masking bottom up. The iterators start after the last tracer we 
@@ -1178,13 +1182,16 @@ public:
           *it_save = move(*it);
         ++it_save;
       }
+      /* Bound particle excluded; we will need to update Nbound. */
+      else if((it - it_begin) < subhalo.Nbound)
+        NboundChange++;
     }
 
     /* Resize to achieve a clean source subhalo, i.e. no duplicate IDs across 
      * subhaloes in the same FOF. This will prevent duplicates if the subhaloes
      * diverge in the next output*/
     subhalo.Particles.resize(it_save - subhalo.Particles.begin());
-    subhalo.Nbound = subhalo.Particles.size(); // NOTE: Nbound no longer refers to number of bound particles
+    subhalo.Nbound -= NboundChange;
   }
 };
 
@@ -1216,7 +1223,7 @@ void SubhaloSnapshot_t::CleanTracks()
   TrackHash.Fill(Ids, SpecialConst::NullTrackId);
   
   /* Iterate over all FOF groups in the present rank. */
-  #pragma omp parallel for
+#pragma omp parallel for
   for (HBTInt grpid = 0; grpid < MemberTable.SubGroups.size(); grpid++)
   {
     auto &Group = MemberTable.SubGroups[grpid];
