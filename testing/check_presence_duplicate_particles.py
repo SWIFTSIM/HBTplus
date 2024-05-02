@@ -95,6 +95,7 @@ def check_duplicate_particles(basedir, hbt_nr):
 
     # order = np.arange(1, len)
     next_particle_ids = psort.fetch_elements(particle_ids, element_to_retrieve, comm=comm)
+    next_particle_track_ids = psort.fetch_elements(particle_trackids, element_to_retrieve, comm=comm)
 
     #===========================================================================
     # Check for duplicates across all ranks
@@ -102,16 +103,17 @@ def check_duplicate_particles(basedir, hbt_nr):
     local_number_duplicates = (next_particle_ids == particle_ids).sum()
     total_number_duplicates = comm.allreduce(local_number_duplicates)
     total_number_particles  = comm.allreduce(nr_local_particles)
-    
+
     if comm_rank == 0:
         print(f"{total_number_duplicates} particles out of {total_number_particles} are duplicate.") 
-    
+
     # Retrieve the subhalos that share particles, if any
     if total_number_duplicates != 0:
         # Number of unique subhalos that share particles
-        subhalos_with_shared_particles = gather_array.allgather_array(particle_trackids[next_particle_ids == particle_ids], comm=comm)
-        number_unique_subhalos_with_duplicate_particles = len(np.unique(subhalos_with_shared_particles))
-
+        local_subhaloes_with_shared_particles = np.hstack([particle_trackids[next_particle_ids == particle_ids],next_particle_track_ids[next_particle_ids == particle_ids]])
+        subhalos_with_shared_particles = gather_array.allgather_array(local_subhaloes_with_shared_particles, comm=comm)
+        unique_subhaloes = np.unique(subhalos_with_shared_particles)
+        number_unique_subhalos_with_duplicate_particles = len(unique_subhaloes)
         # Number of subhalos we tested 
         global_number_subhalos = comm.allreduce(local_nr_subhalos)
         
