@@ -258,8 +258,14 @@ private:
   void BuildHDFDataType();
   void BuildMPIDataType();
   void PurgeMostBoundParticles();
+
+  /* I/O methods */
   void ReadFile(int iFile, const SubReaderDepth_t depth);
-  void WriteFile(int iFile, int nfiles, HBTInt NumSubsAll);
+  void WriteBoundFiles(MpiWorker_t &world, const int &number_ranks_writing);
+  void WriteSourceFiles(MpiWorker_t &world, const int &number_ranks_writing);
+  void WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsAll);
+  void WriteSourceSubfile(int iFile, int nfiles);
+
   void LevelUpDetachedSubhalos();
   void ExtendCentralNest();
   void LocalizeNestedIds(MpiWorker_t &world);
