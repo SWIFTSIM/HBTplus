@@ -296,8 +296,6 @@ void SubhaloSnapshot_t::Save(MpiWorker_t &world)
 
   /* Particles associated to each subhalo. Used for debugging and restarting. */
   WriteSourceFiles(world, nr_writing);
-
-  global_timer.Tick("clean_tracks", world.Communicator);
 }
 
 void SubhaloSnapshot_t::WriteBoundFiles(MpiWorker_t &world, const int &number_ranks_writing)
