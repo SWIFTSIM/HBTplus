@@ -660,7 +660,8 @@ void SubhaloSnapshot_t::ConstrainToSingleHost(const HaloSnapshot_t &halo_snap)
   {
     /* Need to be careful with hostless haloes, as otherwise we try to access
      * entry -1 */
-    HBTInt GlobalHostHaloId = (Subhalos[subid].HostHaloId == -1) ? HBTConfig.ParticleNullGroupId : halo_snap.Halos[Subhalos[subid].HostHaloId].HaloId;
+    HBTInt GlobalHostHaloId = (Subhalos[subid].HostHaloId == -1) ? HBTConfig.ParticleNullGroupId
+                                                                 : halo_snap.Halos[Subhalos[subid].HostHaloId].HaloId;
     Subhalos[subid].RemoveOtherHostParticles(GlobalHostHaloId);
   }
 }
@@ -1116,16 +1117,15 @@ public:
     subhalo.Particles.resize(it_save - it_begin);
   }
 
-  HBTInt EstimateListSize(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  HBTInt EstimateListSize(HBTInt subid, vector<Subhalo_t> &Subhalos,
+                          const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
   {
-    
+
     HBTInt TotalSize = 0;
     auto &subhalo = Subhalos[subid];
 
     /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
-    for (auto nestedid :
-         subhalo
-           .NestedSubhalos)
+    for (auto nestedid : subhalo.NestedSubhalos)
       TotalSize += EstimateListSize(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
 
     TotalSize += subhalo.Particles.size();
@@ -1139,55 +1139,53 @@ public:
   {
     /* We perform the masking first */
     auto &subhalo = Subhalos[subid];
-    
+
     /* To keep track of how many tracers we have encountered so far. */
     HBTInt tracer_counter = 0;
 
     for (HBTInt i = 0; i < subhalo.Particles.size(); i++)
     {
-      /* We have now ensured to keep the required number of most bound subset of 
+      /* We have now ensured to keep the required number of most bound subset of
        * tracers for this subhalo. */
-      if(tracer_counter == HBTConfig.MinNumTracerPartOfSub)
+      if (tracer_counter == HBTConfig.MinNumTracerPartOfSub)
         break;
-      
+
       /* Only mask tracers */
-      if(subhalo.Particles[i].IsTracer())
+      if (subhalo.Particles[i].IsTracer())
       {
         /* We insert in the exclusion list so that more deeply nested subhaloes
          * do not remove this tracer when masking from bottom to top. */
         auto insert_status = ExclusionList.insert(subhalo.Particles[i].Id);
-        
+
         /* We should have only just one bound unique tracer within the FOF level,
          * so we should not fail the insertion. */
         assert(insert_status.second == true);
 
-        /* Since we do not change the size of subhalo particles at this stage, 
+        /* Since we do not change the size of subhalo particles at this stage,
          * we move forward the tracers, so we know how many to skip in the bottom
          * to top masking step. */
-        std::swap(subhalo.Particles[i], subhalo.Particles[tracer_counter++]); 
+        std::swap(subhalo.Particles[i], subhalo.Particles[tracer_counter++]);
       }
     }
 
-    /* Each resolved subhalo should contain at least this number of tracers 
+    /* Each resolved subhalo should contain at least this number of tracers
      * bound to it, hence we should have found a sufficient number. */
-    if(subhalo.Nbound > 0)
+    if (subhalo.Nbound > 0)
       assert(tracer_counter == HBTConfig.MinNumTracerPartOfSub);
-    
+
     /* Update TracerIndex value */
     subhalo.SetTracerIndex(0);
 
     /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
-    for (auto nestedid :
-         subhalo
-           .NestedSubhalos)
+    for (auto nestedid : subhalo.NestedSubhalos)
       MaskTopBottom(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
 
     /* To update the value of Nbound after masking. Not needed in the top-bottom
      * masking since by construction we will find the tracers as bound particles. */
-    HBTInt NboundChange = 0; 
+    HBTInt NboundChange = 0;
 
     /* At this point, we have navigated towards the bottom of the hierarchy.
-     * Start masking bottom up. The iterators start after the last tracer we 
+     * Start masking bottom up. The iterators start after the last tracer we
      * shifted is. */
     auto it_begin = subhalo.Particles.begin() + tracer_counter, it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
@@ -1200,16 +1198,16 @@ public:
         ++it_save;
       }
       /* Bound particle excluded; we will need to update Nbound. */
-      else if((it - it_begin) < subhalo.Nbound)
+      else if ((it - it_begin) < subhalo.Nbound)
         NboundChange++;
     }
 
-    /* Resize to achieve a clean source subhalo, i.e. no duplicate IDs across 
+    /* Resize to achieve a clean source subhalo, i.e. no duplicate IDs across
      * subhaloes in the same FOF. This will prevent duplicates if the subhaloes
      * diverge in the next output*/
     subhalo.Particles.resize(it_save - subhalo.Particles.begin());
 
-    /* This is being updated for consistency, but having an updated Nbound is 
+    /* This is being updated for consistency, but having an updated Nbound is
      * not a requirement within the code until after Unbinding the next output. */
     subhalo.Nbound -= NboundChange;
   }
@@ -1241,7 +1239,7 @@ void SubhaloSnapshot_t::CleanTracks()
   TrackKeyList_t Ids(*this);
   MappedIndexTable_t<HBTInt, HBTInt> TrackHash;
   TrackHash.Fill(Ids, SpecialConst::NullTrackId);
-  
+
   /* Iterate over all FOF groups in the present rank. */
 #pragma omp parallel for
   for (HBTInt grpid = 0; grpid < MemberTable.SubGroups.size(); grpid++)
@@ -1250,14 +1248,14 @@ void SubhaloSnapshot_t::CleanTracks()
     if (Group.size() <= 1)
       continue;
 
-    /* We need to use the TrackHash here, since the subids have been converted 
+    /* We need to use the TrackHash here, since the subids have been converted
      * to the global values. */
     auto &central = Subhalos[Group[0]];
     SubhaloMasker_t Masker(central.Particles.size() * 1.2);
 
     // Try allocating sufficient memory for this to work
     HBTInt MaskerSize = Masker.EstimateListSize(Group[0], Subhalos, TrackHash);
-    
+
     Masker.ExclusionList.reserve(MaskerSize * 1.2);
     Masker.MaskTopBottom(Group[0], Subhalos, TrackHash);
   }

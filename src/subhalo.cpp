@@ -328,7 +328,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   RmaxComoving = maxprof->r;
   VmaxPhysical = sqrt(maxprof->v * VelocityUnit);
   RHalfComoving = prof[Nbound / 2].r;
-  REncloseComoving = prof[Nbound-1].r;
+  REncloseComoving = prof[Nbound - 1].r;
 
   HBTReal virialF_tophat, virialF_b200, virialF_c200;
   epoch.HaloVirialFactors(virialF_tophat, virialF_b200, virialF_c200);
@@ -341,7 +341,6 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
     SnapshotIndexOfLastMaxVmax = epoch.GetSnapshotIndex();
     LastMaxVmaxPhysical = VmaxPhysical;
   }
-
 }
 
 void Subhalo_t::CalculateShape()

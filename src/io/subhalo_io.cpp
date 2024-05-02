@@ -290,7 +290,7 @@ void SubhaloSnapshot_t::Save(MpiWorker_t &world)
   WriteBoundFiles(world, nr_writing);
 
   /* Clean up the source subhaloes from duplicate particles. Need to do after
-   * bound files to not remove bound particles, and before source so that 
+   * bound files to not remove bound particles, and before source so that
    * the cleaned subgroups are available if we restart. */
   CleanTracks();
 
@@ -478,7 +478,7 @@ void SubhaloSnapshot_t::WriteSourceSubfile(int iFile, int nfiles)
   hsize_t ndim = 1, dim_atom[] = {1}, dim_sub[] = {Subhalos.size()};
 
   writeHDFmatrix(file, &SnapshotId, "SnapshotId", ndim, dim_atom, H5T_NATIVE_INT);
-  
+
 #ifdef UNSIGNED_LONG_ID_OUTPUT
   hid_t H5T_HBTIntArr = H5Tvlen_create(
     H5T_NATIVE_ULONG); // this does not affect anything inside the code, but the presentation in the hdf file
@@ -486,7 +486,7 @@ void SubhaloSnapshot_t::WriteSourceSubfile(int iFile, int nfiles)
   hid_t H5T_HBTIntArr = H5Tvlen_create(H5T_HBTInt);
 #endif
 
-  /* Create the particle vector arrays here, which is different to vl in the 
+  /* Create the particle vector arrays here, which is different to vl in the
    * WriteBoundSubfile, due to cleaning Particle vectors  */
   vector<hvl_t> vl(Subhalos.size());
   vector<HBTInt> IdBuffer;
@@ -505,7 +505,7 @@ void SubhaloSnapshot_t::WriteSourceSubfile(int iFile, int nfiles)
         IdBuffer.push_back(p.Id);
     }
   }
-  
+
   writeHDFmatrix(file, vl.data(), "SrchaloParticles", ndim, dim_sub, H5T_HBTIntArr);
 
   H5Fclose(file);
