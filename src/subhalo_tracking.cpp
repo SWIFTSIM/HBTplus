@@ -1149,7 +1149,6 @@ public:
          * to top masking step. */
         std::swap(subhalo.Particles[i], subhalo.Particles[tracer_counter++]); 
       }
-
     }
 
     /* Each resolved subhalo should contain at least this number of tracers 
@@ -1169,7 +1168,7 @@ public:
     /* At this point, we have navigated towards the bottom of the hierarchy.
      * Start masking bottom up. The iterators start after the last tracer we 
      * shifted is. */
-    auto it_begin = subhalo.Particles.begin() + tracer_counter, it_save = it_begin + tracer_counter;
+    auto it_begin = subhalo.Particles.begin() + tracer_counter, it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
     {
       auto insert_status = ExclusionList.insert(it->Id);
