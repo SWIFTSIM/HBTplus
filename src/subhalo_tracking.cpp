@@ -1079,9 +1079,9 @@ void Subhalo_t::LevelUpDetachedMembers(vector<Subhalo_t> &Subhalos)
 
 class SubhaloMasker_t
 {
+public:
   unordered_set<HBTInt> ExclusionList;
 
-public:
   SubhaloMasker_t(HBTInt np_guess)
   {
     ExclusionList.reserve(np_guess);
@@ -1114,6 +1114,23 @@ public:
       }
     }
     subhalo.Particles.resize(it_save - it_begin);
+  }
+
+  HBTInt EstimateListSize(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  {
+    
+    HBTInt TotalSize = 0;
+    auto &subhalo = Subhalos[subid];
+
+    /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
+    for (auto nestedid :
+         subhalo
+           .NestedSubhalos)
+      TotalSize += EstimateListSize(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
+
+    TotalSize += subhalo.Particles.size();
+
+    return TotalSize;
   }
 
   /* This routine masks particles by giving priority to subhaloes shallower
@@ -1234,6 +1251,11 @@ void SubhaloSnapshot_t::CleanTracks()
      * to the global values. */
     auto &central = Subhalos[Group[0]];
     SubhaloMasker_t Masker(central.Particles.size() * 1.2);
+
+    // Try allocating sufficient memory for this to work
+    HBTInt MaskerSize = Masker.EstimateListSize(Group[0], Subhalos, TrackHash);
+    
+    Masker.ExclusionList.reserve(MaskerSize * 1.2);
     Masker.MaskTopBottom(Group[0], Subhalos, TrackHash);
   }
 }
