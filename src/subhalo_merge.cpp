@@ -181,15 +181,33 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
     return; // skip orphans and nulls
 
 #ifndef INCLUSIVE_MASS
-  HBTInt np_max = host.Particles.size() + Particles.size();
+  /* We pass the particles from this subhalo to the one it merged with. We only
+   * do the bound subset, since the unbound subset has already made its way onto
+   * the upper hierarchy when this subhalo was subject to unbinding.  */
+  HBTInt np_max = host.Particles.size() + Nbound;
+
+  /* TODO: check whether this exclusivity list is required. If everything is
+   * working as expected, we should have no duplicates between these two 
+   * subhaloes*/
   unordered_set<HBTInt> UniqueIds(np_max);
   for (auto &&p : host.Particles)
     UniqueIds.insert(p.Id);
   host.Particles.reserve(np_max);
-  for (auto &&p : Particles)
-    if (UniqueIds.insert(p.Id).second) // inserted, meaning not excluded
-      host.Particles.push_back(p);
-  host.Nbound += Nbound;
+
+  for(HBTInt i = 0; i < Nbound; i++)
+  {
+    auto inserted = UniqueIds.insert(Particles[i].Id).second;
+    assert(inserted); // We should have no duplicates, hence we should always insert. 
+
+    if (inserted)
+      host.Particles.push_back(Particles[i]);
+  }
+
+  /* NOTE: commented out since host.Nbound does not necessarily increment by
+   * the number of accreted particles. TODO: does commenting this out break 
+   * anything? I do not expect it to, since we are to unbinding the host after
+   * merging checks */
+  // host.Nbound += Nbound;
 #endif
 
   /* We will copy the information required to save the orphan in this output.
