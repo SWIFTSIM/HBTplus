@@ -1135,7 +1135,7 @@ public:
 
   void CleanSource(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
   {
-    /* Mask the 10 most bound tracer particles of every resolved subhalo in the 
+    /* Mask the 10 most bound tracer particles of every resolved subhalo in the
      * tree. We do this to not encounter issues during host finding. */
     MaskTopBottom(subid, Subhalos, TrackHash);
 
@@ -1187,8 +1187,8 @@ public:
       assert(tracer_counter == HBTConfig.MinNumTracerPartOfSub);
       /* At this stage, we should have have all tracers at the MinNumTracerPartOfSub
        * most bound particles */
-    
-      for(int i = 0; i < HBTConfig.MinNumTracerPartOfSub; i++)
+
+      for (int i = 0; i < HBTConfig.MinNumTracerPartOfSub; i++)
         assert(subhalo.Particles[i].IsTracer());
     }
 #endif
@@ -1201,7 +1201,7 @@ public:
       MaskTopBottom(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
   }
 
-  /* This routine masks particles by giving priority to subhaloes deeper 
+  /* This routine masks particles by giving priority to subhaloes deeper
    * in the hierarchy. */
   void MaskBottomTop(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
   {
@@ -1213,12 +1213,12 @@ public:
 
     /* Skip orphans */
     if (subhalo.Nbound <= 1)
-       return;
+      return;
 
 #ifndef NDEBUG
     /* At this stage, we should have have all tracers at the MinNumTracerPartOfSub
      * most bound particles */
-    for(int i = 0; i < HBTConfig.MinNumTracerPartOfSub; i++)
+    for (int i = 0; i < HBTConfig.MinNumTracerPartOfSub; i++)
       assert(subhalo.Particles[i].IsTracer());
 #endif
 
@@ -1245,13 +1245,13 @@ public:
 
     /* Resize to achieve a clean source subhalo, i.e. no duplicate IDs across
      * subhaloes in the same FOF. This will prevent duplicates if the subhaloes
-     * diverge in the next output. In this step we may remove enough particles 
+     * diverge in the next output. In this step we may remove enough particles
      * to make Nbound < MinNumPartOfSub, but the decision about its disruption is
      * made in the next output (e.g. it may reaccrete particles during unbinding) */
     subhalo.Particles.resize(it_save - subhalo.Particles.begin());
-   
+
     /* We should not be checking whether the subhalo keeps all the particles, but rather
-     * whether it retains at least MinNumTracerPartOfSub tracers */ 
+     * whether it retains at least MinNumTracerPartOfSub tracers */
     assert(subhalo.Particles.size() >= HBTConfig.MinNumTracerPartOfSub);
 
     /* This is being updated for consistency, but having an updated Nbound is
@@ -1261,14 +1261,14 @@ public:
 #ifndef NDEBUG
     /* We should have retained at least 10 most bound tracers. */
     {
-        int remaining_tracers = 0; 
-        for(int i  = 0; i < subhalo.Nbound; i++)
-        {
-            remaining_tracers += subhalo.Particles[i].IsTracer() ? 1 : 0;
-            if(remaining_tracers >= HBTConfig.MinNumTracerPartOfSub)
-                break;
-        }
-        assert(remaining_tracers >= HBTConfig.MinNumTracerPartOfSub);
+      int remaining_tracers = 0;
+      for (int i = 0; i < subhalo.Nbound; i++)
+      {
+        remaining_tracers += subhalo.Particles[i].IsTracer() ? 1 : 0;
+        if (remaining_tracers >= HBTConfig.MinNumTracerPartOfSub)
+          break;
+      }
+      assert(remaining_tracers >= HBTConfig.MinNumTracerPartOfSub);
     }
 #endif
   }

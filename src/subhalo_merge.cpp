@@ -187,24 +187,24 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
   HBTInt np_max = host.Particles.size() + Nbound;
 
   /* TODO: check whether this exclusivity list is required. If everything is
-   * working as expected, we should have no duplicates between these two 
+   * working as expected, we should have no duplicates between these two
    * subhaloes*/
   unordered_set<HBTInt> UniqueIds(np_max);
   for (auto &&p : host.Particles)
     UniqueIds.insert(p.Id);
   host.Particles.reserve(np_max);
 
-  for(HBTInt i = 0; i < Nbound; i++)
+  for (HBTInt i = 0; i < Nbound; i++)
   {
     auto inserted = UniqueIds.insert(Particles[i].Id).second;
-    assert(inserted); // We should have no duplicates, hence we should always insert. 
+    assert(inserted); // We should have no duplicates, hence we should always insert.
 
     if (inserted)
       host.Particles.push_back(Particles[i]);
   }
 
   /* NOTE: commented out since host.Nbound does not necessarily increment by
-   * the number of accreted particles. TODO: does commenting this out break 
+   * the number of accreted particles. TODO: does commenting this out break
    * anything? I do not expect it to, since we are to unbinding the host after
    * merging checks */
   // host.Nbound += Nbound;
