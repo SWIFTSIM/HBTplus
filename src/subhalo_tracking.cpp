@@ -115,8 +115,8 @@ struct CompareMass_t
     if(sub1.VmaxPhysical != sub2.VmaxPhysical)
       return sub1.VmaxPhysical > sub2.VmaxPhysical;
     
-    // If Mass and Vmax are equal, fall back to most bound particle ID
-    return sub1.MostBoundParticleId > sub2.MostBoundParticleId; 
+    // Otherwise fall back to using the TrackId, which is always unique
+    return sub1.TrackId > sub2.TrackId;
   }
 };
 void MemberShipTable_t::SortMemberLists(const SubhaloList_t &Subhalos)
