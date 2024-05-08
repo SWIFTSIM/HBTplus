@@ -104,7 +104,15 @@ struct CompareMass_t
   }
   bool operator()(const HBTInt &i, const HBTInt &j)
   {
-    return (*Subhalos)[i].Mbound > (*Subhalos)[j].Mbound;
+    const float mass_i = (*Subhalos)[i].Mbound;
+    const float vmax_i = (*Subhalos)[i].VmaxPhysical;
+    const float mass_j = (*Subhalos)[j].Mbound;
+    const float vmax_j = (*Subhalos)[j].VmaxPhysical;
+    if(mass_i == mass_j) {
+      return (vmax_i > vmax_j);
+    } else {
+      return (mass_i > mass_j);
+    }    
   }
 };
 void MemberShipTable_t::SortMemberLists(const SubhaloList_t &Subhalos)
@@ -1170,6 +1178,12 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
 {
   /*renew ranks after unbinding*/
   RegisterNewTracks(world); // performance bottleneck here. no. just poor synchronization.
+
+  // Update vmax for use in assigning rank within the host
+#pragma omp parallel for if (ParallelizeHaloes)
+  for (HBTInt i = 0; i < Subhalos.size(); i++)
+    Subhalos[i].CalculateProfileProperties(*this);
+
 #pragma omp parallel
   {
     MemberTable.SortMemberLists(Subhalos); // reorder, so the central might change if necessary
@@ -1195,7 +1209,10 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
 #pragma omp parallel for if (ParallelizeHaloes)
   for (HBTInt i = 0; i < Subhalos.size(); i++)
   {
+#ifdef INCLUSIVE_MASS
+    // Update Vmax etc using possibly updated particle list
     Subhalos[i].CalculateProfileProperties(*this);
+#endif
     Subhalos[i].CalculateShape();
 
     for (int j = 0; j < 3; j++)
