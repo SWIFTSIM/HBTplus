@@ -104,15 +104,19 @@ struct CompareMass_t
   }
   bool operator()(const HBTInt &i, const HBTInt &j)
   {
-    const float mass_i = (*Subhalos)[i].Mbound;
-    const float vmax_i = (*Subhalos)[i].VmaxPhysical;
-    const float mass_j = (*Subhalos)[j].Mbound;
-    const float vmax_j = (*Subhalos)[j].VmaxPhysical;
-    if(mass_i == mass_j) {
-      return (vmax_i > vmax_j);
-    } else {
-      return (mass_i > mass_j);
-    }    
+    const Subhalo_t &sub1 = (*Subhalos)[i];
+    const Subhalo_t &sub2 = (*Subhalos)[j];
+
+    // Try to compare by mass first
+    if(sub1.Mbound != sub1.Mbound)
+      return sub1.Mbound > sub2.Mbound;
+
+    // Where masses are equal, check vmax
+    if(sub1.VmaxPhysical != sub1.VmaxPhysical)
+      return sub1.VmaxPhysical > sub2.VmaxPhysical;
+    
+    // If Mass and Vmax are equal, fall back to most bound particle ID
+    return sub1.MostBoundParticleId > sub2.MostBoundParticleId; 
   }
 };
 void MemberShipTable_t::SortMemberLists(const SubhaloList_t &Subhalos)
