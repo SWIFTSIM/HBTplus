@@ -108,11 +108,11 @@ struct CompareMass_t
     const Subhalo_t &sub2 = (*Subhalos)[j];
 
     // Try to compare by mass first
-    if(sub1.Mbound != sub1.Mbound)
+    if(sub1.Mbound != sub2.Mbound)
       return sub1.Mbound > sub2.Mbound;
 
     // Where masses are equal, check vmax
-    if(sub1.VmaxPhysical != sub1.VmaxPhysical)
+    if(sub1.VmaxPhysical != sub2.VmaxPhysical)
       return sub1.VmaxPhysical > sub2.VmaxPhysical;
     
     // If Mass and Vmax are equal, fall back to most bound particle ID
