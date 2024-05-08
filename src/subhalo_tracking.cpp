@@ -1133,6 +1133,17 @@ public:
     return TotalSize;
   }
 
+  void CleanSource(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  {
+    /* Mask the 10 most bound tracer particles of every resolved subhalo in the 
+     * tree. We do this to not encounter issues during host finding. */
+    MaskTopBottom(subid, Subhalos, TrackHash);
+
+    /* Mask the remaining particles, such that they are preferentially given to
+     * subhaloes deeper in the hierarchy. */
+    MaskBottomTop(subid, Subhalos, TrackHash);
+  }
+
   /* This routine masks particles by giving priority to subhaloes shallower
    * in the hierarchy. */
   void MaskTopBottom(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
@@ -1168,10 +1179,19 @@ public:
       }
     }
 
+#ifndef NDEBUG
     /* Each resolved subhalo should contain at least this number of tracers
      * bound to it, hence we should have found a sufficient number. */
     if (subhalo.Nbound > 0)
+    {
       assert(tracer_counter == HBTConfig.MinNumTracerPartOfSub);
+      /* At this stage, we should have have all tracers at the MinNumTracerPartOfSub
+       * most bound particles */
+    
+      for(int i = 0; i < HBTConfig.MinNumTracerPartOfSub; i++)
+        assert(subhalo.Particles[i].IsTracer());
+    }
+#endif
 
     /* Update TracerIndex value */
     subhalo.SetTracerIndex(0);
@@ -1179,14 +1199,35 @@ public:
     /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
     for (auto nestedid : subhalo.NestedSubhalos)
       MaskTopBottom(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
+  }
 
-    /* To update the value of Nbound after masking. Not needed in the top-bottom
-     * masking since by construction we will find the tracers as bound particles. */
-    HBTInt NboundChange = 0;
+  /* This routine masks particles by giving priority to subhaloes deeper 
+   * in the hierarchy. */
+  void MaskBottomTop(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  {
+    auto &subhalo = Subhalos[subid];
+
+    /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
+    for (auto nestedid : subhalo.NestedSubhalos)
+      MaskBottomTop(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
+
+    /* Skip orphans */
+    if (subhalo.Nbound <= 1)
+       return;
+
+#ifndef NDEBUG
+    /* At this stage, we should have have all tracers at the MinNumTracerPartOfSub
+     * most bound particles */
+    for(int i = 0; i < HBTConfig.MinNumTracerPartOfSub; i++)
+      assert(subhalo.Particles[i].IsTracer());
+#endif
 
     /* At this point, we have navigated towards the bottom of the hierarchy.
      * Start masking bottom up. The iterators start after the last tracer we
      * shifted is. */
+    HBTInt tracer_counter = HBTConfig.MinNumTracerPartOfSub;
+    HBTInt NboundChange = 0;
+
     auto it_begin = subhalo.Particles.begin() + tracer_counter, it_save = it_begin;
     for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
     {
@@ -1198,18 +1239,38 @@ public:
         ++it_save;
       }
       /* Bound particle excluded; we will need to update Nbound. */
-      else if ((it - it_begin) < subhalo.Nbound)
+      else if ((it - subhalo.Particles.begin()) < subhalo.Nbound)
         NboundChange++;
     }
 
     /* Resize to achieve a clean source subhalo, i.e. no duplicate IDs across
      * subhaloes in the same FOF. This will prevent duplicates if the subhaloes
-     * diverge in the next output*/
+     * diverge in the next output. In this step we may remove enough particles 
+     * to make Nbound < MinNumPartOfSub, but the decision about its disruption is
+     * made in the next output (e.g. it may reaccrete particles during unbinding) */
     subhalo.Particles.resize(it_save - subhalo.Particles.begin());
+   
+    /* We should not be checking whether the subhalo keeps all the particles, but rather
+     * whether it retains at least MinNumTracerPartOfSub tracers */ 
+    assert(subhalo.Particles.size() >= HBTConfig.MinNumTracerPartOfSub);
 
     /* This is being updated for consistency, but having an updated Nbound is
-     * not a requirement within the code until after Unbinding the next output. */
+     * not a requirement within the code until after unbinding the next output. */
     subhalo.Nbound -= NboundChange;
+
+#ifndef NDEBUG
+    /* We should have retained at least 10 most bound tracers. */
+    {
+        int remaining_tracers = 0; 
+        for(int i  = 0; i < subhalo.Nbound; i++)
+        {
+            remaining_tracers += subhalo.Particles[i].IsTracer() ? 1 : 0;
+            if(remaining_tracers >= HBTConfig.MinNumTracerPartOfSub)
+                break;
+        }
+        assert(remaining_tracers >= HBTConfig.MinNumTracerPartOfSub);
+    }
+#endif
   }
 };
 
@@ -1257,7 +1318,7 @@ void SubhaloSnapshot_t::CleanTracks()
     HBTInt MaskerSize = Masker.EstimateListSize(Group[0], Subhalos, TrackHash);
 
     Masker.ExclusionList.reserve(MaskerSize * 1.2);
-    Masker.MaskTopBottom(Group[0], Subhalos, TrackHash);
+    Masker.CleanSource(Group[0], Subhalos, TrackHash);
   }
 }
 
