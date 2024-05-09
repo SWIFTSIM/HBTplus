@@ -206,13 +206,14 @@ void ParticleExchanger_t<Halo_T>::QueryParticles()
     else
     {
 #ifdef DM_ONLY
-      /* All DM particles should be found */
-      assert(false); // Assume p.Type=TypeDM since type is not stored explicitly
+      /* Currently IsTracer() is always true for DM only runs so this will
+         abort if any DM particle is not found. Would need to change this
+         for annihilating DM, for example. */
+      assert(!p.IsTracer());
 #else
-      /* In hydro runs DM and star particles are not expected to disappear.
-         Type=TypeMax indicates that we're searching for tracers, in which
-         case we don't know the type but we do expect all tracers to exist. */
-      assert((p.Type != TypeDM) && (p.Type != TypeStar) && (p.Type != TypeMax));
+      /* In hydro runs particles are allowed to disappear if either we don't
+         know their type or we know they're not a tracer type. */
+      assert((p.Type==TypeMax) || (!p.IsTracer()));
 #endif
     }
   }

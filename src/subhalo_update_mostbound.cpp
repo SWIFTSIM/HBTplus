@@ -42,7 +42,7 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
       ZeroSizeSubhalo[nr_zero].Particles[0] = Particle_t(sub.MostBoundParticleId);
 #ifndef NDEBUG
       // In Debug mode ParticleExchanger_t::QueryParticles() will fail an
-      // assert() if any DM particle is not found. Here we set Type=TypeMax
+      // assert() if any tracer particle is not found. Here we set Type=TypeMax
       // to indicate that we don't know the particle type so it's ok if we
       // can't find it - it might have genuinely disappeared.
       ZeroSizeSubhalo[nr_zero].Particles[0].Type = TypeMax; // Particle type is not known
