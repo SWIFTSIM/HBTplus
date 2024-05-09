@@ -170,7 +170,7 @@ void ParticleExchanger_t<Halo_T>::SendParticles()
   {
     LocalSizes[rank] = LocalIterators[rank + 1] - LocalIterators[rank];
   }
-  LocalSizes[world.size()-1] = LocalParticles.end() - LocalIterators.back();
+  LocalSizes[world.size() - 1] = LocalParticles.end() - LocalIterators.back();
 
   RoamSizes.resize(world.size());
   MPI_Alltoall(LocalSizes.data(), 1, MPI_HBT_INT, RoamSizes.data(), 1, MPI_HBT_INT, world.Communicator);
@@ -213,7 +213,7 @@ void ParticleExchanger_t<Halo_T>::QueryParticles()
 #else
       /* In hydro runs particles are allowed to disappear if either we don't
          know their type or we know they're not a tracer type. */
-      assert((p.Type==TypeMax) || (!p.IsTracer()));
+      assert((p.Type == TypeMax) || (!p.IsTracer()));
 #endif
     }
   }
