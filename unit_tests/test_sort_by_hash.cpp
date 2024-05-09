@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
   std::mt19937 rng;
   rng.seed(0);
 
-  for (int comm_size = 1; comm_size < 20; comm_size += 1)
+  for (int number_partitions = 1; number_partitions < 20; number_partitions += 1)
   {
 
     // Make an array of fake particles
@@ -34,23 +34,23 @@ int main(int argc, char *argv[])
     std::shuffle(Particle.begin(), Particle.end(), rng);
 
     // Sort by hash and compute offsets
-    std::vector<HBTInt> offset = sort_by_hash(Particle, comm_size);
+    std::vector<HBTInt> offset = sort_by_hash(Particle, number_partitions);
 
     // Verify that output is ordered correctly
     for (HBTInt i = 1; i < N; i += 1)
     {
-      int dest1 = RankFromIdHash(Particle[i - 1].Id, comm_size);
-      int dest2 = RankFromIdHash(Particle[i].Id, comm_size);
+      int dest1 = RankFromIdHash(Particle[i - 1].Id, number_partitions);
+      int dest2 = RankFromIdHash(Particle[i].Id, number_partitions);
       verify(dest2 >= dest1);
     }
 
     // Verify that offsets are correct
     HBTInt nr_correct = 0;
-    for (int i = 0; i < comm_size; i += 1)
+    for (int i = 0; i < number_partitions; i += 1)
     {
       HBTInt start = offset[i];
       HBTInt end;
-      if (i < comm_size - 1)
+      if (i < number_partitions - 1)
       {
         end = offset[i + 1];
       }
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
       HBTInt num = end - start;
       for (HBTInt j = 0; j < num; j += 1)
       {
-        int dest = RankFromIdHash(Particle[start + j].Id, comm_size);
+        int dest = RankFromIdHash(Particle[start + j].Id, number_partitions);
         verify(dest == i);
         nr_correct += 1;
       }
