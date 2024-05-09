@@ -162,16 +162,15 @@ void ParticleExchanger_t<Halo_T>::SendParticles()
 
   LocalSizes.resize(world.size());
   LocalIterators.resize(world.size());
-  int rank;
-  for (rank = 0; rank < world.size(); rank++)
+  for (int rank = 0; rank < world.size(); rank++)
   {
     LocalIterators[rank] = LocalParticles.begin() + offset[rank];
   }
-  for (rank = 0; rank < world.size() - 1; rank++)
+  for (int rank = 0; rank < world.size() - 1; rank++)
   {
     LocalSizes[rank] = LocalIterators[rank + 1] - LocalIterators[rank];
   }
-  LocalSizes[rank] = LocalParticles.end() - LocalIterators.back();
+  LocalSizes[world.size()-1] = LocalParticles.end() - LocalIterators.back();
 
   RoamSizes.resize(world.size());
   MPI_Alltoall(LocalSizes.data(), 1, MPI_HBT_INT, RoamSizes.data(), 1, MPI_HBT_INT, world.Communicator);
