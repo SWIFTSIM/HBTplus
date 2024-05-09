@@ -178,14 +178,11 @@ class ParticleSnapshot_t : public Snapshot_t
   IndexTable_t<HBTInt, HBTInt> *ParticleHash;
 
   void ExchangeParticles(MpiWorker_t &world);
-  void PartitionParticles(MpiWorker_t &world, vector<int> &offset);
-  bool IsContiguousId(MpiWorker_t &world, HBTInt &GlobalIdMin);
-  HBTInt IdMin, IdMax;
+  vector<HBTInt> PartitionParticles(MpiWorker_t &world);
 
 public:
   vector<Particle_t> Particles;
   HBTInt NumberOfParticlesOnAllNodes;
-  vector<HBTInt> ProcessIdRanges; // IdRange on each processor is [ProcessIdRanges[i], ProcessIdRanges[i+1]).
 
   ParticleSnapshot_t()
     : Snapshot_t(), Particles(), ParticleHash(), MappedHash(), FlatHash(), NumberOfParticlesOnAllNodes(0)

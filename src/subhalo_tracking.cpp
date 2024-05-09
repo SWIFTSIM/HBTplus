@@ -104,7 +104,23 @@ struct CompareMass_t
   }
   bool operator()(const HBTInt &i, const HBTInt &j)
   {
-    return (*Subhalos)[i].Mbound > (*Subhalos)[j].Mbound;
+    const Subhalo_t &sub1 = (*Subhalos)[i];
+    const Subhalo_t &sub2 = (*Subhalos)[j];
+
+    // Try to compare by mass first
+    if (sub1.Mbound != sub2.Mbound)
+      return sub1.Mbound > sub2.Mbound;
+
+    // Where masses are equal, check vmax
+    if (sub1.VmaxPhysical != sub2.VmaxPhysical)
+      return sub1.VmaxPhysical > sub2.VmaxPhysical;
+
+    // Where Vmax is equal try most bound ID
+    if (sub1.MostBoundParticleId != sub2.MostBoundParticleId)
+      return sub1.MostBoundParticleId > sub2.MostBoundParticleId;
+
+    // Otherwise fall back to using the TrackId, which is always unique
+    return sub1.TrackId > sub2.TrackId;
   }
 };
 void MemberShipTable_t::SortMemberLists(const SubhaloList_t &Subhalos)
@@ -1170,6 +1186,12 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
 {
   /*renew ranks after unbinding*/
   RegisterNewTracks(world); // performance bottleneck here. no. just poor synchronization.
+
+  // Update vmax for use in assigning rank within the host
+#pragma omp parallel for if (ParallelizeHaloes)
+  for (HBTInt i = 0; i < Subhalos.size(); i++)
+    Subhalos[i].CalculateProfileProperties(*this);
+
 #pragma omp parallel
   {
     MemberTable.SortMemberLists(Subhalos); // reorder, so the central might change if necessary
@@ -1195,7 +1217,10 @@ void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &h
 #pragma omp parallel for if (ParallelizeHaloes)
   for (HBTInt i = 0; i < Subhalos.size(); i++)
   {
+#ifdef INCLUSIVE_MASS
+    // Update Vmax etc using possibly updated particle list
     Subhalos[i].CalculateProfileProperties(*this);
+#endif
     Subhalos[i].CalculateShape();
 
     for (int j = 0; j < 3; j++)
