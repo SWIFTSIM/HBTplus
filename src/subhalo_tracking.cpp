@@ -114,6 +114,10 @@ struct CompareMass_t
     // Where masses are equal, check vmax
     if(sub1.VmaxPhysical != sub2.VmaxPhysical)
       return sub1.VmaxPhysical > sub2.VmaxPhysical;
+
+    // Where Vmax is equal try most bound ID
+    if(sub1.MostBoundParticleId != sub2.MostBoundParticleId)
+      return sub1.MostBoundParticleId > sub2.MostBoundParticleId;
     
     // Otherwise fall back to using the TrackId, which is always unique
     return sub1.TrackId > sub2.TrackId;
