@@ -45,7 +45,9 @@ void SubhaloSnapshot_t::UpdateMostBoundPosition(MpiWorker_t &world, const Partic
       // assert() if any tracer particle is not found. Here we set Type=TypeMax
       // to indicate that we don't know the particle type so it's ok if we
       // can't find it - it might have genuinely disappeared.
+#ifndef DM_ONLY
       ZeroSizeSubhalo[nr_zero].Particles[0].Type = TypeMax; // Particle type is not known
+#endif
 #endif
       for (int j = 0; j < 3; j += 1)
       {
