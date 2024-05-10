@@ -1301,24 +1301,24 @@ void SubhaloSnapshot_t::CleanTracks()
   MappedIndexTable_t<HBTInt, HBTInt> TrackHash;
   TrackHash.Fill(Ids, SpecialConst::NullTrackId);
 
-  /* Iterate over all FOF groups in the present rank. */
+  /* Iterate over all subhalos in the present rank. */
 #pragma omp parallel for
-  for (HBTInt grpid = 0; grpid < MemberTable.SubGroups.size(); grpid++)
+  for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
-    auto &Group = MemberTable.SubGroups[grpid];
-    if (Group.size() <= 1)
+    /* Skip non-centrals and centrals with no subhalos */
+    auto &central = Subhalos[subid];
+    if((central.Rank != 0) || (central.NestedSubhalos.size() == 0))
       continue;
-
+      
     /* We need to use the TrackHash here, since the subids have been converted
      * to the global values. */
-    auto &central = Subhalos[Group[0]];
     SubhaloMasker_t Masker(central.Particles.size() * 1.2);
 
     // Try allocating sufficient memory for this to work
-    HBTInt MaskerSize = Masker.EstimateListSize(Group[0], Subhalos, TrackHash);
+    HBTInt MaskerSize = Masker.EstimateListSize(subid, Subhalos, TrackHash);
 
     Masker.ExclusionList.reserve(MaskerSize * 1.2);
-    Masker.CleanSource(Group[0], Subhalos, TrackHash);
+    Masker.CleanSource(subid, Subhalos, TrackHash);
   }
 }
 
