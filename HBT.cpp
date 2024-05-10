@@ -99,6 +99,13 @@ int main(int argc, char **argv)
     // Don't need the particle data after this point, so save memory
     partsnap.ClearParticles();
 
+    /* Clean up the source subhaloes from duplicate particles. Need to do after
+     * writing bound files to not remove bound particles, and before nesting
+     * hierarchy is next modified in AssignHosts. Invalidates Nbound but leaves
+     * the MinNumTracerPartOfSub most bound tracer particles in place. */
+    subsnap.CleanTracks();
+    global_timer.Tick("clean_tracks", world.Communicator);
+    
     /* We assign a FOF host to every pre-existing subhalo. All particles belonging to a
      * secondary subhalo are constrained to be within the FOF assigned to the
      * subhalo they belong to. Constraint not applied if particles are fof-less.*/
@@ -109,7 +116,8 @@ int main(int argc, char **argv)
      * resolved in the previous output. These will be used after unbinding to
      * determine which subhalo has accreted them. Need to do here since
      * AssignHosts will mask out some particles, and hence change the Particle
-     * vector of subhaloes. */
+     * vector of subhaloes. Currently only correct if NumTracersForDescendants
+     * <= MinNumTracerPartOfSub, because CleanTracks may have removed particles. */
     MergerTreeInfo merger_tree;
     merger_tree.StoreTracerIds(subsnap.Subhalos, HBTConfig.NumTracersForDescendants);
     global_timer.Tick("store_tracers", world.Communicator);

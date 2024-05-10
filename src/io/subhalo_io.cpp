@@ -289,11 +289,6 @@ void SubhaloSnapshot_t::Save(MpiWorker_t &world)
   /* Subhalo properties and bound particle lists. */
   WriteBoundFiles(world, nr_writing);
 
-  /* Clean up the source subhaloes from duplicate particles. Need to do after
-   * bound files to not remove bound particles, and before source so that
-   * the cleaned subgroups are available if we restart. */
-  CleanTracks();
-
   /* Particles associated to each subhalo. Used for debugging and restarting. */
   WriteSourceFiles(world, nr_writing);
 }
