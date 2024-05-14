@@ -106,6 +106,13 @@ int main(int argc, char **argv)
     subsnap.AssignHosts(world, halosnap, partsnap);
     global_timer.Tick("assign_hosts", world.Communicator);
 
+    // Check that the alternate host finder worked
+    for(auto &sub : subsnap.Subhalos) {
+      if(sub.HostHaloId != sub.HostHaloIdCheck) {
+        cout << "Mismatched host: " << sub.HostHaloId << ", " << sub.HostHaloIdCheck << endl;
+      }
+    }
+    
     /* Store the NumTracersForDescendants most bound particles of subhaloes
      * resolved in the previous output. These will be used after unbinding to
      * determine which subhalo has accreted them */
