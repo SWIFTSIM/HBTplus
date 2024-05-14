@@ -41,13 +41,16 @@
   ids_to_find    - vector of IDs to look up
   count_found    - returns number of matches found for entries in ids_to_find
   values_found   - values associated with the matched IDs
+  rank_found     - index of the ranks where the values were found
+  return_ranks   - populate the rank_found array (1) or not (0)
   comm           - MPI communicator to use
 
 */
 template <typename value_t>
 void LocateValuesById(const std::vector<HBTInt> &ids, const std::vector<value_t> &values, MPI_Datatype mpi_value_type,
                       const std::vector<HBTInt> &ids_to_find, std::vector<HBTInt> &count_found,
-                      std::vector<value_t> &values_found, MPI_Comm comm)
+                      std::vector<value_t> &values_found, std::vector<int> &ranks_found,
+                      int return_ranks, MPI_Comm comm)
 {
 
   int comm_size;
@@ -301,6 +304,9 @@ void LocateValuesById(const std::vector<HBTInt> &ids, const std::vector<value_t>
   // used to fill the send buffer.
   //
 
+  // Allocate storage for output ranks, if needed
+  if(return_ranks)ranks_found.resize(values_found.size());
+  
   // Compute offset to the set of values associated with each ID
   std::vector<HBTInt> offset_found(count_found.size());
   if (offset_found.size() > 0)
@@ -326,6 +332,7 @@ void LocateValuesById(const std::vector<HBTInt> &ids, const std::vector<value_t>
       for (HBTInt j = 0; j < count_found_ordered[i]; j += 1)
       {
         values_found_ordered[next_value] = values_found[offset_found[offset[dest]] + j];
+        if(return_ranks)ranks_found[next_value] = dest;
         next_value += 1;
       }
       offset[dest] += 1;
@@ -333,6 +340,29 @@ void LocateValuesById(const std::vector<HBTInt> &ids, const std::vector<value_t>
     values_found.swap(values_found_ordered);
     count_found.swap(count_found_ordered);
   }
+}
+
+/*
+  This version doesn't return the rank where the value was found
+*/
+template <typename value_t>
+void LocateValuesById(const std::vector<HBTInt> &ids, const std::vector<value_t> &values, MPI_Datatype mpi_value_type,
+                      const std::vector<HBTInt> &ids_to_find, std::vector<HBTInt> &count_found,
+                      std::vector<value_t> &values_found, MPI_Comm comm) {
+
+  std::vector<int> ranks_found(0);
+  LocateValuesById(ids, values, mpi_value_type, ids_to_find, count_found, values_found, ranks_found, 0, comm);
+}
+
+/*
+  This version does return the rank.
+*/
+template <typename value_t>
+void LocateValuesById(const std::vector<HBTInt> &ids, const std::vector<value_t> &values, MPI_Datatype mpi_value_type,
+                      const std::vector<HBTInt> &ids_to_find, std::vector<HBTInt> &count_found,
+                      std::vector<value_t> &values_found, std::vector<int> &ranks_found, MPI_Comm comm) {
+ 
+  LocateValuesById(ids, values, mpi_value_type, ids_to_find, count_found, values_found, ranks_found, 1, comm); 
 }
 
 #endif
