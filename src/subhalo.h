@@ -298,6 +298,7 @@ public:
   //   void ParticleIndexToId();
   void UpdateMostBoundPosition(MpiWorker_t &world, const ParticleSnapshot_t &part_snap);
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
+  std::vector<HBTInt> DetermineHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
   void ConstrainToSingleHost(const HaloSnapshot_t &halo_snap);
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
@@ -377,5 +378,7 @@ struct SubHelper_t
   {
   }
 };
+
+void GetTracerIds(vector<HBTInt>::iterator particle_ids, const Subhalo_t &Subhalo);
 
 #endif
