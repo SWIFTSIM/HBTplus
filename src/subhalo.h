@@ -40,6 +40,7 @@ public:
   HBTInt TracerId; // Id of the particle with index TracerIndex
 #endif
   HBTInt HostHaloId;
+  HBTInt HostHaloIdCheck; // To test new host finding code
   HBTInt Rank; // 0 for central and field subs, >0 for satellites
   int Depth;   // depth of the subhalo: central=0, sub=1, sub-sub=2, ...
   float LastMaxMass;

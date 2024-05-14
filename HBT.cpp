@@ -102,6 +102,7 @@ int main(int argc, char **argv)
     /* We assign a FOF host to every pre-existing subhalo. All particles belonging to a
      * secondary subhalo are constrained to be within the FOF assigned to the
      * subhalo they belong to. Constraint not applied if particles are fof-less.*/
+    std::vector<HBTInt> subhalo_rank = subsnap.DetermineHosts(world, halosnap, partsnap);
     subsnap.AssignHosts(world, halosnap, partsnap);
     global_timer.Tick("assign_hosts", world.Communicator);
 

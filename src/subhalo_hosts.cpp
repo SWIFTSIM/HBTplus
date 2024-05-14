@@ -101,7 +101,7 @@ std::vector<HBTInt> SubhaloSnapshot_t::DetermineHosts(MpiWorker_t &world, HaloSn
             MaximumScore = candidate.second;
           }
       }
-    sub.HostHaloId = HostId;
+    sub.HostHaloIdCheck = HostId;
 
     // Assign destination rank, if known
     if(HostId >= 0)
