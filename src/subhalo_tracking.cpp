@@ -1307,9 +1307,9 @@ void SubhaloSnapshot_t::CleanTracks()
   {
     /* Skip non-centrals and centrals with no subhalos */
     auto &central = Subhalos[subid];
-    if((central.Rank != 0) || (central.NestedSubhalos.size() == 0))
+    if ((central.Rank != 0) || (central.NestedSubhalos.size() == 0))
       continue;
-      
+
     /* We need to use the TrackHash here, since the subids have been converted
      * to the global values. */
     SubhaloMasker_t Masker(central.Particles.size() * 1.2);

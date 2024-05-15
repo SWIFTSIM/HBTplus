@@ -246,9 +246,6 @@ void Subhalo_t::AverageCoordinates()
     copyHBTxyz(ComovingMostBoundPosition, Particles[GetTracerIndex()].ComovingPosition);
     copyHBTxyz(PhysicalMostBoundVelocity, Particles[GetTracerIndex()].GetPhysicalVelocity());
 
-    /* Copy the mass, in case this object becomes an orphan in the current output. */
-    Mbound = Particles[GetTracerIndex()].Mass;
-
     AveragePosition(ComovingAveragePosition, Particles.data(), Nbound);
     AverageVelocity(PhysicalAverageVelocity, Particles.data(), Nbound);
   }
@@ -542,10 +539,10 @@ HBTInt Subhalo_t::KickNullParticles()
 #endif
 }
 
-void Subhalo_t::CountParticles()
-/*update Nbound, Mbound, NboundType, MboundType *
+/*update Mbound, NboundType, MboundType *
  * this function is called during unbinding, merger and BH consumption(UpdateParticles)*
  */
+void Subhalo_t::CountParticles()
 {
 #ifdef DM_ONLY
   Mbound = 0.;

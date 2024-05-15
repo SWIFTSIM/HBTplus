@@ -215,7 +215,6 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
    * to do it here, since the MostBoundPosition and MostBoundVelocity of tracks
    * are based on the ACTUAL MOST BOUND PARTICLE. Orphans are based on the
    * MOST BOUND TRACER PARTICLE. */
-  Mbound = Particles[GetTracerIndex()].Mass;
   MostBoundParticleId = Particles[GetTracerIndex()].Id;
   copyHBTxyz(ComovingMostBoundPosition, Particles[GetTracerIndex()].ComovingPosition);
   copyHBTxyz(PhysicalMostBoundVelocity, Particles[GetTracerIndex()].GetPhysicalVelocity());
@@ -227,5 +226,7 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
    * subhalo has been done. */
   Nbound = 0;
   Particles.resize(0);
+
+  /* This function call will set all Mass and Nbound fields (including types) equal to zero */
   CountParticles();
 }
