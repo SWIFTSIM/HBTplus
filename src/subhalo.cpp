@@ -246,9 +246,6 @@ void Subhalo_t::AverageCoordinates()
     copyHBTxyz(ComovingMostBoundPosition, Particles[GetTracerIndex()].ComovingPosition);
     copyHBTxyz(PhysicalMostBoundVelocity, Particles[GetTracerIndex()].GetPhysicalVelocity());
 
-    /* Copy the mass, in case this object becomes an orphan in the current output. */
-    Mbound = Particles[GetTracerIndex()].Mass;
-
     AveragePosition(ComovingAveragePosition, Particles.data(), Nbound);
     AverageVelocity(PhysicalAverageVelocity, Particles.data(), Nbound);
   }
@@ -328,7 +325,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   RmaxComoving = maxprof->r;
   VmaxPhysical = sqrt(maxprof->v * VelocityUnit);
   RHalfComoving = prof[Nbound / 2].r;
-  REncloseComoving = prof[Nbound-1].r;
+  REncloseComoving = prof[Nbound - 1].r;
 
   HBTReal virialF_tophat, virialF_b200, virialF_c200;
   epoch.HaloVirialFactors(virialF_tophat, virialF_b200, virialF_c200);
@@ -341,7 +338,6 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
     SnapshotIndexOfLastMaxVmax = epoch.GetSnapshotIndex();
     LastMaxVmaxPhysical = VmaxPhysical;
   }
-
 }
 
 void Subhalo_t::CalculateShape()
@@ -543,10 +539,10 @@ HBTInt Subhalo_t::KickNullParticles()
 #endif
 }
 
-void Subhalo_t::CountParticles()
-/*update Nbound, Mbound, NboundType, MboundType *
+/*update Mbound, NboundType, MboundType *
  * this function is called during unbinding, merger and BH consumption(UpdateParticles)*
  */
+void Subhalo_t::CountParticles()
 {
 #ifdef DM_ONLY
   Mbound = 0.;

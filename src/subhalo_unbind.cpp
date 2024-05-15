@@ -410,8 +410,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
       /* Do not allow the orphan to have any particles, so they can be subject to
        * unbinding in their parent. The particle array will be updated after this
-       * subhalo has been done. */
+       * subhalo has been done, when truncating the source. */
       Nbound = 0;
+      Mbound = 0;
 
       break;
     }
@@ -462,6 +463,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   }
   ESnap.AverageKinematics(SpecificSelfPotentialEnergy, SpecificSelfKineticEnergy, SpecificAngularMomentum, Nbound,
                           RefPos, RefVel); // only use CoM frame when unbinding and calculating Kinematics
+
+  /* For orphans, this function call only sets it MboundType and NboundType equal to 0. For resolved objects, it
+   * updates those fields, as well as the index of the most bound tracer particle.*/
   CountParticleTypes();
 
   /* At this stage we know the updated TracerIndex, so if we are bound we should

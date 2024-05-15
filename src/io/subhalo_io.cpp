@@ -276,40 +276,69 @@ void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 
 void SubhaloSnapshot_t::Save(MpiWorker_t &world)
 {
+  /* Create folder where to save files */
+  string subdir = GetSubDir();
+  mkdir(subdir.c_str(), 0755);
 
-  // Decide how many ranks per node write simultaneously
+  /* Decide how many ranks per node write simultaneously */
   int nr_nodes = (world.size() / world.MaxNodeSize);
   int nr_writing = HBTConfig.MaxConcurrentIO / nr_nodes;
   if (nr_writing < 1)
     nr_writing = 1; // Always at least one per node
 
-  string subdir = GetSubDir();
-  mkdir(subdir.c_str(), 0755);
+  /* Subhalo properties and bound particle lists. */
+  WriteBoundFiles(world, nr_writing);
 
+  /* Particles associated to each subhalo. Used for debugging and restarting. */
+  WriteSourceFiles(world, nr_writing);
+}
+
+void SubhaloSnapshot_t::WriteBoundFiles(MpiWorker_t &world, const int &number_ranks_writing)
+{
+  /* Number of total subhalo entries */
   HBTInt NumSubsAll = 0, NumSubs = Subhalos.size();
   MPI_Allreduce(&NumSubs, &NumSubsAll, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
 
   if (world.rank() == 0)
-    cout << "saving " << NumSubsAll << " subhalos to " << subdir << endl;
+    cout << "saving " << NumSubsAll << " subhalos to " << GetSubDir() << endl;
 
-  // Allow a limited number of ranks per node to write simultaneously
+  /* Allow a limited number of ranks per node to write simultaneously */
   int writes_done = 0;
   for (int rank_within_node = 0; rank_within_node < world.MaxNodeSize; rank_within_node += 1)
   {
     if (rank_within_node == world.NodeRank)
     {
-      WriteFile(world.rank(), world.size(), NumSubsAll);
+      WriteBoundSubfile(world.rank(), world.size(), NumSubsAll);
       writes_done += 1;
     }
-    if (rank_within_node % nr_writing == nr_writing - 1)
+    if (rank_within_node % number_ranks_writing == number_ranks_writing - 1)
       MPI_Barrier(world.Communicator);
   }
 
-  // Every rank should have executed the writing code exactly once
+  /* Every rank should have executed the writing code exactly once */
   assert(writes_done == 1);
 }
 
-void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
+void SubhaloSnapshot_t::WriteSourceFiles(MpiWorker_t &world, const int &number_ranks_writing)
+{
+  /* Allow a limited number of ranks per node to write simultaneously */
+  int writes_done = 0;
+  for (int rank_within_node = 0; rank_within_node < world.MaxNodeSize; rank_within_node += 1)
+  {
+    if (rank_within_node == world.NodeRank)
+    {
+      WriteSourceSubfile(world.rank(), world.size());
+      writes_done += 1;
+    }
+    if (rank_within_node % number_ranks_writing == number_ranks_writing - 1)
+      MPI_Barrier(world.Communicator);
+  }
+
+  /* Every rank should have executed the writing code exactly once */
+  assert(writes_done == 1);
+}
+
+void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsAll)
 {
   /* Create file */
   string filename;
@@ -419,7 +448,7 @@ void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
     HBTInt offset = 0;
     for (HBTInt i = 0; i < Subhalos.size(); i++)
     {
-      vl[i].len = Subhalos[i].Nbound;
+      vl[i].len = Subhalos[i].Nbound; // Save bound particles
       vl[i].p = &IdBuffer[offset];
       offset += Subhalos[i].Particles.size();
       for (auto &&p : Subhalos[i].Particles)
@@ -431,15 +460,49 @@ void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
   writeHDFmatrix(file, Subhalos.data(), "Subhalos", ndim, dim_sub, H5T_SubhaloInMem, H5T_SubhaloInDisk);
 
   H5Fclose(file);
+}
 
+void SubhaloSnapshot_t::WriteSourceSubfile(int iFile, int nfiles)
+{
+  /* Create file */
+  string filename;
   GetSubFileName(filename, iFile, "Src");
-  //   cout<<"Saving "<<Subhalos.size()<<" subhaloes to "<<filename<<"..."<<endl;
-  file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  /* Size definitions */
+  hsize_t ndim = 1, dim_atom[] = {1}, dim_sub[] = {Subhalos.size()};
+
   writeHDFmatrix(file, &SnapshotId, "SnapshotId", ndim, dim_atom, H5T_NATIVE_INT);
-  for (HBTInt i = 0; i < vl.size(); i++)
-    vl[i].len = Subhalos[i].Particles.size();
+
+#ifdef UNSIGNED_LONG_ID_OUTPUT
+  hid_t H5T_HBTIntArr = H5Tvlen_create(
+    H5T_NATIVE_ULONG); // this does not affect anything inside the code, but the presentation in the hdf file
+#else
+  hid_t H5T_HBTIntArr = H5Tvlen_create(H5T_HBTInt);
+#endif
+
+  /* Create the particle vector arrays here, which is different to vl in the
+   * WriteBoundSubfile, due to cleaning Particle vectors  */
+  vector<hvl_t> vl(Subhalos.size());
+  vector<HBTInt> IdBuffer;
+  {
+    HBTInt NumberOfParticles = 0;
+    for (HBTInt i = 0; i < Subhalos.size(); i++)
+      NumberOfParticles += Subhalos[i].Particles.size();
+    IdBuffer.reserve(NumberOfParticles);
+    HBTInt offset = 0;
+    for (HBTInt i = 0; i < Subhalos.size(); i++)
+    {
+      vl[i].len = Subhalos[i].Particles.size(); // Save all particles
+      vl[i].p = &IdBuffer[offset];
+      offset += Subhalos[i].Particles.size();
+      for (auto &&p : Subhalos[i].Particles)
+        IdBuffer.push_back(p.Id);
+    }
+  }
+
   writeHDFmatrix(file, vl.data(), "SrchaloParticles", ndim, dim_sub, H5T_HBTIntArr);
+
   H5Fclose(file);
   H5Tclose(H5T_HBTIntArr);
-  //   cout<<Subhalos.size()<<" subhaloes saved: "<<MemberTable.NBirth<<" birth, "<< MemberTable.NFake<<" fake.\n";
 }

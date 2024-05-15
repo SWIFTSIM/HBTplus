@@ -99,6 +99,14 @@ int main(int argc, char **argv)
     // Don't need the particle data after this point, so save memory
     partsnap.ClearParticles();
 
+    /* Clean up the source subhaloes from duplicate particles originating from the
+     * previous snapshot. We need to do it here so that any removed bound particles
+     * contribute to the estimate of the subgroup CoM position and velocity (used in
+     * decide centrals). We do it before assign hosts since subhaloes can change FOF
+     * and ranks, making the masking difficult. */
+    subsnap.CleanTracks();
+    global_timer.Tick("clean_tracks", world.Communicator);
+
     /* We assign a FOF host to every pre-existing subhalo. All particles belonging to a
      * secondary subhalo are constrained to be within the FOF assigned to the
      * subhalo they belong to. Constraint not applied if particles are fof-less.*/
@@ -107,9 +115,10 @@ int main(int argc, char **argv)
 
     /* Store the NumTracersForDescendants most bound particles of subhaloes
      * resolved in the previous output. These will be used after unbinding to
-     * determine which subhalo has accreted them. Need to do here since 
+     * determine which subhalo has accreted them. Need to do here since
      * AssignHosts will mask out some particles, and hence change the Particle
-     * vector of subhaloes. */
+     * vector of subhaloes. Currently only correct if NumTracersForDescendants
+     * <= MinNumTracerPartOfSub, because CleanTracks may have removed particles. */
     MergerTreeInfo merger_tree;
     merger_tree.StoreTracerIds(subsnap.Subhalos, HBTConfig.NumTracersForDescendants);
     global_timer.Tick("store_tracers", world.Communicator);
@@ -118,7 +127,7 @@ int main(int argc, char **argv)
      * associated to. Need to do after StoringTracerIds, since this step can lead
      * to the loss of some of the most bound tracer particles */
     subsnap.ConstrainToSingleHost(halosnap);
-    
+
     /* We decide which subhaloes are the central of each FOF group. Centrals are
      * assigned all the particles in the FOF that do not belong to secondary
      * subhaloes. */

@@ -96,7 +96,7 @@ public:
     MinNumPartOfSub = 20;
     MinNumTracerPartOfSub = 10;
     NumTracerHostFinding = MinNumTracerPartOfSub;
-    NumTracersForDescendants = 10;
+    NumTracersForDescendants = MinNumTracerPartOfSub;
     GroupParticleIdMask = 0;
     MassInMsunh = 1e10;
     LengthInMpch = 1;

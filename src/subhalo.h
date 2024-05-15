@@ -258,8 +258,14 @@ private:
   void BuildHDFDataType();
   void BuildMPIDataType();
   void PurgeMostBoundParticles();
+
+  /* I/O methods */
   void ReadFile(int iFile, const SubReaderDepth_t depth);
-  void WriteFile(int iFile, int nfiles, HBTInt NumSubsAll);
+  void WriteBoundFiles(MpiWorker_t &world, const int &number_ranks_writing);
+  void WriteSourceFiles(MpiWorker_t &world, const int &number_ranks_writing);
+  void WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsAll);
+  void WriteSourceSubfile(int iFile, int nfiles);
+
   void LevelUpDetachedSubhalos();
   void ExtendCentralNest();
   void LocalizeNestedIds(MpiWorker_t &world);
@@ -312,6 +318,9 @@ public:
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
+
+  /* To remove duplicate particles from the source subgroup. */
+  void CleanTracks();
 
   HBTInt size() const
   {
