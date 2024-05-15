@@ -99,13 +99,14 @@ int main(int argc, char **argv)
     // Don't need the particle data after this point, so save memory
     partsnap.ClearParticles();
 
-    /* Clean up the source subhaloes from duplicate particles. Need to do after
-     * writing bound files to not remove bound particles, and before nesting
-     * hierarchy is next modified in AssignHosts. Invalidates Nbound but leaves
-     * the MinNumTracerPartOfSub most bound tracer particles in place. */
+    /* Clean up the source subhaloes from duplicate particles originating from the
+     * previous snapshot. We need to do it here so that any removed bound particles
+     * contribute to the estimate of the subgroup CoM position and velocity (used in
+     * decide centrals). We do it before assign hosts since subhaloes can change FOF
+     * and ranks, making the masking difficult. */
     subsnap.CleanTracks();
     global_timer.Tick("clean_tracks", world.Communicator);
-    
+
     /* We assign a FOF host to every pre-existing subhalo. All particles belonging to a
      * secondary subhalo are constrained to be within the FOF assigned to the
      * subhalo they belong to. Constraint not applied if particles are fof-less.*/

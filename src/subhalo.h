@@ -319,7 +319,7 @@ public:
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
 
-  /* To remove duplicate particles from the source subgroup after saving. */
+  /* To remove duplicate particles from the source subgroup. */
   void CleanTracks();
 
   HBTInt size() const
