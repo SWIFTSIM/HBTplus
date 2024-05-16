@@ -22,8 +22,8 @@ int main(int argc, char *argv[]) {
   for(int rep_nr=0; rep_nr<nr_reps; rep_nr+=1) {
 
     // Determine maximum message size for small chunks test (all ranks need to agree on this)
-    std::uniform_int_distribution<> send_size_dist(4, 128);
-    int max_send_size_bytes = send_size_dist(rng);
+    std::uniform_int_distribution<> send_size_dist(1, 100);
+    int max_send_size_bytes = send_size_dist(rng) * ((int) sizeof(int));
     MPI_Bcast(&max_send_size_bytes, 1, MPI_INT, 0, MPI_COMM_WORLD);
     
     // Make an array of counts for other processors
