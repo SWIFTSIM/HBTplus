@@ -71,6 +71,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(PeriodicBoundaryOn);
   TrySetPar(SnapshotHasIdBlock);
   TrySetPar(MaxPhysicalSofteningHalo);
+  TrySetPar(RandomSeedFactor);
   TrySetPar(TracerParticleBitMask);
 
 #undef TrySetPar
@@ -265,9 +266,9 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncAtom(MaxSnapshotIndex, MPI_INT);
   _SyncReal(BoxSize);
   _SyncReal(SofteningHalo);
-  _SyncReal(MaxPhysicalSofteningHalo);
+  _SyncReal(MaxPhysicalSofteningHalo);  
   _SyncVecBool(IsSet);
-
+  _SyncAtom(RandomSeedFactor, MPI_HBT_INT);
   _SyncVec(SnapshotDirBase, MPI_CHAR);
   _SyncVec(SnapshotFormat, MPI_CHAR);
   _SyncVec(GroupFileFormat, MPI_CHAR);
@@ -419,6 +420,7 @@ void Parameter_t::DumpParameters()
   DumpPar(SourceSubRelaxFactor);
   DumpPar(RefineMostboundParticle);
   DumpPar(MaxSampleSizeOfPotentialEstimate);
+  DumpPar(RandomSeedFactor);
 
   DumpHeader("Subhalo Tracking");
   DumpPar(MinNumPartOfSub);

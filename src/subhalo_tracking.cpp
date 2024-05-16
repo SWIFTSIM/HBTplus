@@ -751,7 +751,7 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
     // Subhalos.reserve(Snapshot->size()*0.1);//reserve enough	branches.......
     Subhalos.resize(Npro + MemberTable.NBirth);
   }
-#pragma omp for
+#pragma omp for ordered
   for (HBTInt hostid = 0; hostid < halo_snap.Halos.size(); hostid++)
   {
     MemberShipTable_t::MemberList_t &Members = MemberTable.SubGroups[hostid];
@@ -759,7 +759,7 @@ void SubhaloSnapshot_t::FeedCentrals(HaloSnapshot_t &halo_snap)
     if (0 == Members.size()) // create a new sub
     {
       HBTInt subid;
-#pragma omp critical(AddNewSub) // maybe consider ordered for here..
+#pragma omp ordered
       {
         subid = Npro++;
       }

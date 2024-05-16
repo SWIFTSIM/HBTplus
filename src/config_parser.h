@@ -78,7 +78,8 @@ public:
                                 // leads to more accuracy mostbound particle
 
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
-
+  HBTInt RandomSeedFactor; // Modifies the random number seed used for sampling
+  
   /*derived parameters; do not require user input*/
   HBTReal TreeNodeOpenAngleSquare;
   HBTReal TreeNodeResolution;
@@ -124,7 +125,8 @@ public:
     RefineMostboundParticle = true;
     GroupLoadedFullParticle = false;
     MaxPhysicalSofteningHalo = -1; // Indicates no max. physical softening is used.
-
+    RandomSeedFactor = 0; // If zero, just use particle IDs to seed random number generator
+  
     /* Tracer-related parameters. If unset, only use collisionless particles (DM
      * + Stars) as tracer. Here we assume they correspond to particle types 1
      * and 4, respectively. */
