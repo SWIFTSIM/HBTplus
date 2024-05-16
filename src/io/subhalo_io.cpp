@@ -171,6 +171,20 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
     }
     cout << TotNumberOfSubs << " subhalos loaded at snapshot " << SnapshotIndex << "(" << SnapshotId << ")\n";
   }
+
+#ifndef NDEBUG
+#ifndef DM_ONLY
+  // On restarting we don't know the particle types because only Ids were saved to the SrcSnap.
+  // Set Type=TypeMax to avoid tripping assert due to tracer not found when updating particles.
+  // Don't need to do this in DM only runs.
+  for(auto &sub : Subhalos) {
+    for(auto &part : sub.Particles) {
+      part.Type = TypeMax;
+    }
+  }
+#endif
+#endif
+  
 }
 void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 { // Read iFile for current snapshot.
