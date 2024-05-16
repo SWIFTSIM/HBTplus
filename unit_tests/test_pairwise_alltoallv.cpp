@@ -5,8 +5,8 @@
 #include "verify.h"
 #include "pairwise_alltoallv.h"
 
-
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 
   MPI_Init(&argc, &argv);
   int comm_size;
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  
+
   MPI_Finalize();
 
   return 0;

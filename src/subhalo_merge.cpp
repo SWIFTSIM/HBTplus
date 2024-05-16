@@ -24,15 +24,16 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
   // Could be slow if a halo with many particles has
   // 1 <= nr_tracers < NumPartCoreMax (which should be unlikely?).
   //
-  if (0 == sub.Nbound)
+
+  /* We should not have orphans with a single particle. */
+  assert(sub.Nbound != 1);
+
+  /* Need to handle orphans differently, since they have no particles
+   * associated to them explicitly*/
+  if (sub.Nbound == 0)
   {
     ComovingSigmaR = 0.;
-    return;
-  }
-  if (1 == sub.Nbound)
-  {
-    ComovingSigmaR = 0.;
-    copyHBTxyz(ComovingPosition, sub.Particles[0].ComovingPosition);
+    copyHBTxyz(ComovingPosition, sub.ComovingMostBoundPosition);
     return;
   }
 
@@ -98,15 +99,16 @@ void SubHelper_t::BuildPosition(const Subhalo_t &sub)
 
 void SubHelper_t::BuildVelocity(const Subhalo_t &sub)
 {
-  if (0 == sub.Nbound)
+
+  /* We should not have orphans with a single particle. */
+  assert(sub.Nbound != 1);
+
+  /* Need to handle orphans differently, since they have no particles
+   * associated to them explicitly*/
+  if (sub.Nbound == 0)
   {
     PhysicalSigmaV = 0.;
-    return;
-  }
-  if (1 == sub.Nbound)
-  {
-    PhysicalSigmaV = 0.;
-    copyHBTxyz(PhysicalVelocity, sub.Particles[0].GetPhysicalVelocity());
+    copyHBTxyz(PhysicalVelocity, sub.PhysicalMostBoundVelocity);
     return;
   }
 
@@ -172,9 +174,13 @@ void DetectTraps(vector<Subhalo_t> &Subhalos, vector<SubHelper_t> &Helpers, int 
 #pragma omp for schedule(dynamic, 1)
   for (HBTInt i = 0; i < Subhalos.size(); i++)
   {
-    // 	  if(Subhalos[i].Nbound<=1) continue;//skip orphans? no.
+    /* Do not test objects that merged in the past*/
     if (Subhalos[i].IsTrapped())
       continue;
+
+    /* Iterate over the whole geneaology of subgroups, first test parent, then
+     * grand-parent, etc. We will stop once we found the object has merged, or
+     * we tested the central of its host. */
     HBTInt HostId = Helpers[i].HostTrackId;
     while (HostId >= 0)
     {
@@ -186,11 +192,16 @@ void DetectTraps(vector<Subhalo_t> &Subhalos, vector<SubHelper_t> &Helpers, int 
           Subhalos[i].SinkTrackId =
             HostId; // these are local ids for the merging tracks. Those already merged ones retain their global ids.
           Subhalos[i].SnapshotIndexOfSink = isnap;
-          if (Subhalos[i].Nbound > 1) // only need to unbind if a real sub sinks
+
+          /* The subgroup that receives the particles from a (resolved) merged
+           * track will need to be subject to unbinding once again. Flag it. */
+          if (Subhalos[i].Nbound > 1)
             Helpers[HostId].IsMerged = true;
           break;
         }
       }
+
+      /* Move one level up the hierarchy. */
       HostId = Helpers[HostId].HostTrackId;
     }
   }
@@ -236,14 +247,19 @@ void SubhaloSnapshot_t::MergeSubhalos()
 
   if (HBTConfig.MergeTrappedSubhalos)
   {
+    /* Remove particles from merged tracks, and store when this happened */
 #pragma omp parallel for schedule(dynamic, 1)
     for (HBTInt grpid = 0; grpid < NumHalos; grpid++)
       if (MemberTable.SubGroups[grpid].size())
         MergeRecursive(MemberTable.SubGroups[grpid][0]);
+
+        /* Subgroups receiving particles from merged ones are subject to unbinding*/
 #pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
       if (Helpers[subid].IsMerged)
         Subhalos[subid].Unbind(*this);
+
+        /* Truncate the source of the subhaloes we just updated. */
 #pragma omp parallel for
     for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
       if (Helpers[subid].IsMerged)
@@ -293,15 +309,22 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
   host.Nbound += Nbound;
 #endif
 
-  /* To keep using a collisionless tracer after merging the respective subhalo,
-   * we need to place it at the beginning of the particle array. */
-  swap(Particles[0], Particles[TracerIndex]);
+  /* We will copy the information required to save the orphan in this output.
+   * For future outputs, we will rely on UpdateMostBoundPosition instead. We need
+   * to do it here, since the MostBoundPosition and MostBoundVelocity of tracks
+   * are based on the ACTUAL MOST BOUND PARTICLE. Orphans are based on the
+   * MOST BOUND TRACER PARTICLE. */
+  Mbound = Particles[GetTracerIndex()].Mass;
+  MostBoundParticleId = Particles[GetTracerIndex()].Id;
+  copyHBTxyz(ComovingMostBoundPosition, Particles[GetTracerIndex()].ComovingPosition);
+  copyHBTxyz(PhysicalMostBoundVelocity, Particles[GetTracerIndex()].GetPhysicalVelocity());
+  copyHBTxyz(ComovingAveragePosition, ComovingMostBoundPosition);
+  copyHBTxyz(PhysicalAverageVelocity, PhysicalMostBoundVelocity);
 
-  // Update the location of the tracer
-  TracerIndex = 0;
-
-  /* Limit the particles to the tracer */
-  Particles.resize(1);
-  Nbound = 1;
+  /* Do not allow the orphan to have any particles, so they can be subject to
+   * unbinding in their parent. The particle array will be updated after this
+   * subhalo has been done. */
+  Nbound = 0;
+  Particles.resize(0);
   CountParticles();
 }

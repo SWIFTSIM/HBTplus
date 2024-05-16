@@ -65,23 +65,26 @@ class Timer_t
 {
 public:
   vector<chrono::high_resolution_clock::time_point> tickers;
+  vector<string> names;
   Timer_t()
   {
     tickers.reserve(20);
   }
-  void Tick()
+  void Tick(string name)
   {
     tickers.push_back(chrono::high_resolution_clock::now());
+    names.push_back(name);
   }
-  void Tick(MPI_Comm comm)
+  void Tick(string name, MPI_Comm comm)
   // synchronized tick. wait for all processes to tick together.
   {
     MPI_Barrier(comm);
-    Tick();
+    Tick(name);
   }
   void Reset()
   {
     tickers.clear();
+    names.clear();
   }
   size_t Size()
   {
@@ -110,6 +113,8 @@ public:
     return chrono::duration_cast<chrono::duration<double>>(tickers[itick] - tickers[itick0]).count();
   }
 };
+
+extern Timer_t global_timer;
 
 #define myfopen(filepointer, filename, filemode)                                                                       \
   if (!((filepointer) = fopen(filename, filemode)))                                                                    \

@@ -145,9 +145,12 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(Mbound, MPI_FLOAT, 1);
 #ifndef DM_ONLY
   RegisterAttr(NboundType, MPI_HBT_INT, TypeMax);
-  RegisterAttr(MboundType, MPI_HBT_INT, TypeMax);
+  RegisterAttr(MboundType, MPI_FLOAT, TypeMax);
 #endif
   RegisterAttr(TracerIndex, MPI_HBT_INT, 1);
+#ifdef CHECK_TRACER_INDEX
+  RegisterAttr(TracerId, MPI_HBT_INT, 1);
+#endif
   RegisterAttr(HostHaloId, MPI_HBT_INT, 1);
   RegisterAttr(Rank, MPI_HBT_INT, 1);
   RegisterAttr(Depth, MPI_INT, 1);
@@ -161,7 +164,7 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(VmaxPhysical, MPI_FLOAT, 1);
   RegisterAttr(LastMaxVmaxPhysical, MPI_FLOAT, 1);
   RegisterAttr(SnapshotIndexOfLastMaxVmax, MPI_INT, 1);
-  RegisterAttr(R2SigmaComoving, MPI_FLOAT, 1);
+  RegisterAttr(REncloseComoving, MPI_FLOAT, 1);
   RegisterAttr(RHalfComoving, MPI_FLOAT, 1);
   RegisterAttr(BoundR200CritComoving, MPI_FLOAT, 1);
   // RegisterAttr(R200MeanComoving, MPI_FLOAT, 1);
@@ -172,8 +175,6 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   RegisterAttr(SpecificSelfPotentialEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificSelfKineticEnergy, MPI_FLOAT, 1);
   RegisterAttr(SpecificAngularMomentum[0], MPI_FLOAT, 3);
-// RegisterAttr(SpinPeebles[0], MPI_FLOAT, 3);
-// RegisterAttr(SpinBullock[0], MPI_FLOAT, 3);
 #ifdef HAS_GSL
   RegisterAttr(InertialEigenVector[0], MPI_FLOAT, 9);
   RegisterAttr(InertialEigenVectorWeighted[0], MPI_FLOAT, 9);
@@ -238,14 +239,19 @@ void SubhaloSnapshot_t::ParticleIndexToId()
 
 void Subhalo_t::AverageCoordinates()
 {
-  // 	int coresize=GetCoreSize(Nbound);
+  /* We do not need to handle orphans here, since their most bound particle
+   * position and velocity is set in UpdateMostBoundPosition*/
   if (Particles.size())
   {
-    copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
-    copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
+    copyHBTxyz(ComovingMostBoundPosition, Particles[GetTracerIndex()].ComovingPosition);
+    copyHBTxyz(PhysicalMostBoundVelocity, Particles[GetTracerIndex()].GetPhysicalVelocity());
+
+    /* Copy the mass, in case this object becomes an orphan in the current output. */
+    Mbound = Particles[GetTracerIndex()].Mass;
+
+    AveragePosition(ComovingAveragePosition, Particles.data(), Nbound);
+    AverageVelocity(PhysicalAverageVelocity, Particles.data(), Nbound);
   }
-  AveragePosition(ComovingAveragePosition, Particles.data(), Nbound);
-  AverageVelocity(PhysicalAverageVelocity, Particles.data(), Nbound);
 }
 
 inline bool CompProfRadius(const RadMassVel_t &a, const RadMassVel_t &b)
@@ -266,7 +272,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   HBTReal LastMaxVmax;
   HBTInt SnapshotIndexOfLastMaxVmax; //the snapshot when it has the maximum Vmax, only considering past snapshots.
 
-  HBTReal R2SigmaComoving;
+  HBTReal REncloseComoving;
   HBTReal RHalfComoving;
 
   HBTReal R200CritComoving;
@@ -280,7 +286,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   {
     RmaxComoving = 0.;
     VmaxPhysical = 0.;
-    R2SigmaComoving = 0.;
+    REncloseComoving = 0.;
     RHalfComoving = 0.;
     BoundR200CritComoving = 0.;
     // 	R200MeanComoving=0.;
@@ -288,13 +294,6 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
     BoundM200Crit = 0.;
     // 	M200Mean=0.;
     // 	MVir=0.;
-    /*
-    for(int i=0;i<3;i++)
-    {
-      SpinPeebles[i]=0.;
-      SpinBullock[i]=0.;
-    }
-    */
     return;
   }
   HBTReal VelocityUnit = PhysicalConst::G / epoch.Cosmology.ScaleFactor;
@@ -329,7 +328,7 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
   RmaxComoving = maxprof->r;
   VmaxPhysical = sqrt(maxprof->v * VelocityUnit);
   RHalfComoving = prof[Nbound / 2].r;
-  R2SigmaComoving = prof[(HBTInt)(Nbound * 0.955)].r;
+  REncloseComoving = prof[Nbound-1].r;
 
   HBTReal virialF_tophat, virialF_b200, virialF_c200;
   epoch.HaloVirialFactors(virialF_tophat, virialF_b200, virialF_c200);
@@ -343,15 +342,6 @@ void Subhalo_t::CalculateProfileProperties(const Snapshot_t &epoch)
     LastMaxVmaxPhysical = VmaxPhysical;
   }
 
-  /*the spin parameters are kind of ambiguous. do not provide*/
-  /*
-  for(int i=0;i<3;i++)
-  {
-    SpinPeebles[i]=SpecificAngularMomentum[i]*
-      sqrt(fabs(SpecificSelfPotentialEnergy+0.5*SpecificSelfKineticEnergy))/PhysicalConst::G/Mbound;
-    SpinBullock[i]=SpecificAngularMomentum[i]/sqrt(2.*PhysicalConst::G*Mbound*R2SigmaComoving);
-  }
-  */
 }
 
 void Subhalo_t::CalculateShape()
@@ -506,13 +496,12 @@ void Subhalo_t::CountParticleTypes()
   }
 
   // If we found no tracer in this subgroup, default to the most bound particle.
-  TracerIndex = (Tracer_Index_ParticleType.second == -1) ? 0 : Tracer_Index_ParticleType.first;
+  HBTInt index = (Tracer_Index_ParticleType.second == -1) ? 0 : Tracer_Index_ParticleType.first;
+  SetTracerIndex(index);
 
-  // Sanity check
-  assert(TracerIndex != numeric_limits<HBTInt>::max());
 #else
   // Always use the first particle in DMO runs
-  TracerIndex = 0;
+  SetTracerIndex(0);
 #endif
 }
 
@@ -545,6 +534,9 @@ HBTInt Subhalo_t::KickNullParticles()
     }
   }
   Particles.resize(it_save - it_begin);
+
+  // Temporary fix to update TracerIndex
+  CountParticleTypes();
 
   // if(it!=it_save) cout<<it-it_save<<" outof "<<np_old<<" particles consumed for track "<<TrackId<<"\n";
   return it - it_save;
@@ -580,7 +572,8 @@ void Subhalo_t::CountParticles()
   Return the IDs of the N most bound tracer particles.
   Will return non-tracers if there are not enough tracers.
 */
-vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n) {
+vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n)
+{
 
   // Allocate the output vector
   std::vector<HBTInt> Ids(0);
@@ -588,18 +581,18 @@ vector<HBTInt> Subhalo_t::GetMostBoundTracerIds(HBTInt n) {
 
   // Store IDs of tracers
   for (int pass_nr = 0; pass_nr < 2; pass_nr += 1)
+  {
+    for (HBTInt i = 0; i < Nbound; i++)
     {
-      for (HBTInt i = 0; i < Nbound; i++)
-        {
-          const int is_tracer = Particles[i].IsTracer();          
-          if ((is_tracer && (pass_nr == 0)) || ((!is_tracer) && (pass_nr == 1)))
-            Ids.push_back(Particles[i].Id);
-          if (Ids.size() == n)
-            break;
-        }
+      const int is_tracer = Particles[i].IsTracer();
+      if ((is_tracer && (pass_nr == 0)) || ((!is_tracer) && (pass_nr == 1)))
+        Ids.push_back(Particles[i].Id);
       if (Ids.size() == n)
         break;
     }
+    if (Ids.size() == n)
+      break;
+  }
 
   return Ids;
 }

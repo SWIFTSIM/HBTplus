@@ -31,8 +31,10 @@ void SubhaloSnapshot_t::BuildHDFDataType()
 #endif
   H5Tclose(H5T_HBTIntArray_TypeMax);
   H5Tclose(H5T_FloatArray_TypeMax);
-
   InsertMember(TracerIndex, H5T_HBTInt);
+#ifdef CHECK_TRACER_INDEX
+  InsertMember(TracerId, H5T_HBTInt);
+#endif
   InsertMember(HostHaloId, H5T_HBTInt);
   InsertMember(Rank, H5T_HBTInt);
   InsertMember(Depth, H5T_NATIVE_INT);
@@ -46,7 +48,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(VmaxPhysical, H5T_NATIVE_FLOAT);
   InsertMember(LastMaxVmaxPhysical, H5T_NATIVE_FLOAT);
   InsertMember(SnapshotIndexOfLastMaxVmax, H5T_NATIVE_INT);
-  InsertMember(R2SigmaComoving, H5T_NATIVE_FLOAT);
+  InsertMember(REncloseComoving, H5T_NATIVE_FLOAT);
   InsertMember(RHalfComoving, H5T_NATIVE_FLOAT);
   InsertMember(BoundR200CritComoving, H5T_NATIVE_FLOAT);
   //   InsertMember(R200MeanComoving, H5T_NATIVE_FLOAT);
@@ -57,8 +59,6 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(SpecificSelfPotentialEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificSelfKineticEnergy, H5T_NATIVE_FLOAT);
   InsertMember(SpecificAngularMomentum, H5T_FloatVec3);
-//   InsertMember(SpinPeebles, H5T_FloatVec3);
-//   InsertMember(SpinBullock, H5T_FloatVec3);
 #ifdef HAS_GSL
   dims[0] = 3;
   dims[1] = 3;
@@ -80,7 +80,7 @@ void SubhaloSnapshot_t::BuildHDFDataType()
   InsertMember(MostBoundParticleId, H5T_HBTInt);
 
   InsertMember(SinkTrackId, H5T_HBTInt);
-  InsertMember(DescendantTrackId, H5T_HBTInt);  
+  InsertMember(DescendantTrackId, H5T_HBTInt);
   InsertMember(NestedParentTrackId, H5T_HBTInt);
 #undef InsertMember
   H5T_SubhaloInDisk = H5Tcopy(H5T_SubhaloInMem);
@@ -101,15 +101,6 @@ void SubhaloSnapshot_t::BuildHDFDataType()
 */
   H5Tclose(H5T_FloatVec3);
   H5Tclose(H5T_HBTxyz);
-}
-inline void Subhalo_t::DuplicateMostBoundParticleId()
-{
-  // Subhalos with no particles inherit their MostBoundID from their progenitor
-  // so all subhalos have a defined MostBoundID even if they contain zero particles.
-  if (Particles.size() > 0)
-  {
-    MostBoundParticleId = Particles[0].Id;
-  }
 }
 string SubhaloSnapshot_t::GetSubDir()
 {
@@ -180,6 +171,20 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
     }
     cout << TotNumberOfSubs << " subhalos loaded at snapshot " << SnapshotIndex << "(" << SnapshotId << ")\n";
   }
+
+#ifndef NDEBUG
+#ifndef DM_ONLY
+  // On restarting we don't know the particle types because only Ids were saved to the SrcSnap.
+  // Set Type=TypeMax to avoid tripping assert due to tracer not found when updating particles.
+  // Don't need to do this in DM only runs.
+  for(auto &sub : Subhalos) {
+    for(auto &part : sub.Particles) {
+      part.Type = TypeMax;
+    }
+  }
+#endif
+#endif
+  
 }
 void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 { // Read iFile for current snapshot.
@@ -433,7 +438,6 @@ void SubhaloSnapshot_t::WriteFile(int iFile, int nfiles, HBTInt NumSubsAll)
       offset += Subhalos[i].Particles.size();
       for (auto &&p : Subhalos[i].Particles)
         IdBuffer.push_back(p.Id);
-      Subhalos[i].DuplicateMostBoundParticleId(); // dump for galform
     }
   }
   writeHDFmatrix(file, vl.data(), "SubhaloParticles", ndim, dim_sub, H5T_HBTIntArr);

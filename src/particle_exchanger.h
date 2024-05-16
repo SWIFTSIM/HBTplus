@@ -14,6 +14,7 @@
 #include "mymath.h"
 #include "snapshot.h"
 #include "subhalo.h"
+#include "sort_by_hash.h"
 
 class OrderedParticle_t : public Particle_t
 {
@@ -154,29 +155,22 @@ void ParticleExchanger_t<Halo_T>::CollectParticles()
 
 template <class Halo_T>
 void ParticleExchanger_t<Halo_T>::SendParticles()
-{ // order the particles and send them to the corresponding processing according to ProcessIdRange
-  sort(LocalParticles.begin(), LocalParticles.end(), ParticleExchangeComp::CompParticleId);
+{
+
+  // Sort the particles by destination rank
+  std::vector<HBTInt> offset = sort_by_hash(LocalParticles, world.size());
 
   LocalSizes.resize(world.size());
   LocalIterators.resize(world.size());
-  int rank = 0;
-  for (auto it = LocalParticles.begin(); it != LocalParticles.end(); ++it)
+  for (int rank = 0; rank < world.size(); rank++)
   {
-    while (it->Id >= snap.ProcessIdRanges[rank])
-    {
-      if (rank == world.size()) // no particle id should exceed ProcessIdRange.back()
-      {
-        cerr << "Error: invalid particle id: " << it->Id << endl;
-        exit(1);
-      }
-      LocalIterators[rank++] = it;
-    }
+    LocalIterators[rank] = LocalParticles.begin() + offset[rank];
   }
-  while (rank < world.size())
-    LocalIterators[rank++] = LocalParticles.end();
-  for (rank = 0; rank < world.size() - 1; rank++)
+  for (int rank = 0; rank < world.size() - 1; rank++)
+  {
     LocalSizes[rank] = LocalIterators[rank + 1] - LocalIterators[rank];
-  LocalSizes[rank] = LocalParticles.end() - LocalIterators.back();
+  }
+  LocalSizes[world.size() - 1] = LocalParticles.end() - LocalIterators.back();
 
   RoamSizes.resize(world.size());
   MPI_Alltoall(LocalSizes.data(), 1, MPI_HBT_INT, RoamSizes.data(), 1, MPI_HBT_INT, world.Communicator);
@@ -206,7 +200,22 @@ void ParticleExchanger_t<Halo_T>::QueryParticles()
   for (auto &&p : RoamParticles)
   {
     if (p.Id != SpecialConst::NullParticleId)
+    {
       p = snap.Particles[p.Id]; // query the particle property; may need to spawn particles due to star formation here.
+    }
+    else
+    {
+#ifdef DM_ONLY
+      /* Currently IsTracer() is always true for DM only runs so this will
+         abort if any DM particle is not found. Would need to change this
+         for annihilating DM, for example. */
+      assert(!p.IsTracer());
+#else
+      /* In hydro runs particles are allowed to disappear if either we don't
+         know their type or we know they're not a tracer type. */
+      assert((p.Type == TypeMax) || (!p.IsTracer()));
+#endif
+    }
   }
 
   ParticleExchangeComp::RestoreParticleOrder(RoamParticles);

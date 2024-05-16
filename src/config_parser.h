@@ -42,6 +42,7 @@ public:
   int MinSnapshotIndex;
   int MinNumPartOfSub;
   int MinNumTracerPartOfSub;
+  int NumTracerHostFinding;
   int NumTracersForDescendants;
   long GroupParticleIdMask; // only used for a peculiar gadget format.
   HBTReal MassInMsunh;
@@ -69,6 +70,7 @@ public:
   HBTReal TreeAllocFactor;
   HBTReal TreeNodeOpenAngle;
   HBTInt TreeMinNumOfCells;
+  HBTInt ParticleNullGroupId;
 
   HBTInt MaxSampleSizeOfPotentialEstimate;
   bool RefineMostboundParticle; // whether to further improve mostbound particle accuracy in case a
@@ -92,7 +94,8 @@ public:
     MaxConcurrentIO = 10;
     MinSnapshotIndex = 0;
     MinNumPartOfSub = 20;
-    MinNumTracerPartOfSub = 20;
+    MinNumTracerPartOfSub = 10;
+    NumTracerHostFinding = MinNumTracerPartOfSub;
     NumTracersForDescendants = 10;
     GroupParticleIdMask = 0;
     MassInMsunh = 1e10;

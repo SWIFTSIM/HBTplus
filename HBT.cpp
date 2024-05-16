@@ -60,7 +60,6 @@ int main(int argc, char **argv)
   subsnap.Load(world, snapshot_start - 1, SubReaderDepth_t::SrcParticles);
 
   /* Create the timing log file */
-  Timer_t timer;
   ofstream time_log;
   if (world.rank() == 0)
   {
@@ -71,59 +70,92 @@ int main(int argc, char **argv)
   /* Main loop, iterate over chosen data outputs */
   for (int isnap = snapshot_start; isnap <= snapshot_end; isnap++)
   {
-    timer.Tick(world.Communicator);
+    global_timer.Tick("start", world.Communicator);
+
+    /* Load particle information */
     ParticleSnapshot_t partsnap;
     partsnap.Load(world, isnap);
+    global_timer.Tick("read_snap", world.Communicator);
+
     subsnap.SetSnapshotIndex(isnap);
+
+    /* Load FOF group information */
     HaloSnapshot_t halosnap;
     halosnap.Load(world, isnap);
+    global_timer.Tick("read_halo", world.Communicator);
 
     /* For SWIFT-based outputs we load some parameters directly from the snapshots,
        so we delay writing Parameters.log until the values are known. */
     if ((isnap == snapshot_start) && (world.rank() == 0))
       HBTConfig.DumpParameters();
 
-    timer.Tick(world.Communicator);
     halosnap.UpdateParticles(world, partsnap);
-    timer.Tick(world.Communicator);
+    global_timer.Tick("update_halo", world.Communicator);
+
     subsnap.UpdateParticles(world, partsnap);
     subsnap.UpdateMostBoundPosition(world, partsnap);
+    global_timer.Tick("update_subhalo", world.Communicator);
 
     // Don't need the particle data after this point, so save memory
     partsnap.ClearParticles();
 
-    timer.Tick(world.Communicator);
+    /* We assign a FOF host to every pre-existing subhalo. All particles belonging to a
+     * secondary subhalo are constrained to be within the FOF assigned to the
+     * subhalo they belong to. Constraint not applied if particles are fof-less.*/
     subsnap.AssignHosts(world, halosnap, partsnap);
+    global_timer.Tick("assign_hosts", world.Communicator);
+
+    /* Store the NumTracersForDescendants most bound particles of subhaloes
+     * resolved in the previous output. These will be used after unbinding to
+     * determine which subhalo has accreted them */
     MergerTreeInfo merger_tree;
     merger_tree.StoreTracerIds(subsnap.Subhalos, HBTConfig.NumTracersForDescendants);
+    global_timer.Tick("store_tracers", world.Communicator);
+
+    /* We decide which subhaloes are the central of each FOF group. Centrals are
+     * assigned all the particles in the FOF that do not belong to secondary
+     * subhaloes. */
     subsnap.PrepareCentrals(world, halosnap);
+    global_timer.Tick("prepare_centrals", world.Communicator);
 
-    timer.Tick(world.Communicator);
+    /* We recursively unbind subhaloes in a depth-first approach, defined
+     * by hierarchical relationships. We also truncate the source of each
+     * subhalo based on its number of bound particles.  */
     if (world.rank() == 0)
-      cout << "unbinding...\n";
+      cout << "Unbinding...\n";
     subsnap.RefineParticles();
+    global_timer.Tick("unbind", world.Communicator);
 
-    timer.Tick(world.Communicator);
+    /* We check which subhaloes within the same structure hierarchy overlap in
+     * phase-space, and merge them if the option is enabled. If this occurs, the
+     * subhalo that accreted particles is subject to unbinding again. */
     subsnap.MergeSubhalos();
+    global_timer.Tick("merge", world.Communicator);
 
-    timer.Tick(world.Communicator);
+    /* Assign a unique TrackId to newly created subgroups. Update depth values,
+     * hierarchical relationship, globalise FOF host values and compute other
+     * subhalo properties (e.g. Vmax) */
     subsnap.UpdateTracks(world, halosnap);
+    global_timer.Tick("update_tracks", world.Communicator);
 
-    timer.Tick(world.Communicator);
+    /* We locate where the tagged particles of previously bound subhaloes have
+     * ended up in. */
     merger_tree.FindDescendants(subsnap.Subhalos, world);
+    global_timer.Tick("merger_tree", world.Communicator);
+
+    /* Save */
     subsnap.Save(world);
+    global_timer.Tick("write_subhalos", world.Communicator);
 
-    timer.Tick(world.Communicator);
-
-    /* Save measured timing information */
+    /* Output timing information */
     if (world.rank() == 0)
     {
-      time_log << isnap << "\t" << subsnap.GetSnapshotId();
-      for (int i = 1; i < timer.Size(); i++)
-        time_log << "\t" << timer.GetSeconds(i);
+      time_log << isnap << " \t" << subsnap.GetSnapshotId();
+      for (int i = 1; i < global_timer.Size(); i++)
+        time_log << "\t" << global_timer.names[i] << "=" << global_timer.GetSeconds(i);
       time_log << endl;
     }
-    timer.Reset();
+    global_timer.Reset();
   }
 
   MPI_Finalize();
