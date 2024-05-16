@@ -23,8 +23,8 @@ int main(int argc, char *argv[]) {
 
     // Determine maximum message size for small chunks test (all ranks need to agree on this)
     std::uniform_int_distribution<> send_size_dist(4, 128);
-    int max_send_size = send_size_dist(rng);
-    MPI_Bcast(&max_send_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    int max_send_size_bytes = send_size_dist(rng);
+    MPI_Bcast(&max_send_size_bytes, 1, MPI_INT, 0, MPI_COMM_WORLD);
     
     // Make an array of counts for other processors
     std::uniform_int_distribution<> dist(0, 100);
@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
     std::fill(std::begin(recvbuf), std::end(recvbuf), -1);
     Pairwise_Alltoallv(sendbuf, sendcounts, senddispls, MPI_INT,
                        recvbuf, recvcounts, recvdispls, MPI_INT, MPI_COMM_WORLD,
-                       (size_t) max_send_size);
+                       (size_t) max_send_size_bytes);
     
     // Verify result
     for(int src=0; src<comm_size; src+=1) {
