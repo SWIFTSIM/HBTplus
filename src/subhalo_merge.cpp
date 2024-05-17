@@ -184,15 +184,16 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
   /* We pass the particles from this subhalo to the one it merged with. We only
    * do the bound subset, since the unbound subset has already made its way onto
    * the upper hierarchy when this subhalo was subject to unbinding.  */
-  HBTInt np_max = host.Particles.size() + Nbound;
 
-  /* TODO: check whether this exclusivity list is required. If everything is
-   * working as expected, we should have no duplicates between these two
-   * subhaloes*/
-  unordered_set<HBTInt> UniqueIds(np_max);
+#ifndef NDEBUG
+  /* Previous, extra safe version. In the current version we simply pass the bound particles
+   * as we are guaranteed to not have duplicates between these two objects. */
+  HBTInt np_new = host.Particles.size() + Nbound;
+
+  unordered_set<HBTInt> UniqueIds(np_new);
   for (auto &&p : host.Particles)
     UniqueIds.insert(p.Id);
-  host.Particles.reserve(np_max);
+  host.Particles.reserve(np_new);
 
   for (HBTInt i = 0; i < Nbound; i++)
   {
@@ -202,6 +203,10 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
     if (inserted)
       host.Particles.push_back(Particles[i]);
   }
+#endif
+
+  /* New version: insert the bound set of the merged subhalo. */
+  host.Particles.insert(host.Particles.end(), Particles.begin(), Particles + Nbound);
 #endif
 
   /* We will copy the information required to save the orphan in this output.
