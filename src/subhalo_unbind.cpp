@@ -495,8 +495,7 @@ void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 
     /* The unbound particles of the child we just subjected to unbinding are
      * accreted to the source of the current subhalo. */
-    Particles.insert(Particles.end(), subhalo.Particles.begin() + subhalo.Nbound,
-                     subhalo.Particles.end());
+    Particles.insert(Particles.end(), subhalo.Particles.begin() + subhalo.Nbound, subhalo.Particles.end());
   }
 
   /* Unbind the current subhalo */

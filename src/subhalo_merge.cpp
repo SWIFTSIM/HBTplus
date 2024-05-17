@@ -181,9 +181,9 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
     return; // skip orphans and nulls
 
 #ifndef INCLUSIVE_MASS
-  /* We pass the particles from this subhalo to the one it merged with. We only
-   * do the bound subset, since the unbound subset has already made its way onto
-   * the upper hierarchy when this subhalo was subject to unbinding.  */
+    /* We pass the particles from this subhalo to the one it merged with. We only
+     * do the bound subset, since the unbound subset has already made its way onto
+     * the upper hierarchy when this subhalo was subject to unbinding.  */
 
 #ifndef NDEBUG
   /* Previous, extra safe version. In the current version we simply pass the bound particles
