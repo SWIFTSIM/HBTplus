@@ -202,12 +202,6 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
     if (inserted)
       host.Particles.push_back(Particles[i]);
   }
-
-  /* NOTE: commented out since host.Nbound does not necessarily increment by
-   * the number of accreted particles. TODO: does commenting this out break
-   * anything? I do not expect it to, since we are to unbinding the host after
-   * merging checks */
-  // host.Nbound += Nbound;
 #endif
 
   /* We will copy the information required to save the orphan in this output.
