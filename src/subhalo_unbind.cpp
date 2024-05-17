@@ -484,11 +484,6 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 }
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 {
-  bool is_orphan = (Nbound <= 1);
-  ParticleList_t particle_backup;
-  if (is_orphan)
-    particle_backup = Particles; // orphans do not participate
-
   /* Unbind all subhaloes that are nested deeper in the hierarchy of the current
    * one. */
   for (HBTInt i = 0; i < NestedSubhalos.size(); i++)
@@ -501,13 +496,8 @@ void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
     /* The unbound particles of the child we just subjected to unbinding are
      * accreted to the source of the current subhalo. */
     Particles.insert(Particles.end(), subhalo.Particles.begin() + subhalo.Nbound,
-                     subhalo.Particles.end()); // the mostbound particle of orphan is treated as bound and thus does not
-                                               // feed to its host subhalo. However, it can still be collected by the
-                                               // central subhalo as it is not masked out from the fof particles.
+                     subhalo.Particles.end());
   }
-
-  if (is_orphan)
-    Particles.swap(particle_backup); // restore to single particle for unbinding
 
   /* Unbind the current subhalo */
   Unbind(snap);
@@ -524,9 +514,6 @@ void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 
   /* We are now sure about which particles are bound to this subhalo, so we can
    * safely pass the unbound ones to its parent and truncate the source.*/
-
-  if (is_orphan)
-    Particles.swap(particle_backup); // set to extended list, to feed to its host
 }
 
 void Subhalo_t::TruncateSource()
