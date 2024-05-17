@@ -203,11 +203,13 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
     if (inserted)
       host.Particles.push_back(Particles[i]);
   }
-#endif
+#else
 
   /* New version: insert the bound set of the merged subhalo. */
   host.Particles.insert(host.Particles.end(), Particles.begin(), Particles.begin() + Nbound);
-#endif
+
+#endif // of NDEBUG
+#endif // of inclusive mass
 
   /* We will copy the information required to save the orphan in this output.
    * For future outputs, we will rely on UpdateMostBoundPosition instead. We need
