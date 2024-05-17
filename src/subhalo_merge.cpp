@@ -206,7 +206,7 @@ void Subhalo_t::MergeTo(Subhalo_t &host)
 #endif
 
   /* New version: insert the bound set of the merged subhalo. */
-  host.Particles.insert(host.Particles.end(), Particles.begin(), Particles + Nbound);
+  host.Particles.insert(host.Particles.end(), Particles.begin(), Particles.begin() + Nbound);
 #endif
 
   /* We will copy the information required to save the orphan in this output.
