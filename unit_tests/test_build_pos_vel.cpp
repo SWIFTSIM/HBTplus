@@ -73,23 +73,21 @@ int main(int argc, char *argv[])
           verify(periodic_distance(current_pos, sub.Particles[i].ComovingPosition, HBTConfig.BoxSize) < radius);
 
         // Compute position and velocity for merging calculation
-        SubHelper_t subhelper;
-        subhelper.BuildPosition(sub);
-        subhelper.BuildVelocity(sub);
+        sub.GetCorePhaseSpaceProperties();
 
         // Check that the resulting position is vaguely sane
-        verify(periodic_distance(subhelper.ComovingPosition, current_pos, HBTConfig.BoxSize) < radius);
+        verify(periodic_distance(sub.CoreComovingPosition, current_pos, HBTConfig.BoxSize) < radius);
 
         // Check that the resulting velocity is vaguely sane
         for (int i = 0; i < 3; i += 1)
         {
-          verify(subhelper.PhysicalVelocity[i] >= vel[i] - vel_range);
-          verify(subhelper.PhysicalVelocity[i] <= vel[i] + vel_range);
+          verify(sub.CorePhysicalVelocity[i] >= vel[i] - vel_range);
+          verify(sub.CorePhysicalVelocity[i] <= vel[i] + vel_range);
         }
 
         // The uncertainty on the position should be less than the size of the halo
-        verify(subhelper.ComovingSigmaR <= radius);
-        verify(subhelper.PhysicalSigmaV <= vel_range);
+        verify(sub.CoreComovingSigmaR <= radius);
+        verify(sub.CorePhysicalSigmaV <= vel_range);
 
         // To do more accurate checks we need to determine which particles
         // should have been used for the calculations. First store the indexes
@@ -146,10 +144,10 @@ int main(int argc, char *argv[])
           check_pos[j] = mxsum[j] / msum;
           check_vel[j] = mvsum[j] / msum;
         }
-        verify(periodic_distance(subhelper.ComovingPosition, check_pos, HBTConfig.BoxSize) < 1.0e-5);
+        verify(periodic_distance(sub.CoreComovingPosition, check_pos, HBTConfig.BoxSize) < 1.0e-5);
         for (int j = 0; j < 3; j += 1)
         {
-          verify(fabs(check_vel[j] - subhelper.PhysicalVelocity[j]) < 1.0e-5);
+          verify(fabs(check_vel[j] - sub.CorePhysicalVelocity[j]) < 1.0e-5);
         }
 
         // Check the uncertainty on the position and velocity
@@ -161,9 +159,9 @@ int main(int argc, char *argv[])
           mv2sum[j] -= (mvsum[j] * mvsum[j]) / (msum * msum);
         }
         double check_sigma_r = sqrt(mx2sum[0] + mx2sum[1] + mx2sum[2]);
-        verify(fractional_difference(check_sigma_r, subhelper.ComovingSigmaR) < 1.0e-5);
+        verify(fractional_difference(check_sigma_r, sub.CoreComovingSigmaR) < 1.0e-5);
         double check_sigma_v = sqrt(mv2sum[0] + mv2sum[1] + mv2sum[2]);
-        verify(fractional_difference(check_sigma_v, subhelper.PhysicalSigmaV) < 1.0e-5);
+        verify(fractional_difference(check_sigma_v, sub.CorePhysicalSigmaV) < 1.0e-5);
       }
     }
   }

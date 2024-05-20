@@ -101,6 +101,19 @@ public:
 #endif
   SubIdList_t NestedSubhalos; // list of sub-in-subs.
 
+  /* Methods relating to new merging approach */
+  bool MergeRecursively(SubhaloList_t &Subhalos, const Snapshot_t &snap, Subhalo_t &ReferenceSubhalo);
+  bool AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo);
+  float PhaseSpaceDistance(const Subhalo_t &ReferenceSubhalo);
+  void GetCorePhaseSpaceProperties();
+  void SetMergerInformation(const int &ReferenceTrackId, const int &SnapshotIndex);
+
+  /* Properties relating to the new merging approach */
+  HBTxyz CoreComovingPosition;
+  HBTxyz CorePhysicalVelocity;
+  float CoreComovingSigmaR;
+  float CorePhysicalSigmaV;
+
   Subhalo_t()
     : Nbound(0), Rank(0), Mbound(0), Depth(0)
 #ifndef DM_ONLY
@@ -245,8 +258,14 @@ private:
   void BuildHDFDataType();
   void BuildMPIDataType();
   void PurgeMostBoundParticles();
+
+  /* I/O methods */
   void ReadFile(int iFile, const SubReaderDepth_t depth);
-  void WriteFile(int iFile, int nfiles, HBTInt NumSubsAll);
+  void WriteBoundFiles(MpiWorker_t &world, const int &number_ranks_writing);
+  void WriteSourceFiles(MpiWorker_t &world, const int &number_ranks_writing);
+  void WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsAll);
+  void WriteSourceSubfile(int iFile, int nfiles);
+
   void LevelUpDetachedSubhalos();
   void ExtendCentralNest();
   void LocalizeNestedIds(MpiWorker_t &world);
@@ -254,11 +273,8 @@ private:
   void NestSubhalos(MpiWorker_t &world);
   void MaskSubhalos();
   vector<int> RootNestSize; // buffer variable for temporary use.
-  void GlueHeadNests();
-  void UnglueHeadNests();
   void FillDepthRecursive(HBTInt subid, int depth);
   void FillDepth();
-  void MergeRecursive(HBTInt subid);
   void SetNestedParentIds();
 
 public:
@@ -302,7 +318,9 @@ public:
   void PrepareCentrals(MpiWorker_t &world, HaloSnapshot_t &halo_snap);
   void RefineParticles();
   void UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap);
-  void MergeSubhalos();
+
+  /* To remove duplicate particles from the source subgroup. */
+  void CleanTracks();
 
   HBTInt size() const
   {
@@ -360,21 +378,6 @@ public:
   Index_t GetIndex(Index_t i) const
   {
     return i;
-  }
-};
-
-struct SubHelper_t
-{
-  HBTInt HostTrackId;
-  bool IsMerged;
-  HBTxyz ComovingPosition;
-  HBTxyz PhysicalVelocity;
-  float ComovingSigmaR;
-  float PhysicalSigmaV;
-  void BuildPosition(const Subhalo_t &sub);
-  void BuildVelocity(const Subhalo_t &sub);
-  SubHelper_t() : HostTrackId(-1), IsMerged(false)
-  {
   }
 };
 

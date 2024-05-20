@@ -660,10 +660,6 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
   halo_snap.ClearParticleHash();
 
   MemberTable.Build(halo_snap.Halos.size(), Subhalos, true);
-
-  /* We constrain particles to belong to FOF that hosts the subhalo they are
-   * associated to. */
-  ConstrainToSingleHost(halo_snap);
 }
 
 /* Constrains subhaloes to only exist within a single host. This prevents
@@ -677,7 +673,13 @@ void SubhaloSnapshot_t::ConstrainToSingleHost(const HaloSnapshot_t &halo_snap)
    * subhalos is local value, rather than global. */
 #pragma omp parallel for schedule(dynamic, 1) if (ParallelizeHaloes)
   for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
-    Subhalos[subid].RemoveOtherHostParticles(halo_snap.Halos[Subhalos[subid].HostHaloId].HaloId);
+  {
+    /* Need to be careful with hostless haloes, as otherwise we try to access
+     * entry -1 */
+    HBTInt GlobalHostHaloId = (Subhalos[subid].HostHaloId == -1) ? HBTConfig.ParticleNullGroupId
+                                                                 : halo_snap.Halos[Subhalos[subid].HostHaloId].HaloId;
+    Subhalos[subid].RemoveOtherHostParticles(GlobalHostHaloId);
+  }
 }
 
 /* This will remove from the source of the current subhalo all particles that
@@ -688,12 +690,15 @@ void SubhaloSnapshot_t::ConstrainToSingleHost(const HaloSnapshot_t &halo_snap)
  * particles get swapped with those of the FOF anyway. */
 void Subhalo_t::RemoveOtherHostParticles(const HBTInt &GlobalHostHaloId)
 {
-  /* Identify (FOF-hosted) particles not present in the one assigned to the
-   * subgroup. We use NullGroupId rather than -1, since the value is input
-   * dependent. */
-  auto foreign_particles = std::remove_if(Particles.begin(), Particles.end(), [&](Particle_t const &particle) {
+  /* Criteria used to flag particles to remove. We use NullGroupId rather than -1,
+   * since the value is input dependent. */
+  auto CheckHostMembership = [&](Particle_t const &particle) {
     return (particle.HostId != (GlobalHostHaloId)) && (particle.HostId != HBTConfig.ParticleNullGroupId);
-  });
+  };
+
+  /* Identify (FOF-hosted) particles not present in the one assigned to the
+   * subgroup. */
+  auto foreign_particles = std::remove_if(Particles.begin(), Particles.end(), CheckHostMembership);
 
   /* Remove from vector */
   Particles.erase(foreign_particles, Particles.end());
@@ -954,8 +959,6 @@ void SubhaloSnapshot_t::GlobalizeTrackReferences()
   for (HBTInt i = 0; i < Subhalos.size(); i++)
   {
     auto &subhalo = Subhalos[i];
-    if (subhalo.JustTrapped(curr_snap)) // only do this for freshly merged tracks; the old ones are already global.
-      subhalo.SinkTrackId = Subhalos[subhalo.SinkTrackId].TrackId;
     for (auto &&subid : subhalo.NestedSubhalos)
       subid = Subhalos[subid].TrackId;
   }
@@ -1093,13 +1096,15 @@ void Subhalo_t::LevelUpDetachedMembers(vector<Subhalo_t> &Subhalos)
 
 class SubhaloMasker_t
 {
+public:
   unordered_set<HBTInt> ExclusionList;
 
-public:
   SubhaloMasker_t(HBTInt np_guess)
   {
     ExclusionList.reserve(np_guess);
   }
+  /* This routine masks particles by giving preference to subhaloes deeper in
+   * the hierarchy. */
   void Mask(HBTInt subid, vector<Subhalo_t> &Subhalos, int SnapshotIndex)
   {
     auto &subhalo = Subhalos[subid];
@@ -1127,6 +1132,162 @@ public:
     }
     subhalo.Particles.resize(it_save - it_begin);
   }
+
+  HBTInt EstimateListSize(HBTInt subid, vector<Subhalo_t> &Subhalos,
+                          const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  {
+
+    HBTInt TotalSize = 0;
+    auto &subhalo = Subhalos[subid];
+
+    /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
+    for (auto nestedid : subhalo.NestedSubhalos)
+      TotalSize += EstimateListSize(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
+
+    TotalSize += subhalo.Particles.size();
+
+    return TotalSize;
+  }
+
+  void CleanSource(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  {
+    /* Mask the 10 most bound tracer particles of every resolved subhalo in the
+     * tree. We do this to not encounter issues during host finding. */
+    MaskTopBottom(subid, Subhalos, TrackHash);
+
+    /* Mask the remaining particles, such that they are preferentially given to
+     * subhaloes deeper in the hierarchy. */
+    MaskBottomTop(subid, Subhalos, TrackHash);
+  }
+
+  /* This routine masks particles by giving priority to subhaloes shallower
+   * in the hierarchy. */
+  void MaskTopBottom(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  {
+    /* We perform the masking first */
+    auto &subhalo = Subhalos[subid];
+
+    /* To keep track of how many tracers we have encountered so far. */
+    HBTInt tracer_counter = 0;
+
+    for (HBTInt i = 0; i < subhalo.Particles.size(); i++)
+    {
+      /* We have now ensured to keep the required number of most bound subset of
+       * tracers for this subhalo. */
+      if (tracer_counter == HBTConfig.MinNumTracerPartOfSub)
+        break;
+
+      /* Only mask tracers */
+      if (subhalo.Particles[i].IsTracer())
+      {
+        /* We insert in the exclusion list so that more deeply nested subhaloes
+         * do not remove this tracer when masking from bottom to top. */
+        auto insert_status = ExclusionList.insert(subhalo.Particles[i].Id);
+
+        /* We should have only just one bound unique tracer within the FOF level,
+         * so we should not fail the insertion. */
+        assert(insert_status.second == true);
+
+        /* Since we do not change the size of subhalo particles at this stage,
+         * we move forward the tracers, so we know how many to skip in the bottom
+         * to top masking step. */
+        std::swap(subhalo.Particles[i], subhalo.Particles[tracer_counter++]);
+      }
+    }
+
+#ifndef NDEBUG
+    /* Each resolved subhalo should contain at least this number of tracers
+     * bound to it, hence we should have found a sufficient number. */
+    if (subhalo.Nbound > 0)
+    {
+      assert(tracer_counter == HBTConfig.MinNumTracerPartOfSub);
+      /* At this stage, we should have have all tracers at the MinNumTracerPartOfSub
+       * most bound particles */
+
+      for (int i = 0; i < HBTConfig.MinNumTracerPartOfSub; i++)
+        assert(subhalo.Particles[i].IsTracer());
+    }
+#endif
+
+    /* Update TracerIndex value */
+    subhalo.SetTracerIndex(0);
+
+    /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
+    for (auto nestedid : subhalo.NestedSubhalos)
+      MaskTopBottom(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
+  }
+
+  /* This routine masks particles by giving priority to subhaloes deeper
+   * in the hierarchy. */
+  void MaskBottomTop(HBTInt subid, vector<Subhalo_t> &Subhalos, const MappedIndexTable_t<HBTInt, HBTInt> &TrackHash)
+  {
+    auto &subhalo = Subhalos[subid];
+
+    /* We go deeper in the hierarchy. Use TrackHash to navigate the Subhalo array. */
+    for (auto nestedid : subhalo.NestedSubhalos)
+      MaskBottomTop(TrackHash.GetIndex(nestedid), Subhalos, TrackHash);
+
+    /* Skip orphans */
+    if (subhalo.Nbound <= 1)
+      return;
+
+#ifndef NDEBUG
+    /* At this stage, we should have have all tracers at the MinNumTracerPartOfSub
+     * most bound particles */
+    for (int i = 0; i < HBTConfig.MinNumTracerPartOfSub; i++)
+      assert(subhalo.Particles[i].IsTracer());
+#endif
+
+    /* At this point, we have navigated towards the bottom of the hierarchy.
+     * Start masking bottom up. The iterators start after the last tracer we
+     * shifted is. */
+    HBTInt tracer_counter = HBTConfig.MinNumTracerPartOfSub;
+    HBTInt NboundChange = 0;
+
+    auto it_begin = subhalo.Particles.begin() + tracer_counter, it_save = it_begin;
+    for (auto it = it_begin; it != subhalo.Particles.end(); ++it)
+    {
+      auto insert_status = ExclusionList.insert(it->Id);
+      if (insert_status.second) // inserted, meaning not excluded
+      {
+        if (it != it_save)
+          *it_save = move(*it);
+        ++it_save;
+      }
+      /* Bound particle excluded; we will need to update Nbound. */
+      else if ((it - subhalo.Particles.begin()) < subhalo.Nbound)
+        NboundChange++;
+    }
+
+    /* Resize to achieve a clean source subhalo, i.e. no duplicate IDs across
+     * subhaloes in the same FOF. This will prevent duplicates if the subhaloes
+     * diverge in the next output. In this step we may remove enough particles
+     * to make Nbound < MinNumPartOfSub, but the decision about its disruption is
+     * made in the next output (e.g. it may reaccrete particles during unbinding) */
+    subhalo.Particles.resize(it_save - subhalo.Particles.begin());
+
+    /* We should not be checking whether the subhalo keeps all the particles, but rather
+     * whether it retains at least MinNumTracerPartOfSub tracers */
+    assert(subhalo.Particles.size() >= HBTConfig.MinNumTracerPartOfSub);
+
+    /* This is being updated for consistency, but having an updated Nbound is
+     * not a requirement within the code until after unbinding the next output. */
+    subhalo.Nbound -= NboundChange;
+
+#ifndef NDEBUG
+    /* We should have retained at least 10 most bound tracers. */
+    {
+      int remaining_tracers = 0;
+      for (int i = 0; i < subhalo.Nbound; i++)
+      {
+        remaining_tracers += subhalo.Particles[i].IsTracer() ? 1 : 0;
+        if (remaining_tracers >= HBTConfig.MinNumTracerPartOfSub)
+          break;
+      }
+      assert(remaining_tracers >= HBTConfig.MinNumTracerPartOfSub);
+    }
+#endif
+  }
 };
 
 void SubhaloSnapshot_t::MaskSubhalos()
@@ -1149,37 +1310,32 @@ void SubhaloSnapshot_t::MaskSubhalos()
   }
 }
 
-void SubhaloSnapshot_t::GlueHeadNests()
+void SubhaloSnapshot_t::CleanTracks()
 {
-#pragma omp single
-  RootNestSize.resize(MemberTable.SubGroups.size());
-#pragma omp for
-  for (HBTInt haloid = 0; haloid < RootNestSize.size(); haloid++)
-  { // restore nest to the state during unbinding
-    auto &subgroup = MemberTable.SubGroups[haloid];
-    if (subgroup.size() == 0)
-    {
-      RootNestSize[haloid] = 0;
-      continue;
-    }
-    auto &nests = Subhalos[subgroup[0]].NestedSubhalos;
-    RootNestSize[haloid] = nests.size(); // backup the original size
-    auto &heads = MemberTable.SubGroupsOfHeads[haloid];
-    nests.insert(nests.end(), heads.begin() + 1, heads.end());
-  }
-}
+  /* Create correspondence between TrackId and index in Subhalo array */
+  TrackKeyList_t Ids(*this);
+  MappedIndexTable_t<HBTInt, HBTInt> TrackHash;
+  TrackHash.Fill(Ids, SpecialConst::NullTrackId);
 
-void SubhaloSnapshot_t::UnglueHeadNests()
-{
-#pragma omp for
-  for (HBTInt haloid = 0; haloid < RootNestSize.size(); haloid++)
+  /* Iterate over all subhalos in the present rank. */
+#pragma omp parallel for
+  for (HBTInt subid = 0; subid < Subhalos.size(); subid++)
   {
-    auto &subgroup = MemberTable.SubGroups[haloid];
-    if (subgroup.size())
-      Subhalos[subgroup[0]].NestedSubhalos.resize(RootNestSize[haloid]); // restore old satellite list
+    /* Skip non-centrals and centrals with no subhalos */
+    auto &central = Subhalos[subid];
+    if ((central.Rank != 0) || (central.NestedSubhalos.size() == 0))
+      continue;
+
+    /* We need to use the TrackHash here, since the subids have been converted
+     * to the global values. */
+    SubhaloMasker_t Masker(central.Particles.size() * 1.2);
+
+    // Try allocating sufficient memory for this to work
+    HBTInt MaskerSize = Masker.EstimateListSize(subid, Subhalos, TrackHash);
+
+    Masker.ExclusionList.reserve(MaskerSize * 1.2);
+    Masker.CleanSource(subid, Subhalos, TrackHash);
   }
-#pragma omp single
-  RootNestSize.clear();
 }
 
 void SubhaloSnapshot_t::UpdateTracks(MpiWorker_t &world, const HaloSnapshot_t &halo_snap)

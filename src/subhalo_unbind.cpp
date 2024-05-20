@@ -287,6 +287,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   {
     Nbound = Particles.size();
     CountParticles();
+    GetCorePhaseSpaceProperties();
 #ifdef SAVE_BINDING_ENERGY
     Energies.clear();
 #endif
@@ -409,8 +410,9 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
       /* Do not allow the orphan to have any particles, so they can be subject to
        * unbinding in their parent. The particle array will be updated after this
-       * subhalo has been done. */
+       * subhalo has been done, when truncating the source. */
       Nbound = 0;
+      Mbound = 0;
 
       break;
     }
@@ -461,12 +463,17 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   }
   ESnap.AverageKinematics(SpecificSelfPotentialEnergy, SpecificSelfKineticEnergy, SpecificAngularMomentum, Nbound,
                           RefPos, RefVel); // only use CoM frame when unbinding and calculating Kinematics
+
+  /* For orphans, this function call only sets it MboundType and NboundType equal to 0. For resolved objects, it
+   * updates those fields, as well as the index of the most bound tracer particle.*/
   CountParticleTypes();
 
   /* At this stage we know the updated TracerIndex, so if we are bound we should
    * update the most bound ID. */
   if (IsAlive())
     MostBoundParticleId = Particles[GetTracerIndex()].Id;
+
+  GetCorePhaseSpaceProperties();
 
 #ifdef SAVE_BINDING_ENERGY
   Energies.resize(Nbound);
@@ -477,25 +484,35 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 }
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 {
-  bool is_orphan = (Nbound <= 1);
-  ParticleList_t particle_backup;
-  if (is_orphan)
-    particle_backup = Particles; // orphans do not participate
+  /* Unbind all subhaloes that are nested deeper in the hierarchy of the current
+   * one. */
   for (HBTInt i = 0; i < NestedSubhalos.size(); i++)
   {
+    /* One of the children of the current subhalo */
     auto subid = NestedSubhalos[i];
     auto &subhalo = Subhalos[subid];
     subhalo.RecursiveUnbind(Subhalos, snap);
-    Particles.insert(Particles.end(), subhalo.Particles.begin() + subhalo.Nbound,
-                     subhalo.Particles.end()); // the mostbound particle of orphan is treated as bound and thus does not
-                                               // feed to its host subhalo. However, it can still be collected by the
-                                               // central subhalo as it is not masked out from the fof particles.
+
+    /* The unbound particles of the child we just subjected to unbinding are
+     * accreted to the source of the current subhalo. */
+    Particles.insert(Particles.end(), subhalo.Particles.begin() + subhalo.Nbound, subhalo.Particles.end());
   }
-  if (is_orphan)
-    Particles.swap(particle_backup); // restore to single particle for unbinding
+
+  /* Unbind the current subhalo */
   Unbind(snap);
-  if (is_orphan)
-    Particles.swap(particle_backup); // set to extended list, to feed to its host
+
+  /* Check if any of the subgroups deeper in this tree's hierarchy merge with it.
+   * We update the particle list and the entries of the merged subhaloes if the
+   * option is enabled. */
+  bool HasExperiencedMerger = MergeRecursively(Subhalos, snap, *this);
+
+  /* We need to subject the subhalo to unbinding once more, as it has accreted
+   * new particles as a result of mergers. */
+  if (HBTConfig.MergeTrappedSubhalos && HasExperiencedMerger)
+    Unbind(snap);
+
+  /* We are now sure about which particles are bound to this subhalo, so we can
+   * safely pass the unbound ones to its parent and truncate the source.*/
 }
 
 void Subhalo_t::TruncateSource()
