@@ -1,5 +1,20 @@
 #include <mpi.h>
+#include <assert.h>
 
+/*
+  Class to limit the number of MPI ranks executing a piece of code
+  simultaneously. Used to implement the MaxConcurrentIO option.
+
+  Example usage:
+
+  TaskLimitedSection section(MPI_COMM_WORLD, HBTConfig.MaxConcurrentIO);
+  section.start();
+  ...
+  (I/O code goes here!)
+  ...
+  section.end();
+
+*/
 class TaskLimitedSection {
 
 private:
@@ -10,7 +25,8 @@ private:
   int *buffer;
   int controller_rank;
   MPI_Request controller_rank_request;
-
+  int order;
+  
   const int CONTROLLER_RANK_TAG = 0;
   const int GO_TAG = 1;
   const int COMPLETION_TAG = 2;
@@ -19,8 +35,28 @@ public:
 
   TaskLimitedSection(MPI_Comm comm, const int max_nr_tasks) {
 
-    MPI_Comm_dup(comm, &(this->comm));
+    int comm_size;
+    MPI_Comm_size(comm, &comm_size);
+    int comm_rank;
+    MPI_Comm_rank(comm, &comm_rank);
+
+    // Renumber ranks so we're not just allowing the first N to run initially -
+    // ideally we want to have the active ranks spread over all compute nodes.
+    int block_size = max_nr_tasks;
+    int position_in_block = comm_rank % block_size;
+    int block_index = comm_rank / block_size;
+    int nr_blocks = comm_size / max_nr_tasks;
+    if(comm_size % max_nr_tasks != 0)nr_blocks += 1;
+    assert(block_size*block_index+position_in_block == comm_rank);
+    order = position_in_block * nr_blocks + block_index;
+
+    // Create the reordered communicator
+    MPI_Comm_split(comm, 0, order, &(this->comm));
     this->max_nr_tasks = max_nr_tasks;
+  }
+
+  ~TaskLimitedSection() {
+    MPI_Comm_free(&comm);
   }
   
   void start() {
