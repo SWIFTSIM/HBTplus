@@ -73,7 +73,7 @@ public:
     /* Allocate and init counter for RMA */
     MPI_Alloc_mem(sizeof(int), MPI_INFO_NULL, &buffer);
     *buffer = 0;
-    MPI_Win_create(buffer, sizeof(int), sizeof(int), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
+    MPI_Win_create(buffer, sizeof(int), sizeof(int), MPI_INFO_NULL, comm, &win);
 
     /* Post a receive to get controller task's rank (will be first rank to finish) */
     MPI_Irecv(&controller_rank, 1, MPI_INT, MPI_ANY_SOURCE,
@@ -108,16 +108,26 @@ public:
       the first and will become responsible for signalling other ranks
       to proceed.
       
-      Hopefully this shouldn't block because the rank with the counter
-      is sitting waiting at a blocking receive.
+      We only need to check the completion count for the first max_nr_tasks
+      ranks, because others can't start until another rank finishes so they
+      can't be first to finish.
     */
     int completion_count = 0;
-    MPI_Win_lock(MPI_LOCK_EXCLUSIVE, comm_size-1, 0, win);
-    int to_add = 1;
-    MPI_Get_accumulate(&to_add, 1, MPI_INT,
-                       &completion_count, 1, MPI_INT,
-                       comm_size-1, 0, 1, MPI_INT, MPI_SUM, win);
-    MPI_Win_unlock(comm_size-1, win);
+    if(comm_rank < max_nr_tasks) {
+      /* We're one of the ranks that started immediately, so we might be first
+         to complete */
+      MPI_Win_lock(MPI_LOCK_EXCLUSIVE, comm_size-1, 0, win);
+      int to_add = 1;
+      MPI_Get_accumulate(&to_add, 1, MPI_INT,
+                         &completion_count, 1, MPI_INT,
+                         comm_size-1, 0, 1, MPI_INT, MPI_SUM, win);
+      MPI_Win_unlock(comm_size-1, win);
+    } else {
+      /* We aren't in the initial batch of max_nr_tasks so we can't be first to complete.
+         Skip the get_accumulate so we're not waiting for the last rank to respond
+         when it might be busy in non-MPI code. */
+      completion_count = 1;
+    }
     if(completion_count == 0) {
       
       /* This task is the first to reach the end of the section, so tell everyone */
@@ -160,7 +170,7 @@ public:
   
     /* Tidy up */
     free(request);
-    MPI_Win_free(&(win));
+    MPI_Win_free(&win);
     MPI_Free_mem(buffer);
   }
   
