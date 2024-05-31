@@ -52,6 +52,7 @@ foreach(TEST_NAME
     test_locate_ids_random
     test_mergertree
     test_myalltoall
+    test_limited_section
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
