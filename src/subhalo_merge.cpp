@@ -27,7 +27,7 @@ bool Subhalo_t::AreOverlappingInPhaseSpace(const Subhalo_t &ReferenceSubhalo)
 }
 
 /* Store information about the merger that has just occured. */
-void Subhalo_t::SetMergerInformation(const int &ReferenceTrackId, const int &CurrentSnapshotIndex)
+void Subhalo_t::SetMergerInformation(const HBTInt &ReferenceTrackId, const int &CurrentSnapshotIndex)
 {
   /* When this occured */
   SnapshotIndexOfSink = CurrentSnapshotIndex;
