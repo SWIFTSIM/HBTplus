@@ -27,10 +27,6 @@ struct SwiftSimHeader_t
   double mass[TypeMax];
   int npart[TypeMax];
   HBTInt npartTotal[TypeMax];
-  double length_conversion;
-  double mass_conversion;
-  double velocity_conversion;
-  double energy_conversion;
   HBTInt NullGroupId;
   double DM_comoving_softening;
   double DM_maximum_physical_softening;
