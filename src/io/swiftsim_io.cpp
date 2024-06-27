@@ -48,6 +48,9 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(h, MPI_DOUBLE, 1) RegisterAttr(mass, MPI_DOUBLE, TypeMax);
   RegisterAttr(npart[0], MPI_INT, TypeMax);
   RegisterAttr(npartTotal[0], MPI_HBT_INT, TypeMax);
+  RegisterAttr(MassInMsunh, MPI_DOUBLE, 1);
+  RegisterAttr(LengthInMpch, MPI_DOUBLE, 1);
+  RegisterAttr(VelInKmS, MPI_DOUBLE, 1);
   RegisterAttr(NullGroupId, MPI_HBT_INT, 1);
   RegisterAttr(DM_comoving_softening, MPI_DOUBLE, 1);
   RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
@@ -165,6 +168,10 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
     throw std::overflow_error("The precision of HBTInt is insufficient to hold the value of NullGroupId");
   Header.NullGroupId = (HBTInt)NullGroupId;
 
+  /* Load the units used in the snapshot */
+  Header.MassInMsunh  = (mass_cgs / solar_mass_cgs) * Header.h;
+  Header.LengthInMpch = (length_cgs / (1.0e6 * parsec_cgs)) * Header.h;
+  Header.VelInKmS     = (length_cgs / time_cgs) / km_cgs;
 
   /*
      Read per-type header entries

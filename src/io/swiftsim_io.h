@@ -27,6 +27,9 @@ struct SwiftSimHeader_t
   double mass[TypeMax];
   int npart[TypeMax];
   HBTInt npartTotal[TypeMax];
+  double MassInMsunh;
+  double LengthInMpch;
+  double VelInKmS;
   HBTInt NullGroupId;
   double DM_comoving_softening;
   double DM_maximum_physical_softening;
