@@ -682,6 +682,11 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   HBTConfig.LengthInMpch = Header.LengthInMpch;
   HBTConfig.VelInKmS = Header.VelInKmS;
 
+  /* Update the gravitational constant and H based on the units loaded from
+   * swift */
+  PhysicalConst::G = 43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
+  PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
+
   /* This will be used to determine which particles are hostless when
    * constraining subhaloes to their assigned hosts. */
   HBTConfig.ParticleNullGroupId = Header.NullGroupId;
