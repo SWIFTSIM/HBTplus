@@ -677,6 +677,11 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   HBTConfig.TreeNodeResolution = HBTConfig.SofteningHalo * 0.1;
   HBTConfig.TreeNodeResolutionHalf = HBTConfig.TreeNodeResolution / 2.;
 
+  /* Update the units */
+  HBTConfig.MassInMsunh = Header.MassInMsunh;
+  HBTConfig.LengthInMpch = Header.LengthInMpch;
+  HBTConfig.VelInKmS = Header.VelInKmS;
+
   /* This will be used to determine which particles are hostless when
    * constraining subhaloes to their assigned hosts. */
   HBTConfig.ParticleNullGroupId = Header.NullGroupId;
