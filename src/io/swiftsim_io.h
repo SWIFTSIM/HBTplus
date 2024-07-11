@@ -57,8 +57,9 @@ class SwiftSimReader_t
   void SetSnapshot(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
   
-  /*To load information about particle splits*/
+  /* To load information about particle splits */
   void GetParticleSplitFileName(int snapshotId, string &filename);
+  hid_t OpenParticleSplitFile(int snapshotId);
 
   MPI_Datatype MPI_SwiftSimHeader_t;
 

@@ -1051,3 +1051,26 @@ void SwiftSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename
   filename = formatter.str();
 }
 
+/* Opens the file containing the split particle information */
+hid_t SwiftSimReader_t::OpenParticleSplitFile(int snapshotId)
+{
+  H5E_auto_t err_func;
+  char *err_data;
+  H5Eget_auto(H5E_DEFAULT, &err_func, (void **)&err_data);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+
+  /* Open file with split information, which is contained in a single HDF5 file. */
+  string filename;
+  GetParticleSplitFileName(snapshotId, filename);
+  hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+  if (file < 0)
+  {
+    cout << "Failed to open file: " << filename << "\n";
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+
+  H5Eset_auto(H5E_DEFAULT, err_func, (void *)err_data);
+
+  return file;
+}
