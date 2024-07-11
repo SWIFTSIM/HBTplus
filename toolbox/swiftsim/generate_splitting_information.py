@@ -246,8 +246,9 @@ def save(split_dictionary, file_path):
     # For completeness purposes, save an empty hdf5 even when we have no splits
     if(total_splits == 0):
         with h5py.File(file_path, 'a') as file:
-            dataset = file.create_dataset("SplitInformation", data = h5py.Empty("int"))
-            dataset.attrs['NumberSplits'] = 0
+            file.create_dataset("SplitInformation/Keys", data = h5py.Empty("int"))
+            file.create_dataset("SplitInformation/Values", data = h5py.Empty("int"))
+            file['SplitInformation'].attrs['NumberSplits'] = 0
         return
 
     hash_array = np.ones((total_splits, 2),int) * -1
@@ -268,8 +269,9 @@ def save(split_dictionary, file_path):
             offset +=1
 
     with h5py.File(file_path, 'a') as file:
-        dataset = file.create_dataset("SplitInformation", data =  hash_array)
-        dataset.attrs['NumberSplits'] = total_splits
+        file.create_dataset("SplitInformation/Keys", data = hash_array[:,0])
+        file.create_dataset("SplitInformation/Values", data = hash_array[:,1])
+        file['SplitInformation'].attrs['NumberSplits'] = total_splits
 
 def generate_split_file(path_to_config, snapshot_index):
     '''
