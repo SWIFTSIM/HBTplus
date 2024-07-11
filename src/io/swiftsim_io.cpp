@@ -821,6 +821,11 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   free(type);
 
 #endif
+
+/* We have a hydro simulation, so some particles may have split. Load the information. */
+#ifndef DM_ONLY
+  ReadParticleSplits(Particles.data(), snapshotId);
+#endif
 }
 
 inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)
@@ -1073,4 +1078,31 @@ hid_t SwiftSimReader_t::OpenParticleSplitFile(int snapshotId)
   H5Eset_auto(H5E_DEFAULT, err_func, (void *)err_data);
 
   return file;
+}
+
+/* This function loads the keys and values of the particle IDs that have been involved
+ * in splits. */
+void SwiftSimReader_t::ReadParticleSplits(Particle_t *ParticlesInFile, int snapshotId)
+{
+  /* Open the file. */
+  hid_t file = OpenParticleSplitFile(snapshotId);
+
+  /* Get the number of splits that occured in this snapshot. Exit if none have occured */
+  HBTInt NumberSplits = 0;
+  ReadAttribute(file, "SplitInformation", "NumberSplits", H5T_HBTInt, &NumberSplits);
+  if(NumberSplits == 0)
+    return;
+  /* Open the HDF5 group */
+  stringstream grpname;
+  grpname << "SplitInformation";
+  hid_t split_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
+
+  /* Load keys and values */
+  vector<HBTInt> SplitKeys(NumberSplits);
+  ReadDataset(split_data, "Keys", H5T_HBTInt, SplitKeys.data());
+
+  vector<HBTInt> SplitValues(NumberSplits);
+  ReadDataset(split_data, "Values", H5T_HBTInt, SplitValues.data());
+  /* Close the file */
+  H5Fclose(file);
 }
