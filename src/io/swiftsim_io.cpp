@@ -1099,6 +1099,10 @@ void SwiftSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &Pa
 
   vector<HBTInt> SplitValues(NumberSplits);
   ReadDataset(split_data, "Values", H5T_HBTInt, SplitValues.data());
+
+  /* Populate the map */
+  for(std::size_t i = 0; i < NumberSplits; ++i)
+    ParticleSplitMap[SplitKeys[i]] = SplitValues[i];
   /* Close the file */
   H5Fclose(file);
 }
