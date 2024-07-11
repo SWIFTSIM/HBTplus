@@ -1087,6 +1087,7 @@ void SwiftSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &Pa
   ReadAttribute(file, "SplitInformation", "NumberSplits", H5T_HBTInt, &NumberSplits);
   if(NumberSplits == 0)
     return;
+
   /* Open the HDF5 group */
   stringstream grpname;
   grpname << "SplitInformation";
