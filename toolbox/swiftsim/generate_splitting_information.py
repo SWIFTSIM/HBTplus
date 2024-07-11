@@ -26,6 +26,7 @@ def load_hbt_config(config_path):
                 config['SnapshotDirBase'] = line.split()[-1]
             if 'SubhaloPath' in line:
                 config['SubhaloPath'] = line.split()[-1]
+
     return config
 
 def generate_path_to_snapshot(config, snapshot_index):
@@ -245,7 +246,8 @@ def save(split_dictionary, file_path):
     # For completeness purposes, save an empty hdf5 even when we have no splits
     if(total_splits == 0):
         with h5py.File(file_path, 'a') as file:
-            file.create_dataset("SplitInformation", data = h5py.Empty("int"))
+            dataset = file.create_dataset("SplitInformation", data = h5py.Empty("int"))
+            dataset.attrs['NumberSplits'] = 0
         return
 
     hash_array = np.ones((total_splits, 2),int) * -1
@@ -266,7 +268,8 @@ def save(split_dictionary, file_path):
             offset +=1
 
     with h5py.File(file_path, 'a') as file:
-        file.create_dataset("SplitInformation", data =  hash_array)
+        dataset = file.create_dataset("SplitInformation", data =  hash_array)
+        dataset.attrs['NumberSplits'] = total_splits
 
 def generate_split_file(path_to_config, snapshot_index):
     '''
@@ -283,7 +286,7 @@ def generate_split_file(path_to_config, snapshot_index):
     output_base_dir = f"{config['SubhaloPath']}/ParticleSplits"
     if not os.path.exists(output_base_dir):
         os.makedirs(output_base_dir)
-    output_file_name = f"{output_base_dir}/particle_splits_{snapshot_index:03d}.hdf5"
+    output_file_name = f"{output_base_dir}/particle_splits_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
 
     #==========================================================================
     # Check that we are analysing a valid snapshot index
