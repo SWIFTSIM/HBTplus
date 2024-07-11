@@ -205,7 +205,7 @@ void SubhaloSnapshot_t::UpdateParticles(MpiWorker_t &world, const ParticleSnapsh
   /* We need to split particles here, since ExchangeSubHalos updates the particle information of
    * subhaloes based on the Particle IDs present in the Particle vector when it is called.*/
 #ifndef DM_ONLY
-  if(HBTConfig.SnapshotFormat == "swiftsim" && (HBTConfig.ParticlesSplit))
+  if(HBTConfig.ParticlesSplit)
   {
       UpdateSplitParticles(snapshot);
   }
