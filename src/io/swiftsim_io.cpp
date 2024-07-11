@@ -821,11 +821,6 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   free(type);
 
 #endif
-
-/* We have a hydro simulation, so some particles may have split. Load the information. */
-#ifndef DM_ONLY
-  ReadParticleSplits(Particles.data(), snapshotId);
-#endif
 }
 
 inline bool CompParticleHost(const Particle_t &a, const Particle_t &b)

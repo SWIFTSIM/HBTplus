@@ -60,7 +60,6 @@ class SwiftSimReader_t
   /* To load information about particle splits */
   void GetParticleSplitFileName(int snapshotId, string &filename);
   hid_t OpenParticleSplitFile(int snapshotId);
-  void ReadParticleSplits(Particle_t *ParticlesInFile, int snapshotId);
 
   MPI_Datatype MPI_SwiftSimHeader_t;
 
@@ -75,6 +74,7 @@ public:
   }
   void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
   void LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos);
+  void ReadParticleSplits(Particle_t *ParticlesInFile, int snapshotId);
 };
 
 extern bool IsSwiftSimGroup(const string &GroupFileFormat);
