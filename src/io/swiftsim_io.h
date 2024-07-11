@@ -74,7 +74,7 @@ public:
   }
   void LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<Particle_t> &Particles, Cosmology_t &Cosmology);
   void LoadGroups(MpiWorker_t &world, int snapshotId, vector<Halo_t> &Halos);
-  void ReadParticleSplits(Particle_t *ParticlesInFile, int snapshotId);
+  void ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &ParticleSplitMap, int snapshotId);
 };
 
 extern bool IsSwiftSimGroup(const string &GroupFileFormat);

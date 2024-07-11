@@ -1077,7 +1077,7 @@ hid_t SwiftSimReader_t::OpenParticleSplitFile(int snapshotId)
 
 /* This function loads the keys and values of the particle IDs that have been involved
  * in splits. */
-void SwiftSimReader_t::ReadParticleSplits(Particle_t *ParticlesInFile, int snapshotId)
+void SwiftSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &ParticleSplitMap, int snapshotId)
 {
   /* Open the file. */
   hid_t file = OpenParticleSplitFile(snapshotId);

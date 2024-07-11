@@ -38,7 +38,7 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
 #ifndef DM_ONLY
     if(HBTConfig.ParticlesSplit)
     {
-      SwiftSimReader_t().ReadParticleSplits(Particles.data(), SnapshotId);
+      SwiftSimReader_t().ReadParticleSplits(ParticleSplitMap, SnapshotId);
     }
 #endif
   }
