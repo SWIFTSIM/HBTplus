@@ -1,6 +1,41 @@
+import os
 import h5py
 import numpy as np
 import swiftsimio as sw
+
+def load_hbt_config(config_path):
+    '''
+    Loads the config file for an HBT run, used to determine which
+    snapshots to analyse and where to save the information.
+    '''
+    config = {}
+
+    with open(config_path) as file:
+        for line in file:
+            if 'MinSnapshotIndex' in line:
+                config['MinSnapshotIndex'] = int(line.split()[-1])
+            if 'MaxSnapshotIndex' in line:
+                config['MaxSnapshotIndex'] = int(line.split()[-1])
+            if 'SnapshotIdList' in line:
+                config['SnapshotIdList'] = np.array(line.split()[1:]).astype(int)
+            if 'SnapshotPath' in line:
+                config['SnapshotPath'] = line.split()[-1]
+            if 'SnapshotFileBase' in line:
+                config['SnapshotFileBase'] = line.split()[-1]
+            if 'SnapshotDirBase' in line:
+                config['SnapshotDirBase'] = line.split()[-1]
+            if 'SubhaloPath' in line:
+                config['SubhaloPath'] = line.split()[-1]
+    return config
+
+def generate_path_to_snapshot(config, snapshot_index):
+    
+    if 'SnapshotDirBase' in config: 
+        subdirectory = f"{config['SnapshotDirBase']}_{config['SnapshotIdList'][snapshot_index]:04d}"
+    else:
+        subdirectory = "" 
+
+    return f"{config['SnapshotPath']}/{subdirectory}/{config['SnapshotFileBase']}_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
 
 def load_snapshot(file_path):
     '''
@@ -204,7 +239,7 @@ def save(split_dictionary, file_path):
     It saves the mapping between split particles in hdf5 files, to
     be read by HBT+.
     '''
-    # We first need to map
+    # We first need to turn the dictionary into an array used to create a map
     total_splits = np.array([len(x) for x in split_dictionary.values()]).sum()
 
     # For completeness purposes, save an empty hdf5 even when we have no splits
@@ -212,8 +247,6 @@ def save(split_dictionary, file_path):
         with h5py.File(file_path, 'a') as file:
             file.create_dataset("SplitInformation", data = h5py.Empty("int"))
         return
-
-
 
     hash_array = np.ones((total_splits, 2),int) * -1
 
@@ -235,44 +268,85 @@ def save(split_dictionary, file_path):
     with h5py.File(file_path, 'a') as file:
         file.create_dataset("SplitInformation", data =  hash_array)
 
+def generate_split_file(path_to_config, snapshot_index):
+    '''
+    This will create an HDF5 file that is loaded by HBT to handle
+    particle splittings.
+    '''
+    #==========================================================================
+    # We get from here where the snapshots to analyse are, and where
+    # the HBT catalogues will be saved.
+    #==========================================================================
+    config = load_hbt_config(path_to_config)
+    
+    # Create a directory to hold split information
+    output_base_dir = f"{config['SubhaloPath']}/ParticleSplits"
+    if not os.path.exists(output_base_dir):
+        os.makedirs(output_base_dir)
+    output_file_name = f"{output_base_dir}/particle_splits_{snapshot_index:03d}.hdf5"
+
+    #==========================================================================
+    # Check that we are analysing a valid snapshot index
+    #==========================================================================
+    if(snapshot_index > config['MaxSnapshotIndex']):
+        raise ValueError(f"Chosen snapshot index {snapshot_index} is larger than the one specified in the config ({config['MaxSnapshotIndex']}).")
+    if(snapshot_index < config['MinSnapshotIndex']):
+        raise ValueError(f"Chosen snapshot index {snapshot_index} is smaller than the one specified in the config ({config['MinSnapshotIndex']}).")
+
+    # We cannot do split information in the first snapshot. Save an empty split
+    # information.
+    if snapshot_index == 0:
+        print(f"Skipping snapshot index {snapshot_index}")
+        save({},output_file_name)
+        return
+
+    #==========================================================================
+    # Load data for snapshot N.
+    #==========================================================================
+
+    print (f"Loading data for snapshot index {snapshot_index}")
+
+    # Get path to snapshot
+    new_snapshot_path = generate_path_to_snapshot(config, snapshot_index)
+    new_data = load_snapshot(new_snapshot_path)
+
+    if len(new_data[0]) == 0:
+        print (f"No splits at snapshot index {snapshot_index}. Skipping...")
+        save({},output_file_name)
+        return
+
+    #==========================================================================
+    # Load data for snapshot N - 1.
+    #==========================================================================
+
+    print (f"Loading complementary data from snapshot index {snapshot_index}")
+    old_snapshot_path = generate_path_to_snapshot(config, snapshot_index - 1)
+    old_data = load_snapshot(old_snapshot_path)
+
+    #==========================================================================
+    # Split arrays into subarrays whose entries all share a common progenitor
+    #==========================================================================
+    print (f"Grouping data by progenitor ID")
+    new_data = group_by_progenitor(*new_data)
+    old_data = group_by_progenitor(*old_data)
+    
+    #==========================================================================
+    # Compare trees in snapshot N - 1 and N, to identify new splits
+    #==========================================================================
+    print (f"Identifying particle splits")
+    new_splits = get_descendant_particle_ids(old_data, new_data)
+
+    #==========================================================================
+    # Save in the directory where HBT outputs will be saved
+    #==========================================================================
+    print (f"Saving information")
+    save(new_splits,output_file_name)
+
 
 if __name__ == "__main__":
 
-    from glob import glob
-    base_path = '/net/hypernova/data2/HBT/colibre/colibre_*.hdf5'
+    import sys
+    config_path = sys.argv[1]
+    snap_index = int(sys.argv[2])
 
-    paths = sorted(glob(base_path))
-
-    for snapshot_index in range(0,len(paths)):
-
-        print ()
-
-        # We cannot do split information in the first snapshot
-        if snapshot_index == 0:
-            print(f"Skipping snapshot index {snapshot_index}")
-            save({},f'hbt_particle_split_information_{snapshot_index:03d}.hdf5')
-            continue
-    
-        print (f"Loading data for snapshot index {snapshot_index}")
-        new_data = load_snapshot(paths[snapshot_index])
-
-        if len(new_data[0]) == 0:
-            print (f"No splits at snapshot index {snapshot_index}. Skipping...")
-            save({},f'hbt_particle_split_information_{snapshot_index:03d}.hdf5')
-            continue
-
-        # Load the old data to compare against
-        print (f"Loading complementary data from snapshot index {snapshot_index}")
-        old_data = load_snapshot(paths[snapshot_index - 1])
-        
-        # Grouping data by tree progenitor ID
-        print (f"Grouping data by progenitor ID")
-        new_data = group_by_progenitor(*new_data)
-        old_data = group_by_progenitor(*old_data)
-        
-        # Analyse the particle data.
-        print (f"Identifying splits")
-        new_splits = get_descendant_particle_ids(old_data, new_data)
-
-        print (f"Saving information")
-        save(new_splits,f'hbt_particle_split_information_{snapshot_index:03d}.hdf5')
+    generate_split_file(config_path , snap_index)
