@@ -78,6 +78,7 @@ public:
                                 // leads to more accuracy mostbound particle
 
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
+  bool ParticlesSplit; /* Whether baryonic particles are able to split. Relevant to swift simulations */
 
   /*derived parameters; do not require user input*/
   HBTReal TreeNodeOpenAngleSquare;
@@ -132,6 +133,10 @@ public:
     TracerParticleBitMask = 0;
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
+
+    /* We make this a default choice to remind SWIFT HYDRO users to run the
+     * pre-processing of snapshots (toolbox/swiftsim/generate_splitting_information.py) */
+    ParticlesSplit = true;
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);

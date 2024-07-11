@@ -72,6 +72,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(SnapshotHasIdBlock);
   TrySetPar(MaxPhysicalSofteningHalo);
   TrySetPar(TracerParticleBitMask);
+  TrySetPar(ParticlesSplit);
 
 #undef TrySetPar
 
@@ -317,6 +318,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
 
   _SyncBool(GroupLoadedFullParticle);
   _SyncAtom(TracerParticleBitMask, MPI_INT);
+  _SyncAtom(ParticlesSplit, MPI_CXX_BOOL);
   //---------------end sync params-------------------------//
 
   _SyncReal(PhysicalConst::G);
@@ -391,6 +393,10 @@ void Parameter_t::DumpParameters()
   DumpPar(ParticleIdNeedHash);
   DumpPar(SnapshotIdUnsigned);
   DumpPar(SaveSubParticleProperties);
+#ifndef DM_ONLY
+  if (SnapshotFormat == "swiftsim")
+    DumpPar(ParticlesSplit);
+#endif
   if (GroupParticleIdMask)
     version_file << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;
 
