@@ -162,6 +162,10 @@ void Parameter_t::ParseConfigFile(const char *param_file)
   PhysicalConst::G = 43.0071 * (MassInMsunh / 1e10) / VelInKmS / VelInKmS / LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / VelInKmS) / (1. / LengthInMpch);
 
+  /* Make particles split by default in swift (only relevant for hydro runs) */
+  if(SnapshotFormat == "swiftsim")
+    ParticlesSplit = true;
+
   if (ParticleIdRankStyle)
     ParticleIdNeedHash = false;
 

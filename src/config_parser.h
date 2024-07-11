@@ -136,7 +136,7 @@ public:
 
     /* We make this a default choice to remind SWIFT HYDRO users to run the
      * pre-processing of snapshots (toolbox/swiftsim/generate_splitting_information.py) */
-    ParticlesSplit = SnapshotFormat == "swiftsim";
+    ParticlesSplit = false;
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);
