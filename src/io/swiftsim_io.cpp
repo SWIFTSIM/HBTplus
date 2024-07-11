@@ -1041,3 +1041,13 @@ bool IsSwiftSimGroup(const string &GroupFileFormat)
 {
   return GroupFileFormat.substr(0, 8) == "swiftsim";
 }
+
+/* Returns the path to the file containing information about which
+ * particles have split between the current and previous output. */
+void SwiftSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename)
+{
+  stringstream formatter;
+  formatter << HBTConfig.SubhaloPath << "/ParticleSplits/particle_splits_" << setw(4) << setfill('0') << snapshotId << ".hdf5";
+  filename = formatter.str();
+}
+
