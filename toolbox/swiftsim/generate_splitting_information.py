@@ -232,8 +232,6 @@ def save(split_dictionary, file_path):
             hash_array[offset][1] = values[j]
             offset +=1
 
-    print(hash_array)
-
     with h5py.File(file_path, 'a') as file:
         file.create_dataset("SplitInformation", data =  hash_array)
 
@@ -245,7 +243,7 @@ if __name__ == "__main__":
 
     paths = sorted(glob(base_path))
 
-    for snapshot_index in range(0,11):#,len(paths)):
+    for snapshot_index in range(0,len(paths)):
 
         print ()
 
@@ -275,7 +273,6 @@ if __name__ == "__main__":
         # Analyse the particle data.
         print (f"Identifying splits")
         new_splits = get_descendant_particle_ids(old_data, new_data)
-         
-        print(new_splits)
+
         print (f"Saving information")
         save(new_splits,f'hbt_particle_split_information_{snapshot_index:03d}.hdf5')
