@@ -1066,7 +1066,7 @@ hid_t SwiftSimReader_t::OpenParticleSplitFile(int snapshotId)
 
   if (file < 0)
   {
-    cout << "Failed to open file: " << filename << "\n";
+    cout << "Failed to open file (see toolbox/swiftsim on how to generate): " << filename << "\n";
     MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
@@ -1103,6 +1103,7 @@ void SwiftSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &Pa
   /* Populate the map */
   for(std::size_t i = 0; i < NumberSplits; ++i)
     ParticleSplitMap[SplitKeys[i]] = SplitValues[i];
+
   /* Close the file */
   H5Fclose(file);
 }
