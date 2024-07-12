@@ -7,6 +7,18 @@ def load_hbt_config(config_path):
     '''
     Loads the config file for an HBT run, used to determine which
     snapshots to analyse and where to save the information.
+
+    Parameters
+    ----------
+    config_path : str
+        Path to the HBT configuration used to analyse a simulation.
+
+    Returns
+    -------
+    config : dict
+        A dictionary holding information used to determine where the 
+        particle data is located, what are the output numbers to analyse,
+        and where to save the information.
     '''
     config = {}
 
@@ -30,7 +42,23 @@ def load_hbt_config(config_path):
     return config
 
 def generate_path_to_snapshot(config, snapshot_index):
-    
+    '''
+    Returns the path to the virtual file of a snapshot to analyse.
+
+    Parameters
+    ----------
+    config : dict
+        Dictionary holding relevant infomation about the SWIFT run;
+        loaded previously by load_hbt_config.
+    snapshot_index : int
+        Number of the snapshot to analyse, given relative to the subset
+        analysed by HBT.
+
+    Returns
+    -------
+    str
+        Path to the virtual file of the snapshot.
+    '''
     if 'SnapshotDirBase' in config: 
         subdirectory = f"{config['SnapshotDirBase']}_{config['SnapshotIdList'][snapshot_index]:04d}"
     else:
@@ -65,7 +93,7 @@ def load_snapshot(file_path):
 
     # Load snapshot. TODO: consider using MPI.
     snap = sw.load(file_path)
-    
+
     # Lists that will hold the split information for all eligible particle types
     # (gas, stars, black holes).
     split_counts = []
@@ -83,7 +111,7 @@ def load_snapshot(file_path):
         split_trees.append(snap.__getattribute__(particle_type).split_trees[has_split].value)
         split_progenitors.append(snap.__getattribute__(particle_type).progenitor_particle_ids[has_split].value)
         split_particle_ids.append(snap.__getattribute__(particle_type).particle_ids[has_split].value)
-    
+
     # Merge all of the arrays together
     split_counts = np.hstack(split_counts)
     split_trees = np.hstack(split_trees)
@@ -101,8 +129,8 @@ def load_snapshot(file_path):
 
 def group_by_progenitor(split_counts, split_trees, split_progenitors, split_particle_ids):
     '''
-    Splits the array containing all split information into subarrays 
-    containing separate split trees.
+    Splits the array containing all split information into subarrays, each
+    of which corresponds to an independent split tree.
 
     Parameters
     ----------
@@ -185,11 +213,11 @@ def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees,
 
         # Remove the progenitor particle from the descendant particle id
         new_ids = new_ids[new_ids != progenitor_particle_id]
-        
+
         # Add new
         if len(new_ids) > 0:
             new_splits[progenitor_particle_id] = new_ids
-    
+
     return new_splits
 
 def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
@@ -197,8 +225,22 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
     Returns a dictionary, with the key corresponding to the ID of a particle 
     in snapshot N-1 and the value a list of IDs of its split descendants in 
     snapshot N.
+
+    Parameters
+    ----------
+    old_snapshot_data : dict
+        Dictionary holding split information (trees, counts, progenitor ID) that
+        has been subdivided into subarrays. Information based on snapshot N - 1.
+    new_snapshot_data : dict
+        Dictionary holding split information (trees, counts, progenitor ID) that
+        has been subdivided into subarrays. Information based on snapshot N.
+
+    Returns
+    -------
+    new_splits : dict
+        Information about which particle ID (key) has split into other particles since the
+        last simulation output (value).
     '''
-    
     new_splits = {}
 
     # Iterate over unique split trees in snapshot N
@@ -239,6 +281,14 @@ def save(split_dictionary, file_path):
     '''
     It saves the mapping between split particles in hdf5 files, to
     be read by HBT+.
+
+    Parameters
+    ----------
+    split_dictionary : dict
+        Information about which particle ID (key) has split into other particles since the
+        last simulation output (value).
+    file_path : str
+        Where to save the HDF5 file containing the map of particle splits.
     '''
     # We first need to turn the dictionary into an array used to create a map
     total_splits = np.array([len(x) for x in split_dictionary.values()]).sum()
@@ -277,13 +327,22 @@ def generate_split_file(path_to_config, snapshot_index):
     '''
     This will create an HDF5 file that is loaded by HBT to handle
     particle splittings.
+
+    Parameters
+    ----------
+    path_to_config : str
+        Location of the HBT configuration file used to analyse the 
+        simulation.
+    snapshot_index : int
+        Number of the snapshot to analyse, given relative to the subset
+        analysed by HBT.
     '''
     #==========================================================================
     # We get from here where the snapshots to analyse are, and where
     # the HBT catalogues will be saved.
     #==========================================================================
     config = load_hbt_config(path_to_config)
-    
+
     # Create a directory to hold split information
     output_base_dir = f"{config['SubhaloPath']}/ParticleSplits"
     if not os.path.exists(output_base_dir):
@@ -334,7 +393,7 @@ def generate_split_file(path_to_config, snapshot_index):
     print (f"Grouping data by progenitor ID")
     new_data = group_by_progenitor(*new_data)
     old_data = group_by_progenitor(*old_data)
-    
+
     #==========================================================================
     # Compare trees in snapshot N - 1 and N, to identify new splits
     #==========================================================================
