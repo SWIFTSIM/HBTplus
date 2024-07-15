@@ -8,7 +8,7 @@ Given the history based approach of HBT+, the splitting of particles needs to be
 
 # How to generate the required files
 
-By default, any HBT+ analysis on a SWIFT hydrodynamical simulation will default to requiring splitting information. This is not always needed, such as when the simulation was run with particle splitting disabled. If this is the case, add `ParticleSplits 0` to the relevant parameter file to omit the need of splitting information.  
+By default, any HBT+ analysis on a SWIFT hydrodynamical simulation will default to requiring splitting information. This is not always needed, such as when the simulation was run with particle splitting disabled. If this is the case, add `ParticlesSplit 0` to the relevant parameter file to omit the need of splitting information.  
 
 If splits are enabled, the required files are generated and saved in `<PATH_TO_HBT_CATALOGUES>/ParticleSplits/particle_splits_XXXX.hdf5` by running:
 ```bash
