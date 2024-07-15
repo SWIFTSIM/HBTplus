@@ -33,6 +33,14 @@ void ParticleSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, bool fill_
   else if (HBTConfig.SnapshotFormat == "swiftsim")
   {
     SwiftSimReader_t().LoadSnapshot(world, SnapshotId, Particles, Cosmology);
+
+    // Load particle splitting information if we need it.
+#ifndef DM_ONLY
+    if(HBTConfig.ParticlesSplit)
+    {
+      SwiftSimReader_t().ReadParticleSplits(ParticleSplitMap, SnapshotId);
+    }
+#endif
   }
   else if (HBTConfig.SnapshotFormat == "mysnapshot")
   { /*insert your snapshot reader here, and include relevant header in the header if necessary

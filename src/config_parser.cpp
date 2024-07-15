@@ -72,6 +72,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(SnapshotHasIdBlock);
   TrySetPar(MaxPhysicalSofteningHalo);
   TrySetPar(TracerParticleBitMask);
+  TrySetPar(ParticlesSplit);
 
 #undef TrySetPar
 
@@ -160,6 +161,12 @@ void Parameter_t::ParseConfigFile(const char *param_file)
   CheckUnsetParameters();
   PhysicalConst::G = 43.0071 * (MassInMsunh / 1e10) / VelInKmS / VelInKmS / LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / VelInKmS) / (1. / LengthInMpch);
+
+  /* Make particles split by default in swift (only relevant for hydro runs) */
+  if((SnapshotFormat == "swiftsim") & (ParticlesSplit == -1))
+    ParticlesSplit = 1;
+  else
+    ParticlesSplit = 0;
 
   if (ParticleIdRankStyle)
     ParticleIdNeedHash = false;
@@ -317,6 +324,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
 
   _SyncBool(GroupLoadedFullParticle);
   _SyncAtom(TracerParticleBitMask, MPI_INT);
+  _SyncAtom(ParticlesSplit, MPI_INT);
   //---------------end sync params-------------------------//
 
   _SyncReal(PhysicalConst::G);
@@ -391,6 +399,9 @@ void Parameter_t::DumpParameters()
   DumpPar(ParticleIdNeedHash);
   DumpPar(SnapshotIdUnsigned);
   DumpPar(SaveSubParticleProperties);
+#ifndef DM_ONLY
+  DumpPar(ParticlesSplit);
+#endif
   if (GroupParticleIdMask)
     version_file << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;
 

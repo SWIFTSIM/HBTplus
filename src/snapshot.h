@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <unordered_map>
 
 #include "config_parser.h"
 #include "datatypes.h"
@@ -218,6 +219,11 @@ public:
 
   void Load(MpiWorker_t &world, int snapshot_index, bool fill_particle_hash = true);
   void Clear();
+  
+  /* For use when including particles that split. */
+#ifndef DM_ONLY
+  std::unordered_map<HBTInt, HBTInt> ParticleSplitMap;
+#endif
 
   void AveragePosition(HBTxyz &CoM, const HBTInt Particles[], HBTInt NumPart) const;
   void AverageVelocity(HBTxyz &CoV, const HBTInt Particles[], HBTInt NumPart) const;

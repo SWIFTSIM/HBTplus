@@ -1029,3 +1029,69 @@ bool IsSwiftSimGroup(const string &GroupFileFormat)
 {
   return GroupFileFormat.substr(0, 8) == "swiftsim";
 }
+
+/* Returns the path to the file containing information about which
+ * particles have split between the current and previous output. */
+void SwiftSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename)
+{
+  stringstream formatter;
+  formatter << HBTConfig.SubhaloPath << "/ParticleSplits/particle_splits_" << setw(4) << setfill('0') << snapshotId << ".hdf5";
+  filename = formatter.str();
+}
+
+/* Opens the file containing the split particle information */
+hid_t SwiftSimReader_t::OpenParticleSplitFile(int snapshotId)
+{
+  H5E_auto_t err_func;
+  char *err_data;
+  H5Eget_auto(H5E_DEFAULT, &err_func, (void **)&err_data);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+
+  /* Open file with split information, which is contained in a single HDF5 file. */
+  string filename;
+  GetParticleSplitFileName(snapshotId, filename);
+  hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+  if (file < 0)
+  {
+    cout << "Failed to open file (see toolbox/swiftsim on how to generate): " << filename << "\n";
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+
+  H5Eset_auto(H5E_DEFAULT, err_func, (void *)err_data);
+
+  return file;
+}
+
+/* This function loads the keys and values of the particle IDs that have been involved
+ * in splits. */
+void SwiftSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &ParticleSplitMap, int snapshotId)
+{
+  /* Open the file. */
+  hid_t file = OpenParticleSplitFile(snapshotId);
+
+  /* Get the number of splits that occured in this snapshot. Exit if none have occured */
+  HBTInt NumberSplits = 0;
+  ReadAttribute(file, "SplitInformation", "NumberSplits", H5T_HBTInt, &NumberSplits);
+  if(NumberSplits == 0)
+    return;
+
+  /* Open the HDF5 group */
+  stringstream grpname;
+  grpname << "SplitInformation";
+  hid_t split_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
+
+  /* Load keys and values */
+  vector<HBTInt> SplitKeys(NumberSplits);
+  ReadDataset(split_data, "Keys", H5T_HBTInt, SplitKeys.data());
+
+  vector<HBTInt> SplitValues(NumberSplits);
+  ReadDataset(split_data, "Values", H5T_HBTInt, SplitValues.data());
+
+  /* Populate the map */
+  for(std::size_t i = 0; i < NumberSplits; ++i)
+    ParticleSplitMap[SplitKeys[i]] = SplitValues[i];
+
+  /* Close the file */
+  H5Fclose(file);
+}

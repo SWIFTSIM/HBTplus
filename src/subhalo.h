@@ -311,6 +311,7 @@ public:
     cout << "Clean() not implemented yet\n";
   }
   void UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snapshot);
+  void UpdateSplitParticles(const ParticleSnapshot_t &snapshot);
   //   void ParticleIndexToId();
   void UpdateMostBoundPosition(MpiWorker_t &world, const ParticleSnapshot_t &part_snap);
   void AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_snap, const ParticleSnapshot_t &part_snap);
