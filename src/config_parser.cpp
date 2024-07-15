@@ -398,8 +398,7 @@ void Parameter_t::DumpParameters()
   DumpPar(SnapshotIdUnsigned);
   DumpPar(SaveSubParticleProperties);
 #ifndef DM_ONLY
-  if (SnapshotFormat == "swiftsim")
-    DumpPar(ParticlesSplit);
+  DumpPar(ParticlesSplit);
 #endif
   if (GroupParticleIdMask)
     version_file << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;
