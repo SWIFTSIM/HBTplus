@@ -52,7 +52,7 @@ inline herr_t ReadDataset(hid_t file, const char *name, hid_t dtype, void *buf)
     H5Iget_name(file, grpname, bufsize);
     H5Fget_name(file, filename, bufsize);
 
-    throw std::runtime_error("#### ERROR READING " + std::string(grpname) + "/" + std::string(name) + " from " + std::string(filename) + ", error number " + std::to_string(status));
+    throw std::runtime_error("#### ERROR READING DATASET " + std::string(grpname) + "/" + std::string(name) + " from " + std::string(filename) + ", error number " + std::to_string(status));
   }
   H5Dclose(dset);
   return status;
@@ -100,7 +100,7 @@ inline herr_t ReadPartialDataset(hid_t file, const char *name, hid_t dtype, void
     H5Iget_name(file, grpname, bufsize);
     H5Fget_name(file, filename, bufsize);
 
-    throw std::runtime_error("#### ERROR READING " + std::string(grpname) + "/" + std::string(name) + " from " + std::string(filename) + ", error number " + std::to_string(status));
+    throw std::runtime_error("#### ERROR READING DATASET " + std::string(grpname) + "/" + std::string(name) + " from " + std::string(filename) + ", error number " + std::to_string(status));
   }
   H5Dclose(dset);
   H5Sclose(mem_space_id);
