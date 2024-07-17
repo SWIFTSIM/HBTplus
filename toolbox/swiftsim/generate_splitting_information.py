@@ -22,22 +22,36 @@ def load_hbt_config(config_path):
     '''
     config = {}
 
+    # If we find a relevant configuration parameter whose value is specified,
+    # i.e. has a value after its name, we store it.
     with open(config_path) as file:
         for line in file:
             if 'MinSnapshotIndex' in line:
-                config['MinSnapshotIndex'] = int(line.split()[-1])
+                if(len(line.split()) > 1):
+                    config['MinSnapshotIndex'] = int(line.split()[-1])
             if 'MaxSnapshotIndex' in line:
-                config['MaxSnapshotIndex'] = int(line.split()[-1])
+                if(len(line.split()) > 1):
+                    config['MaxSnapshotIndex'] = int(line.split()[-1])
             if 'SnapshotIdList' in line:
-                config['SnapshotIdList'] = np.array(line.split()[1:]).astype(int)
+                if(len(line.split()) > 1):
+                    config['SnapshotIdList'] = np.array(line.split()[1:]).astype(int)
             if 'SnapshotPath' in line:
-                config['SnapshotPath'] = line.split()[-1]
+                if(len(line.split()) > 1):
+                    config['SnapshotPath'] = line.split()[-1]
             if 'SnapshotFileBase' in line:
-                config['SnapshotFileBase'] = line.split()[-1]
+                if(len(line.split()) > 1):
+                    config['SnapshotFileBase'] = line.split()[-1]
             if 'SnapshotDirBase' in line:
-                config['SnapshotDirBase'] = line.split()[-1]
+                if(len(line.split()) > 1):
+                    config['SnapshotDirBase'] = line.split()[-1]
             if 'SubhaloPath' in line:
-                config['SubhaloPath'] = line.split()[-1]
+                if(len(line.split()) > 1):
+                    config['SubhaloPath'] = line.split()[-1]
+
+    # If we have no SnapshotIdList, this means all snapshots are
+    # being analysed.
+    if 'SnapshotIdList' not in config:
+        config['SnapshotIdList'] = np.arange(config['MinSnapshotIndex'], config['MaxSnapshotIndex'] + 1)
 
     return config
 
@@ -202,7 +216,7 @@ def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees,
     for (progenitor_particle_id, progenitor_split_count, progenitor_split_tree) in zip(progenitor_particle_ids, progenitor_split_counts, progenitor_split_trees):
 
         # This mask selects the first N bits of any split tree array, where N is the split count of the current progenitor particle.
-        bit_mask = (~(~0 << progenitor_split_count))
+        bit_mask = (~((~0) << int(progenitor_split_count)))
 
         # Use the bit mask to select the relevant part of the split trees, both for the progenitor particle and the descendant ones.
         bit_progenitor = progenitor_split_tree & bit_mask 
