@@ -207,7 +207,7 @@ def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees,
     for (progenitor_particle_id, progenitor_split_count, progenitor_split_tree) in zip(progenitor_particle_ids, progenitor_split_counts, progenitor_split_trees):
 
         # This mask selects the first N bits of any split tree array, where N is the split count of the current progenitor particle.
-        bit_mask = (~(~0 << progenitor_split_count))
+        bit_mask = (~((~0) << int(progenitor_split_count)))
 
         # Use the bit mask to select the relevant part of the split trees, both for the progenitor particle and the descendant ones.
         bit_progenitor = progenitor_split_tree & bit_mask 
