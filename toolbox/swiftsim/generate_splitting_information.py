@@ -38,6 +38,11 @@ def load_hbt_config(config_path):
                 config['SnapshotDirBase'] = line.split()[-1]
             if 'SubhaloPath' in line:
                 config['SubhaloPath'] = line.split()[-1]
+    
+    # If we have no SnapshotIdList, this means all snapshots are
+    # being analysed.
+    if 'SnapshotIdList' not in config:
+        config['SnapshotIdList'] = np.arange(config['MinSnapshotIndex'], config['MaxSnapshotIndex'] + 1)
 
     return config
 
