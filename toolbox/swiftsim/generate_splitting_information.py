@@ -22,23 +22,32 @@ def load_hbt_config(config_path):
     '''
     config = {}
 
+    # If we find a relevant configuration parameter whose value is specified,
+    # i.e. has a value after its name, we store it.
     with open(config_path) as file:
         for line in file:
             if 'MinSnapshotIndex' in line:
-                config['MinSnapshotIndex'] = int(line.split()[-1])
+                if(len(line.split()) > 1):
+                    config['MinSnapshotIndex'] = int(line.split()[-1])
             if 'MaxSnapshotIndex' in line:
-                config['MaxSnapshotIndex'] = int(line.split()[-1])
+                if(len(line.split()) > 1):
+                    config['MaxSnapshotIndex'] = int(line.split()[-1])
             if 'SnapshotIdList' in line:
-                config['SnapshotIdList'] = np.array(line.split()[1:]).astype(int)
+                if(len(line.split()) > 1):
+                    config['SnapshotIdList'] = np.array(line.split()[1:]).astype(int)
             if 'SnapshotPath' in line:
-                config['SnapshotPath'] = line.split()[-1]
+                if(len(line.split()) > 1):
+                    config['SnapshotPath'] = line.split()[-1]
             if 'SnapshotFileBase' in line:
-                config['SnapshotFileBase'] = line.split()[-1]
+                if(len(line.split()) > 1):
+                    config['SnapshotFileBase'] = line.split()[-1]
             if 'SnapshotDirBase' in line:
-                config['SnapshotDirBase'] = line.split()[-1]
+                if(len(line.split()) > 1):
+                    config['SnapshotDirBase'] = line.split()[-1]
             if 'SubhaloPath' in line:
-                config['SubhaloPath'] = line.split()[-1]
-    
+                if(len(line.split()) > 1):
+                    config['SubhaloPath'] = line.split()[-1]
+
     # If we have no SnapshotIdList, this means all snapshots are
     # being analysed.
     if 'SnapshotIdList' not in config:
