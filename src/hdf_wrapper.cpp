@@ -16,9 +16,8 @@ void writeHDFmatrix(hid_t file, const void *buf, const char *name, hsize_t ndim,
       char grpname[bufsize], filename[bufsize];
       H5Iget_name(file, grpname, bufsize);
       H5Fget_name(file, filename, bufsize);
-      std::cerr << "####ERROR WRITING " << grpname << "/" << name << " into " << filename << ", error number " << status
-                << std::endl
-                << std::flush;
+
+      throw std::runtime_error("#### ERROR WRITING DATASET " + std::string(grpname) + "/" + std::string(name) + " into " + std::string(filename) + ", error number " + std::to_string(status));
     }
   }
   H5Dclose(dataset);
@@ -41,4 +40,13 @@ void writeStringAttribute(hid_t handle, const char *buf, const char *attr_name)
 
   status = H5Aclose(hdf5_attribute);
   status = H5Sclose(hdf5_dataspace);
+  
+  if(status < 0)
+  {
+    const int bufsize = 1024;
+    char grpname[bufsize], filename[bufsize];
+    H5Iget_name(handle, grpname, bufsize);
+    H5Fget_name(handle, filename, bufsize);
+    throw std::runtime_error("#### ERROR WRITING ATTRIBUTE " + std::string(grpname) + "/" + std::string(attr_name) + " into " + std::string(filename) + ", error number " + std::to_string(status));
+  }
 }
