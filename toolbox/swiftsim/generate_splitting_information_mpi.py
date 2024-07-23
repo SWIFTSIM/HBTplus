@@ -145,24 +145,16 @@ def load_snapshot(file_path):
 
     return split_data
 
-def group_by_progenitor(split_counts, split_trees, split_progenitors, split_particle_ids):
+def group_by_progenitor(split_data):
     '''
     Splits the array containing all split information into subarrays, each
     of which corresponds to an independent split tree.
 
     Parameters
     ----------
-    counts : np.ndarray
-        Number of splits that have occured along the splitting tree of a given particle.
-    trees : np.ndarray
-        Binary tree representing whether a particle changed its ID (1) or not (0)
-        during a split event. The value is represented in base ten.
-    progenitors : np.ndarray
-        ID of the particle originally present in the simulation that is the progenitor
-        of the current particle. Used to group all particles that share this common 
-        particle progentor into distinct split trees
-    particle_ids : np.ndarray
-        ID of the particle.
+    split_data : dict
+        Dictionary with four keys, each of which contains how many times a particle split, 
+        its ParticleID, its progenitor ParticleID and the binary split tree.
 
     Returns
     -------
@@ -172,17 +164,22 @@ def group_by_progenitor(split_counts, split_trees, split_progenitors, split_part
         independently.
     '''
 
-    # The ids, and hence counts, are already sorted in ascending progenitor particle ID.
-    unique_progenitor_ids, unique_progenitor_counts = np.unique(split_progenitors,return_counts=1)
+    # Sort the arrays in ascending progenitor ID
+    index_progenitor_sort = np.argsort(split_data["progenitor_ids"])
+    for key, value in split_data.items():
+        split_data[key] = value[index_progenitor_sort]
+
+    # Count how many unique split trees we have in the task
+    unique_progenitor_ids, unique_progenitor_counts = np.unique(split_data["progenitor_ids"],return_counts=1)
 
     # Create subarray for each tree.
     offsets = np.cumsum(unique_progenitor_counts)[:-1]
 
+    # Split arrays into subarrays
     subarray_data = {}
-    subarray_data['counts'] = np.split(split_counts,  offsets)
-    subarray_data['trees'] = np.split(split_trees,  offsets)
-    subarray_data['particle_ids'] = np.split(split_particle_ids,  offsets)
-    subarray_data['progenitor_ids'] = unique_progenitor_ids
+    for key, value in split_data.items():
+        subarray_data[key] = np.split(value, offsets)
+    subarray_data["progenitor_ids"] = unique_progenitor_ids
 
     return subarray_data 
 
