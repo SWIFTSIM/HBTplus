@@ -133,8 +133,8 @@ def load_snapshot(file_path):
 
         split_counts.append(counts[has_split])
         split_trees.append(trees[has_split])
-        split_progenitors.append(particle_ids[has_split])
-        split_particle_ids.append(progenitor_ids[has_split])
+        split_particle_ids.append(particle_ids[has_split])
+        split_progenitors.append(progenitor_ids[has_split])
 
     # Merge the lists into arrays, contained in a dict
     split_data = {}
