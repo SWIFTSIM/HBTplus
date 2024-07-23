@@ -442,11 +442,11 @@ def generate_split_file(path_to_config, snapshot_index):
     #==========================================================================
     # Create a directory to hold split information
     #==========================================================================
+    output_base_dir = f"{config['SubhaloPath']}/ParticleSplits"
+    output_file_name = f"{output_base_dir}/particle_splits_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
     if comm_rank == 0:
-        output_base_dir = f"{config['SubhaloPath']}/ParticleSplits"
         if not os.path.exists(output_base_dir):
             os.makedirs(output_base_dir)
-        output_file_name = f"{output_base_dir}/particle_splits_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
 
     #==========================================================================
     # There will be no splits for snapshot 0, so we can skip its analysis 
