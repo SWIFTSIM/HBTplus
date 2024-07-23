@@ -104,21 +104,12 @@ def load_snapshot(file_path):
 
     Returns
     -------
-    split_counts : np.ndarray
-        Number of splits that have occured along the splitting tree of a given particle.
-    split_trees : np.ndarray
-        Binary tree representing whether a particle changed its ID (1) or not (0)
-        during a split event. The value is represented in base ten.
-    split_progenitors : np.ndarray
-        ID of the particle originally present in the simulation that is the progenitor
-        of the current particle. Used to group all particles that share this common 
-        particle progentor into distinct split trees
-    split_particle_ids : np.ndarray
-        ID of the particle.
+    split_data : dict
+        Dictionary with four keys, each of which contains how many times a particle split, 
+        its ParticleID, its progenitor ParticleID and the binary split tree.
     '''
 
-    # Load snapshot. TODO: consider using MPI.
-    snap = sw.load(file_path)
+    file =  phdf5.MultiFile(file_path, file_nr_attr=("Header","NumFilesPerSnapshot"), comm=comm)
 
     # Lists that will hold the split information for all eligible particle types
     # (gas, stars, black holes).
@@ -129,29 +120,30 @@ def load_snapshot(file_path):
 
     # Iterate over all the particle types that could have been split, and store
     # the information of those that have split.
-    for particle_type in ['gas', 'stars', 'black_holes']:
+    for particle_type in [0,4,5]:
 
-        has_split = snap.__getattribute__(particle_type).split_counts > 0
+        # Load information from the snapshot
+        counts = file.read(f"PartType{particle_type}/SplitCounts")
+        trees = file.read(f"PartType{particle_type}/SplitTrees")
+        particle_ids = file.read(f"PartType{particle_type}/ParticleIDs")
+        progenitor_ids = file.read(f"PartType{particle_type}/ProgenitorParticleIDs")
 
-        split_counts.append(snap.__getattribute__(particle_type).split_counts[has_split].value)
-        split_trees.append(snap.__getattribute__(particle_type).split_trees[has_split].value)
-        split_progenitors.append(snap.__getattribute__(particle_type).progenitor_particle_ids[has_split].value)
-        split_particle_ids.append(snap.__getattribute__(particle_type).particle_ids[has_split].value)
+        # Append to the final list only those which have split before
+        has_split = counts > 0
 
-    # Merge all of the arrays together
-    split_counts = np.hstack(split_counts)
-    split_trees = np.hstack(split_trees)
-    split_progenitors = np.hstack(split_progenitors)
-    split_particle_ids = np.hstack(split_particle_ids)
+        split_counts.append(counts[has_split])
+        split_trees.append(trees[has_split])
+        split_progenitors.append(particle_ids[has_split])
+        split_particle_ids.append(progenitor_ids[has_split])
 
-    # Sort in ascending progenitor ID order
-    index_sort = np.argsort(split_progenitors)
-    split_counts = split_counts[index_sort]
-    split_trees = split_trees[index_sort]
-    split_progenitors = split_progenitors[index_sort]
-    split_particle_ids = split_particle_ids[index_sort]
+    # Merge the lists into arrays, contained in a dict
+    split_data = {}
+    split_data["counts"]= np.hstack(split_counts)
+    split_data["trees"]= np.hstack(split_trees)
+    split_data["particle_ids"]= np.hstack(split_particle_ids)
+    split_data["progenitor_ids"]= np.hstack(split_progenitor)
 
-    return split_counts, split_trees, split_progenitors, split_particle_ids
+    return split_data
 
 def group_by_progenitor(split_counts, split_trees, split_progenitors, split_particle_ids):
     '''
