@@ -413,6 +413,15 @@ def generate_split_file(path_to_config, snapshot_index):
 
         save({},output_file_name)
         return
+    #==========================================================================
+    # Load data for snapshot N - 1.
+    #==========================================================================
+    if comm_rank == 0:
+        print (f"Loading complementary data from snapshot index {snapshot_index - 1}")
+
+    old_snapshot_path = generate_path_to_snapshot(config, snapshot_index - 1)
+    old_data = load_snapshot(old_snapshot_path)
+
 if __name__ == "__main__":
 
     import sys
