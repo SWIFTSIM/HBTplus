@@ -341,6 +341,30 @@ def save(split_dictionary, file_path):
         file.create_dataset("SplitInformation/Values", data = hash_array[:,1])
         file['SplitInformation'].attrs['NumberSplits'] = total_splits
 
+def assign_task_based_on_id(ids):
+    """
+    Uses a hash function and modulus operation to assign a
+    task given an id.
+    
+    Parameters
+    ----------
+    ids : np.ndarray
+        An array of particle IDs
+
+    Returns
+    -------
+    np.ndarray
+        An array with the task rank assigned to each ID
+    """
+
+    # Same as used internally by HBT+. 
+    # Taken from: https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
+    ids = ((ids >> 16) ^ ids) * 0x45d9f3b
+    ids = ((ids >> 16) ^ ids) * 0x45d9f3b
+    ids = (ids >> 16) ^ ids
+
+    return abs(ids) % comm.size
+
 def generate_split_file(path_to_config, snapshot_index):
     '''
     This will create an HDF5 file that is loaded by HBT to handle
