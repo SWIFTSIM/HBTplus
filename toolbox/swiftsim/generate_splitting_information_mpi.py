@@ -405,7 +405,7 @@ def generate_split_file(path_to_config, snapshot_index):
     new_data = load_snapshot(new_snapshot_path)
     
     # Get how many particles that have been split exist in current snapshot
-    total_number_splits = comm.allreduce(len(new_data["split_counts"]))
+    total_number_splits = comm.allreduce(len(new_data["counts"]))
 
     if(total_number_splits) == 0:
         if comm_rank == 0:
