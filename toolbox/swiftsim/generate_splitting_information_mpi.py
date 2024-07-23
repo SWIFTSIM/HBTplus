@@ -306,17 +306,21 @@ def save(split_dictionary, file_path):
         Where to save the HDF5 file containing the map of particle splits.
     '''
     # We first need to turn the dictionary into an array used to create a map
-    total_splits = np.array([len(x) for x in split_dictionary.values()]).sum()
+    local_total_splits = np.array([len(x) for x in split_dictionary.values()]).astype(int).sum()
+    global_total_splits = comm.allreduce(local_total_splits)
 
     # For completeness purposes, save an empty hdf5 even when we have no splits
-    if(total_splits == 0):
-        with h5py.File(file_path, 'w') as file:
-            file.create_dataset("SplitInformation/Keys", data = h5py.Empty("int"))
-            file.create_dataset("SplitInformation/Values", data = h5py.Empty("int"))
-            file['SplitInformation'].attrs['NumberSplits'] = 0
+    if(global_total_splits == 0):
+        if(comm_rank == 0):
+            with h5py.File(file_path, 'w') as file:
+                file.create_dataset("SplitInformation/Keys", data = h5py.Empty("int"))
+                file.create_dataset("SplitInformation/Values", data = h5py.Empty("int"))
+                file['SplitInformation'].attrs['NumberSplits'] = 0
+
+        comm.barrier()
         return
 
-    hash_array = np.ones((total_splits, 2),int) * -1
+    hash_array = np.ones((local_total_splits, 2), int) * -1
 
     offset = 0
     for i, (key, values) in enumerate (split_dictionary.items()):
@@ -333,10 +337,14 @@ def save(split_dictionary, file_path):
             hash_array[offset][1] = values[j]
             offset +=1
 
-    with h5py.File(file_path, 'w') as file:
-        file.create_dataset("SplitInformation/Keys", data = hash_array[:,0])
-        file.create_dataset("SplitInformation/Values", data = hash_array[:,1])
-        file['SplitInformation'].attrs['NumberSplits'] = total_splits
+    with h5py.File(file_path, 'w', driver='mpio', comm=MPI.COMM_WORLD) as file:
+        group = file.create_group("SplitInformation")
+        group.attrs['NumberSplits'] = global_total_splits
+
+        phdf5.collective_write(group, "Keys", hash_array[:,0], comm=MPI.COMM_WORLD)
+        phdf5.collective_write(group, "Values", hash_array[:,1], comm=MPI.COMM_WORLD)
+
+    comm.barrier()
 
 def assign_task_based_on_id(ids):
     """
