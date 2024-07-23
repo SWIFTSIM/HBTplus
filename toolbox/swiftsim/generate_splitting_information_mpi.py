@@ -152,16 +152,16 @@ def group_by_progenitor(split_counts, split_trees, split_progenitors, split_part
 
     Parameters
     ----------
-    split_counts : np.ndarray
+    counts : np.ndarray
         Number of splits that have occured along the splitting tree of a given particle.
-    split_trees : np.ndarray
+    trees : np.ndarray
         Binary tree representing whether a particle changed its ID (1) or not (0)
         during a split event. The value is represented in base ten.
-    split_progenitors : np.ndarray
+    progenitors : np.ndarray
         ID of the particle originally present in the simulation that is the progenitor
         of the current particle. Used to group all particles that share this common 
         particle progentor into distinct split trees
-    split_particle_ids : np.ndarray
+    particle_ids : np.ndarray
         ID of the particle.
 
     Returns
@@ -179,10 +179,10 @@ def group_by_progenitor(split_counts, split_trees, split_progenitors, split_part
     offsets = np.cumsum(unique_progenitor_counts)[:-1]
 
     subarray_data = {}
-    subarray_data['split_counts'] = np.split(split_counts,  offsets)
-    subarray_data['split_trees'] = np.split(split_trees,  offsets)
-    subarray_data['split_particle_ids'] = np.split(split_particle_ids,  offsets)
-    subarray_data['split_progenitor_ids'] = unique_progenitor_ids
+    subarray_data['counts'] = np.split(split_counts,  offsets)
+    subarray_data['trees'] = np.split(split_trees,  offsets)
+    subarray_data['particle_ids'] = np.split(split_particle_ids,  offsets)
+    subarray_data['progenitor_ids'] = unique_progenitor_ids
 
     return subarray_data 
 
