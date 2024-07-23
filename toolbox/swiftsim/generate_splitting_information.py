@@ -397,7 +397,7 @@ def generate_split_file(path_to_config, snapshot_index):
     # Load data for snapshot N - 1.
     #==========================================================================
 
-    print (f"Loading complementary data from snapshot index {snapshot_index}")
+    print (f"Loading complementary data from snapshot index {snapshot_index - 1}")
     old_snapshot_path = generate_path_to_snapshot(config, snapshot_index - 1)
     old_data = load_snapshot(old_snapshot_path)
 
