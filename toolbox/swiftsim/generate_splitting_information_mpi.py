@@ -259,10 +259,10 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
     new_splits = {}
 
     # Iterate over unique split trees in snapshot N
-    for tree_index, tree_progenitor_ID in enumerate(new_snapshot_data['split_progenitor_ids']):
+    for tree_index, tree_progenitor_ID in enumerate(new_snapshot_data['progenitor_ids']):
 
         # Check whether the current unique tree already existed in snapshot N-1
-        is_new_tree = tree_progenitor_ID not in old_snapshot_data['split_progenitor_ids']
+        is_new_tree = tree_progenitor_ID not in old_snapshot_data['progenitor_ids']
 
         if is_new_tree:
 
@@ -270,7 +270,7 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
             # particle ID that originated this unique tree.
             progenitor_id = tree_progenitor_ID
 
-            new_ids = new_snapshot_data['split_particle_ids'][tree_index]
+            new_ids = new_snapshot_data['particle_ids'][tree_index]
             new_ids = new_ids[new_ids != progenitor_id]
 
             # We could encounter cases where a particle has split and its descendants
@@ -281,14 +281,14 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
         else:
             # Different particles within the tree could have split simultaneously. We need
             # to be a bit more careful.
-            tree_index_old = np.where(old_snapshot_data['split_progenitor_ids'] == tree_progenitor_ID)[0][0] 
+            tree_index_old = np.where(old_snapshot_data['progenitor_ids'] == tree_progenitor_ID)[0][0] 
 
             # Compare the same unique trees between snapshots N and N-1 to see how particles have split
-            new_splits.update(get_splits_of_existing_tree(old_snapshot_data['split_particle_ids'][tree_index_old],
-                                                          old_snapshot_data['split_trees'][tree_index_old],
-                                                          old_snapshot_data['split_counts'][tree_index_old],
-                                                          new_snapshot_data['split_particle_ids'][tree_index],
-                                                          new_snapshot_data['split_trees'][tree_index]))
+            new_splits.update(get_splits_of_existing_tree(old_snapshot_data['particle_ids'][tree_index_old],
+                                                          old_snapshot_data['trees'][tree_index_old],
+                                                          old_snapshot_data['counts'][tree_index_old],
+                                                          new_snapshot_data['particle_ids'][tree_index],
+                                                          new_snapshot_data['trees'][tree_index]))
 
     return new_splits
 
