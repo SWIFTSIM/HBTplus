@@ -141,7 +141,7 @@ def load_snapshot(file_path):
     split_data["counts"]= np.hstack(split_counts)
     split_data["trees"]= np.hstack(split_trees)
     split_data["particle_ids"]= np.hstack(split_particle_ids)
-    split_data["progenitor_ids"]= np.hstack(split_progenitor)
+    split_data["progenitor_ids"]= np.hstack(split_progenitors)
 
     return split_data
 
@@ -381,7 +381,6 @@ def generate_split_file(path_to_config, snapshot_index):
         if not os.path.exists(output_base_dir):
             os.makedirs(output_base_dir)
         output_file_name = f"{output_base_dir}/particle_splits_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
-
 
     #==========================================================================
     # There will be no splits for snapshot 0, so we can skip its analysis 
