@@ -28,6 +28,7 @@ inline int GetDatasetDims(hid_t dset, hsize_t dims[])
   H5Sclose(dspace);
   return ndim;
 }
+
 inline herr_t ReclaimVlenData(hid_t dset, hid_t dtype, void *buf)
 {
   herr_t status;
@@ -36,6 +37,7 @@ inline herr_t ReclaimVlenData(hid_t dset, hid_t dtype, void *buf)
   status = H5Sclose(dspace);
   return status;
 }
+
 inline herr_t ReadDataset(hid_t file, const char *name, hid_t dtype, void *buf)
 /* read named dataset from file into buf.
  * dtype specifies the datatype of buf; it does not need to be the same as the storage type in file*/
@@ -49,9 +51,8 @@ inline herr_t ReadDataset(hid_t file, const char *name, hid_t dtype, void *buf)
     char grpname[bufsize], filename[bufsize];
     H5Iget_name(file, grpname, bufsize);
     H5Fget_name(file, filename, bufsize);
-    std::cerr << "####ERROR READING " << grpname << "/" << name << " from " << filename << ", error number " << status
-              << std::endl
-              << std::flush;
+
+    throw std::runtime_error("#### ERROR READING DATASET " + std::string(grpname) + "/" + std::string(name) + " from " + std::string(filename) + ", error number " + std::to_string(status));
   }
   H5Dclose(dset);
   return status;
@@ -98,9 +99,8 @@ inline herr_t ReadPartialDataset(hid_t file, const char *name, hid_t dtype, void
     char grpname[bufsize], filename[bufsize];
     H5Iget_name(file, grpname, bufsize);
     H5Fget_name(file, filename, bufsize);
-    std::cerr << "####ERROR READING " << grpname << "/" << name << " from " << filename << ", error number " << status
-              << std::endl
-              << std::flush;
+
+    throw std::runtime_error("#### ERROR READING DATASET " + std::string(grpname) + "/" + std::string(name) + " from " + std::string(filename) + ", error number " + std::to_string(status));
   }
   H5Dclose(dset);
   H5Sclose(mem_space_id);
@@ -117,6 +117,16 @@ inline herr_t ReadAttribute(hid_t loc_id, const char *obj_name, const char *attr
   hid_t attr = H5Aopen_by_name(loc_id, obj_name, attr_name, H5P_DEFAULT, H5P_DEFAULT);
   status = H5Aread(attr, dtype, buf);
   status = H5Aclose(attr);
+
+  if (status < 0)
+  {
+    const int bufsize = 1024;
+    char grpname[bufsize], filename[bufsize];
+    H5Fget_name(loc_id , filename, bufsize);
+
+    throw std::runtime_error("#### ERROR READING ATTRIBUTE " + std::string(obj_name) + "/" + std::string(attr_name) + " from " + std::string(filename) + ", error number " + std::to_string(status));
+  }
+
   return status;
 }
 
@@ -144,6 +154,16 @@ inline herr_t ReadAttribute(hid_t loc_id, const char *obj_name, const char *attr
   H5Tclose(dtype);
   H5Tclose(mem_type);
   H5Aclose(attr);
+
+  /* An error has occured. Terminate the program. */
+  if(status < 0)
+  {
+    const int bufsize = 1024;
+    char grpname[bufsize], filename[bufsize];
+    H5Fget_name(loc_id , filename, bufsize);
+
+    throw std::runtime_error("#### ERROR READING ATTRIBUTE " + std::string(obj_name) + "/" + std::string(attr_name) + " from " + std::string(filename) + ", error number " + std::to_string(status));
+  }
 
   return status;
 }
