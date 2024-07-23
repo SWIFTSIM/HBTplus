@@ -427,7 +427,7 @@ def generate_split_file(path_to_config, snapshot_index):
 
     # Load the data
     new_data = load_snapshot(new_snapshot_path)
-    
+
     # Get how many particles that have been split exist in current snapshot
     total_number_splits = comm.allreduce(len(new_data["counts"]))
 
@@ -445,6 +445,44 @@ def generate_split_file(path_to_config, snapshot_index):
 
     old_snapshot_path = generate_path_to_snapshot(config, snapshot_index - 1)
     old_data = load_snapshot(old_snapshot_path)
+
+    #==========================================================================
+    # We now need to collect particles that share progenitor ids in the same
+    # rank
+    #==========================================================================
+    if comm_rank == 0:
+        print (f"Distributing particle data to its assigned task")
+
+    new_data = gather_by_progenitor_id(new_data)
+    old_data = gather_by_progenitor_id(old_data)
+
+    #==========================================================================
+    # Each rank can analyse the data it contains independently from each other.
+    #==========================================================================
+    if comm_rank == 0:
+        print (f"Grouping local data into subarrays by progenitor ID")
+
+    new_data = group_by_progenitor(new_data)
+    old_data = group_by_progenitor(old_data)
+
+    #==========================================================================
+    # Compare trees in snapshot N - 1 and N, to identify new splits
+    #==========================================================================
+    if comm_rank == 0:
+        print (f"Identifying particle splits")
+
+    new_splits = get_descendant_particle_ids(old_data, new_data)
+
+    #==========================================================================
+    # Save in the directory where HBT outputs will be saved
+    #==========================================================================
+    if comm_rank == 0:
+        print (f"Saving information")
+
+    save(new_splits,output_file_name)
+
+    if comm_rank == 0:
+        print (f"Done!")
 
 if __name__ == "__main__":
 
