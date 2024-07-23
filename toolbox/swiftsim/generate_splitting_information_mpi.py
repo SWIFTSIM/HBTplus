@@ -364,16 +364,14 @@ def generate_split_file(path_to_config, snapshot_index):
         analysed by HBT.
     '''
     #==========================================================================
-    # We get from here where the snapshots to analyse are, and where
-    # the HBT catalogues will be saved.
+    # Load settings of this run into all ranks 
     #==========================================================================
-    config = load_hbt_config(path_to_config)
+    config = {}
 
-    # Create a directory to hold split information
-    output_base_dir = f"{config['SubhaloPath']}/ParticleSplits"
-    if not os.path.exists(output_base_dir):
-        os.makedirs(output_base_dir)
-    output_file_name = f"{output_base_dir}/particle_splits_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
+    # We load from rank 0 and then we broadcast to all other ranks 
+    if comm_rank == 0:
+        config = load_hbt_config(path_to_config)
+    config = comm.bcast(config, root=0)
 
     #==========================================================================
     # Check that we are analysing a valid snapshot index
@@ -383,56 +381,31 @@ def generate_split_file(path_to_config, snapshot_index):
     if(snapshot_index < config['MinSnapshotIndex']):
         raise ValueError(f"Chosen snapshot index {snapshot_index} is smaller than the one specified in the config ({config['MinSnapshotIndex']}).")
 
-    # We cannot do split information in the first snapshot. Save an empty split
-    # information.
+    #==========================================================================
+    # Create a directory to hold split information
+    #==========================================================================
+    if comm_rank == 0:
+        output_base_dir = f"{config['SubhaloPath']}/ParticleSplits"
+        if not os.path.exists(output_base_dir):
+            os.makedirs(output_base_dir)
+        output_file_name = f"{output_base_dir}/particle_splits_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
+
+
+    #==========================================================================
+    # There will be no splits for snapshot 0, so we can skip its analysis 
+    #==========================================================================
     if snapshot_index == 0:
-        print(f"Skipping snapshot index {snapshot_index}")
+        if(comm_rank == 0):
+            print(f"Skipping snapshot index {snapshot_index}")
+
         save({},output_file_name)
         return
 
     #==========================================================================
     # Load data for snapshot N.
     #==========================================================================
-
-    print (f"Loading data for snapshot index {snapshot_index}")
-
-    # Get path to snapshot
-    new_snapshot_path = generate_path_to_snapshot(config, snapshot_index)
-    new_data = load_snapshot(new_snapshot_path)
-
-    if len(new_data[0]) == 0:
-        print (f"No splits at snapshot index {snapshot_index}. Skipping...")
-        save({},output_file_name)
-        return
-
-    #==========================================================================
-    # Load data for snapshot N - 1.
-    #==========================================================================
-
-    print (f"Loading complementary data from snapshot index {snapshot_index - 1}")
-    old_snapshot_path = generate_path_to_snapshot(config, snapshot_index - 1)
-    old_data = load_snapshot(old_snapshot_path)
-
-    #==========================================================================
-    # Split arrays into subarrays whose entries all share a common progenitor
-    #==========================================================================
-    print (f"Grouping data by progenitor ID")
-    new_data = group_by_progenitor(*new_data)
-    old_data = group_by_progenitor(*old_data)
-
-    #==========================================================================
-    # Compare trees in snapshot N - 1 and N, to identify new splits
-    #==========================================================================
-    print (f"Identifying particle splits")
-    new_splits = get_descendant_particle_ids(old_data, new_data)
-
-    #==========================================================================
-    # Save in the directory where HBT outputs will be saved
-    #==========================================================================
-    print (f"Saving information")
-    save(new_splits,output_file_name)
-
-
+    if comm_rank == 0:
+        print (f"Loading data for snapshot index {snapshot_index}")
 if __name__ == "__main__":
 
     import sys
