@@ -397,6 +397,22 @@ def generate_split_file(path_to_config, snapshot_index):
     #==========================================================================
     if comm_rank == 0:
         print (f"Loading data for snapshot index {snapshot_index}")
+
+    # Get path to snapshot
+    new_snapshot_path = generate_path_to_snapshot(config, snapshot_index)
+
+    # Load the data
+    new_data = load_snapshot(new_snapshot_path)
+    
+    # Get how many particles that have been split exist in current snapshot
+    total_number_splits = comm.allreduce(len(new_data["split_counts"]))
+
+    if(total_number_splits) == 0:
+        if comm_rank == 0:
+            print (f"No splits at snapshot index {snapshot_index}. Skipping...")
+
+        save({},output_file_name)
+        return
 if __name__ == "__main__":
 
     import sys
