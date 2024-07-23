@@ -305,6 +305,7 @@ def save(split_dictionary, file_path):
     file_path : str
         Where to save the HDF5 file containing the map of particle splits.
     '''
+
     # We first need to turn the dictionary into an array used to create a map
     local_total_splits = np.array([len(x) for x in split_dictionary.values()]).astype(int).sum()
     global_total_splits = comm.allreduce(local_total_splits)
@@ -487,11 +488,12 @@ def generate_split_file(path_to_config, snapshot_index):
 
         save({},output_file_name)
         return
+
     #==========================================================================
     # Load data for snapshot N - 1.
     #==========================================================================
     if comm_rank == 0:
-        print (f"Loading complementary data from snapshot index {snapshot_index - 1}")
+        print (f"Loading data from snapshot index {snapshot_index - 1}")
 
     old_snapshot_path = generate_path_to_snapshot(config, snapshot_index - 1)
     old_data = load_snapshot(old_snapshot_path)
@@ -529,7 +531,7 @@ def generate_split_file(path_to_config, snapshot_index):
     if comm_rank == 0:
         print (f"Saving information")
 
-    save(new_splits,output_file_name)
+    save(new_splits, output_file_name)
 
     if comm_rank == 0:
         print (f"Done!")
