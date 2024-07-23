@@ -1,7 +1,19 @@
+#!/bin/env python
+
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+comm_rank = comm.Get_rank()
+comm_size = comm.Get_size()
+
 import os
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
 import h5py
 import numpy as np
-import swiftsimio as sw
+import virgo.mpi.util
+import virgo.mpi.parallel_hdf5 as phdf5
+import virgo.mpi.gather_array as ga
+import virgo.mpi.parallel_sort as psort
 
 def load_hbt_config(config_path):
     '''
