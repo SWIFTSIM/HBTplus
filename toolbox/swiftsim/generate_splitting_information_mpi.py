@@ -365,6 +365,51 @@ def assign_task_based_on_id(ids):
 
     return abs(ids) % comm.size
 
+def gather_by_progenitor_id(data):
+    """
+    It gathers all data concerning particles that share a progenitor ID in the
+    same MPI task
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary with the particle split information loaded by each MPI
+        rank.
+
+    Returns
+    -------
+    data : dict
+        Same as the input dictionary, but all particles that share a progenitor
+        ID are in the same task.
+    """
+
+    # We first assign a task to each particle. We base it on their
+    # progenitor ID so that the same tree of split particles ends up
+    # in the same rank.
+    target_task = assign_task_based_on_id(data["progenitor_ids"])
+
+    # Count how many elements we will end up per task
+    local_task_counts = np.zeros(comm_size, int)
+    unique_tasks, unique_counts = np.unique(target_task, return_counts = True)
+    local_task_counts[unique_tasks] = unique_counts
+    global_task_counts = comm.allreduce(local_task_counts)
+
+    # We now order the target_task across MPI ranks. This gives us an array we can use
+    # to reorder the data dictionaries
+    order = psort.parallel_sort(target_task, return_index=True, comm=comm)
+    for key, value in data.items():
+        data[key] = psort.fetch_elements(value, order, comm=comm)
+
+    # Repartition, so that whole trees are contained within their assigned tasks
+    for key, value in data.items():
+        data[key] = psort.repartition(value, global_task_counts, comm=comm)
+
+    # This is for testing if all particles ended up where they should have.
+    target_task = assign_task_based_on_id(data["progenitor_ids"])
+    assert((target_task != comm_rank).sum() == 0)
+
+    return data
+
 def generate_split_file(path_to_config, snapshot_index):
     '''
     This will create an HDF5 file that is loaded by HBT to handle
