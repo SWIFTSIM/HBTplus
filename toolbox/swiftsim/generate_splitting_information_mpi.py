@@ -231,7 +231,7 @@ def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees,
 
         # Add new
         if len(new_ids) > 0:
-            new_splits[progenitor_particle_id] = new_ids
+            new_splits[progenitor_particle_id] = np.sort(new_ids)
 
     return new_splits
 
@@ -276,7 +276,7 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
             # We could encounter cases where a particle has split and its descendants
             # have dissapeared from the simulation
             if len(new_ids) > 0:
-                new_splits[progenitor_id] = new_ids
+                new_splits[progenitor_id] = np.sort(new_ids)
 
         else:
             # Different particles within the tree could have split simultaneously. We need
