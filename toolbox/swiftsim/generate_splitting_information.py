@@ -1,7 +1,19 @@
+#!/bin/env python
+
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+comm_rank = comm.Get_rank()
+comm_size = comm.Get_size()
+
 import os
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
 import h5py
 import numpy as np
-import swiftsimio as sw
+import virgo.mpi.util
+import virgo.mpi.parallel_hdf5 as phdf5
+import virgo.mpi.gather_array as ga
+import virgo.mpi.parallel_sort as psort
 
 def load_hbt_config(config_path):
     '''
@@ -78,7 +90,7 @@ def generate_path_to_snapshot(config, snapshot_index):
     else:
         subdirectory = "" 
 
-    return f"{config['SnapshotPath']}/{subdirectory}/{config['SnapshotFileBase']}_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
+    return f"{config['SnapshotPath']}/{subdirectory}/{config['SnapshotFileBase']}_{config['SnapshotIdList'][snapshot_index]:04d}" +".{file_nr}.hdf5"
 
 def load_snapshot(file_path):
     '''
@@ -92,21 +104,12 @@ def load_snapshot(file_path):
 
     Returns
     -------
-    split_counts : np.ndarray
-        Number of splits that have occured along the splitting tree of a given particle.
-    split_trees : np.ndarray
-        Binary tree representing whether a particle changed its ID (1) or not (0)
-        during a split event. The value is represented in base ten.
-    split_progenitors : np.ndarray
-        ID of the particle originally present in the simulation that is the progenitor
-        of the current particle. Used to group all particles that share this common 
-        particle progentor into distinct split trees
-    split_particle_ids : np.ndarray
-        ID of the particle.
+    split_data : dict
+        Dictionary with four keys, each of which contains how many times a particle split, 
+        its ParticleID, its progenitor ParticleID and the binary split tree.
     '''
 
-    # Load snapshot. TODO: consider using MPI.
-    snap = sw.load(file_path)
+    file =  phdf5.MultiFile(file_path, file_nr_attr=("Header","NumFilesPerSnapshot"), comm=comm)
 
     # Lists that will hold the split information for all eligible particle types
     # (gas, stars, black holes).
@@ -117,48 +120,41 @@ def load_snapshot(file_path):
 
     # Iterate over all the particle types that could have been split, and store
     # the information of those that have split.
-    for particle_type in ['gas', 'stars', 'black_holes']:
+    for particle_type in [0,4,5]:
 
-        has_split = snap.__getattribute__(particle_type).split_counts > 0
+        # Load information from the snapshot
+        counts = file.read(f"PartType{particle_type}/SplitCounts")
+        trees = file.read(f"PartType{particle_type}/SplitTrees")
+        particle_ids = file.read(f"PartType{particle_type}/ParticleIDs")
+        progenitor_ids = file.read(f"PartType{particle_type}/ProgenitorParticleIDs")
 
-        split_counts.append(snap.__getattribute__(particle_type).split_counts[has_split].value)
-        split_trees.append(snap.__getattribute__(particle_type).split_trees[has_split].value)
-        split_progenitors.append(snap.__getattribute__(particle_type).progenitor_particle_ids[has_split].value)
-        split_particle_ids.append(snap.__getattribute__(particle_type).particle_ids[has_split].value)
+        # Append to the final list only those which have split before
+        has_split = counts > 0
 
-    # Merge all of the arrays together
-    split_counts = np.hstack(split_counts)
-    split_trees = np.hstack(split_trees)
-    split_progenitors = np.hstack(split_progenitors)
-    split_particle_ids = np.hstack(split_particle_ids)
+        split_counts.append(counts[has_split])
+        split_trees.append(trees[has_split])
+        split_particle_ids.append(particle_ids[has_split])
+        split_progenitors.append(progenitor_ids[has_split])
 
-    # Sort in ascending progenitor ID order
-    index_sort = np.argsort(split_progenitors)
-    split_counts = split_counts[index_sort]
-    split_trees = split_trees[index_sort]
-    split_progenitors = split_progenitors[index_sort]
-    split_particle_ids = split_particle_ids[index_sort]
+    # Merge the lists into arrays, contained in a dict
+    split_data = {}
+    split_data["counts"]= np.hstack(split_counts)
+    split_data["trees"]= np.hstack(split_trees)
+    split_data["particle_ids"]= np.hstack(split_particle_ids)
+    split_data["progenitor_ids"]= np.hstack(split_progenitors)
 
-    return split_counts, split_trees, split_progenitors, split_particle_ids
+    return split_data
 
-def group_by_progenitor(split_counts, split_trees, split_progenitors, split_particle_ids):
+def group_by_progenitor(split_data):
     '''
     Splits the array containing all split information into subarrays, each
     of which corresponds to an independent split tree.
 
     Parameters
     ----------
-    split_counts : np.ndarray
-        Number of splits that have occured along the splitting tree of a given particle.
-    split_trees : np.ndarray
-        Binary tree representing whether a particle changed its ID (1) or not (0)
-        during a split event. The value is represented in base ten.
-    split_progenitors : np.ndarray
-        ID of the particle originally present in the simulation that is the progenitor
-        of the current particle. Used to group all particles that share this common 
-        particle progentor into distinct split trees
-    split_particle_ids : np.ndarray
-        ID of the particle.
+    split_data : dict
+        Dictionary with four keys, each of which contains how many times a particle split, 
+        its ParticleID, its progenitor ParticleID and the binary split tree.
 
     Returns
     -------
@@ -168,17 +164,22 @@ def group_by_progenitor(split_counts, split_trees, split_progenitors, split_part
         independently.
     '''
 
-    # The ids, and hence counts, are already sorted in ascending progenitor particle ID.
-    unique_progenitor_ids, unique_progenitor_counts = np.unique(split_progenitors,return_counts=1)
+    # Sort the arrays in ascending progenitor ID
+    index_progenitor_sort = np.argsort(split_data["progenitor_ids"])
+    for key, value in split_data.items():
+        split_data[key] = value[index_progenitor_sort]
+
+    # Count how many unique split trees we have in the task
+    unique_progenitor_ids, unique_progenitor_counts = np.unique(split_data["progenitor_ids"],return_counts=1)
 
     # Create subarray for each tree.
     offsets = np.cumsum(unique_progenitor_counts)[:-1]
 
+    # Split arrays into subarrays
     subarray_data = {}
-    subarray_data['split_counts'] = np.split(split_counts,  offsets)
-    subarray_data['split_trees'] = np.split(split_trees,  offsets)
-    subarray_data['split_particle_ids'] = np.split(split_particle_ids,  offsets)
-    subarray_data['split_progenitor_ids'] = unique_progenitor_ids
+    for key, value in split_data.items():
+        subarray_data[key] = np.split(value, offsets)
+    subarray_data["progenitor_ids"] = unique_progenitor_ids
 
     return subarray_data 
 
@@ -258,10 +259,10 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
     new_splits = {}
 
     # Iterate over unique split trees in snapshot N
-    for tree_index, tree_progenitor_ID in enumerate(new_snapshot_data['split_progenitor_ids']):
+    for tree_index, tree_progenitor_ID in enumerate(new_snapshot_data['progenitor_ids']):
 
         # Check whether the current unique tree already existed in snapshot N-1
-        is_new_tree = tree_progenitor_ID not in old_snapshot_data['split_progenitor_ids']
+        is_new_tree = tree_progenitor_ID not in old_snapshot_data['progenitor_ids']
 
         if is_new_tree:
 
@@ -269,7 +270,7 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
             # particle ID that originated this unique tree.
             progenitor_id = tree_progenitor_ID
 
-            new_ids = new_snapshot_data['split_particle_ids'][tree_index]
+            new_ids = new_snapshot_data['particle_ids'][tree_index]
             new_ids = new_ids[new_ids != progenitor_id]
 
             # We could encounter cases where a particle has split and its descendants
@@ -280,14 +281,14 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
         else:
             # Different particles within the tree could have split simultaneously. We need
             # to be a bit more careful.
-            tree_index_old = np.where(old_snapshot_data['split_progenitor_ids'] == tree_progenitor_ID)[0][0] 
+            tree_index_old = np.where(old_snapshot_data['progenitor_ids'] == tree_progenitor_ID)[0][0] 
 
             # Compare the same unique trees between snapshots N and N-1 to see how particles have split
-            new_splits.update(get_splits_of_existing_tree(old_snapshot_data['split_particle_ids'][tree_index_old],
-                                                          old_snapshot_data['split_trees'][tree_index_old],
-                                                          old_snapshot_data['split_counts'][tree_index_old],
-                                                          new_snapshot_data['split_particle_ids'][tree_index],
-                                                          new_snapshot_data['split_trees'][tree_index]))
+            new_splits.update(get_splits_of_existing_tree(old_snapshot_data['particle_ids'][tree_index_old],
+                                                          old_snapshot_data['trees'][tree_index_old],
+                                                          old_snapshot_data['counts'][tree_index_old],
+                                                          new_snapshot_data['particle_ids'][tree_index],
+                                                          new_snapshot_data['trees'][tree_index]))
 
     return new_splits
 
@@ -304,18 +305,23 @@ def save(split_dictionary, file_path):
     file_path : str
         Where to save the HDF5 file containing the map of particle splits.
     '''
+
     # We first need to turn the dictionary into an array used to create a map
-    total_splits = np.array([len(x) for x in split_dictionary.values()]).sum()
+    local_total_splits = np.array([len(x) for x in split_dictionary.values()]).astype(int).sum()
+    global_total_splits = comm.allreduce(local_total_splits)
 
     # For completeness purposes, save an empty hdf5 even when we have no splits
-    if(total_splits == 0):
-        with h5py.File(file_path, 'w') as file:
-            file.create_dataset("SplitInformation/Keys", data = h5py.Empty("int"))
-            file.create_dataset("SplitInformation/Values", data = h5py.Empty("int"))
-            file['SplitInformation'].attrs['NumberSplits'] = 0
+    if(global_total_splits == 0):
+        if(comm_rank == 0):
+            with h5py.File(file_path, 'w') as file:
+                file.create_dataset("SplitInformation/Keys", data = h5py.Empty("int"))
+                file.create_dataset("SplitInformation/Values", data = h5py.Empty("int"))
+                file['SplitInformation'].attrs['NumberSplits'] = 0
+
+        comm.barrier()
         return
 
-    hash_array = np.ones((total_splits, 2),int) * -1
+    hash_array = np.ones((local_total_splits, 2), int) * -1
 
     offset = 0
     for i, (key, values) in enumerate (split_dictionary.items()):
@@ -332,10 +338,83 @@ def save(split_dictionary, file_path):
             hash_array[offset][1] = values[j]
             offset +=1
 
-    with h5py.File(file_path, 'w') as file:
-        file.create_dataset("SplitInformation/Keys", data = hash_array[:,0])
-        file.create_dataset("SplitInformation/Values", data = hash_array[:,1])
-        file['SplitInformation'].attrs['NumberSplits'] = total_splits
+    with h5py.File(file_path, 'w', driver='mpio', comm=MPI.COMM_WORLD) as file:
+        group = file.create_group("SplitInformation")
+        group.attrs['NumberSplits'] = global_total_splits
+
+        phdf5.collective_write(group, "Keys", hash_array[:,0], comm=MPI.COMM_WORLD)
+        phdf5.collective_write(group, "Values", hash_array[:,1], comm=MPI.COMM_WORLD)
+
+    comm.barrier()
+
+def assign_task_based_on_id(ids):
+    """
+    Uses a hash function and modulus operation to assign a
+    task given an id.
+    
+    Parameters
+    ----------
+    ids : np.ndarray
+        An array of particle IDs
+
+    Returns
+    -------
+    np.ndarray
+        An array with the task rank assigned to each ID
+    """
+
+    # Same as used internally by HBT+. 
+    # Taken from: https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
+    ids = ((ids >> 16) ^ ids) * 0x45d9f3b
+    ids = ((ids >> 16) ^ ids) * 0x45d9f3b
+    ids = (ids >> 16) ^ ids
+
+    return abs(ids) % comm.size
+
+def gather_by_progenitor_id(data):
+    """
+    It gathers all data concerning particles that share a progenitor ID in the
+    same MPI task
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary with the particle split information loaded by each MPI
+        rank.
+
+    Returns
+    -------
+    data : dict
+        Same as the input dictionary, but all particles that share a progenitor
+        ID are in the same task.
+    """
+
+    # We first assign a task to each particle. We base it on their
+    # progenitor ID so that the same tree of split particles ends up
+    # in the same rank.
+    target_task = assign_task_based_on_id(data["progenitor_ids"])
+
+    # Count how many elements we will end up per task
+    local_task_counts = np.zeros(comm_size, int)
+    unique_tasks, unique_counts = np.unique(target_task, return_counts = True)
+    local_task_counts[unique_tasks] = unique_counts
+    global_task_counts = comm.allreduce(local_task_counts)
+
+    # We now order the target_task across MPI ranks. This gives us an array we can use
+    # to reorder the data dictionaries
+    order = psort.parallel_sort(target_task, return_index=True, comm=comm)
+    for key, value in data.items():
+        data[key] = psort.fetch_elements(value, order, comm=comm)
+
+    # Repartition, so that whole trees are contained within their assigned tasks
+    for key, value in data.items():
+        data[key] = psort.repartition(value, global_task_counts, comm=comm)
+
+    # This is for testing if all particles ended up where they should have.
+    target_task = assign_task_based_on_id(data["progenitor_ids"])
+    assert((target_task != comm_rank).sum() == 0)
+
+    return data
 
 def generate_split_file(path_to_config, snapshot_index):
     '''
@@ -352,16 +431,14 @@ def generate_split_file(path_to_config, snapshot_index):
         analysed by HBT.
     '''
     #==========================================================================
-    # We get from here where the snapshots to analyse are, and where
-    # the HBT catalogues will be saved.
+    # Load settings of this run into all ranks 
     #==========================================================================
-    config = load_hbt_config(path_to_config)
+    config = {}
 
-    # Create a directory to hold split information
-    output_base_dir = f"{config['SubhaloPath']}/ParticleSplits"
-    if not os.path.exists(output_base_dir):
-        os.makedirs(output_base_dir)
-    output_file_name = f"{output_base_dir}/particle_splits_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
+    # We load from rank 0 and then we broadcast to all other ranks 
+    if comm_rank == 0:
+        config = load_hbt_config(path_to_config)
+    config = comm.bcast(config, root=0)
 
     #==========================================================================
     # Check that we are analysing a valid snapshot index
@@ -371,60 +448,102 @@ def generate_split_file(path_to_config, snapshot_index):
     if(snapshot_index < config['MinSnapshotIndex']):
         raise ValueError(f"Chosen snapshot index {snapshot_index} is smaller than the one specified in the config ({config['MinSnapshotIndex']}).")
 
-    # We cannot do split information in the first snapshot. Save an empty split
-    # information.
+    #==========================================================================
+    # Create a directory to hold split information
+    #==========================================================================
+    output_base_dir = f"{config['SubhaloPath']}/ParticleSplits"
+    output_file_name = f"{output_base_dir}/particle_splits_{config['SnapshotIdList'][snapshot_index]:04d}.hdf5"
+    if comm_rank == 0:
+        if not os.path.exists(output_base_dir):
+            os.makedirs(output_base_dir)
+
+    #==========================================================================
+    # There will be no splits for snapshot 0, so we can skip its analysis 
+    #==========================================================================
     if snapshot_index == 0:
-        print(f"Skipping snapshot index {snapshot_index}")
+        if(comm_rank == 0):
+            print(f"Skipping snapshot index {snapshot_index}")
+
         save({},output_file_name)
         return
 
     #==========================================================================
     # Load data for snapshot N.
     #==========================================================================
-
-    print (f"Loading data for snapshot index {snapshot_index}")
+    if comm_rank == 0:
+        print (f"Loading data for snapshot index {snapshot_index}")
 
     # Get path to snapshot
     new_snapshot_path = generate_path_to_snapshot(config, snapshot_index)
+
+    # Load the data
     new_data = load_snapshot(new_snapshot_path)
 
-    if len(new_data[0]) == 0:
-        print (f"No splits at snapshot index {snapshot_index}. Skipping...")
+    # Get how many particles that have been split exist in current snapshot
+    total_number_splits = comm.allreduce(len(new_data["counts"]))
+
+    if(total_number_splits) == 0:
+        if comm_rank == 0:
+            print (f"No splits at snapshot index {snapshot_index}. Skipping...")
+
         save({},output_file_name)
         return
 
     #==========================================================================
     # Load data for snapshot N - 1.
     #==========================================================================
+    if comm_rank == 0:
+        print (f"Loading data from snapshot index {snapshot_index - 1}")
 
-    print (f"Loading data from snapshot index {snapshot_index - 1}")
     old_snapshot_path = generate_path_to_snapshot(config, snapshot_index - 1)
     old_data = load_snapshot(old_snapshot_path)
 
     #==========================================================================
-    # Split arrays into subarrays whose entries all share a common progenitor
+    # We now need to collect particles that share progenitor ids in the same
+    # rank
     #==========================================================================
-    print (f"Grouping data by progenitor ID")
-    new_data = group_by_progenitor(*new_data)
-    old_data = group_by_progenitor(*old_data)
+    if comm_rank == 0:
+        print (f"Distributing particle data to its assigned task")
+
+    new_data = gather_by_progenitor_id(new_data)
+    old_data = gather_by_progenitor_id(old_data)
+
+    #==========================================================================
+    # Each rank can analyse the data it contains independently from each other.
+    #==========================================================================
+    if comm_rank == 0:
+        print (f"Grouping local data into subarrays by progenitor ID")
+
+    new_data = group_by_progenitor(new_data)
+    old_data = group_by_progenitor(old_data)
 
     #==========================================================================
     # Compare trees in snapshot N - 1 and N, to identify new splits
     #==========================================================================
-    print (f"Identifying particle splits")
+    if comm_rank == 0:
+        print (f"Identifying particle splits")
+
     new_splits = get_descendant_particle_ids(old_data, new_data)
 
     #==========================================================================
     # Save in the directory where HBT outputs will be saved
     #==========================================================================
-    print (f"Saving information")
-    save(new_splits,output_file_name)
+    if comm_rank == 0:
+        print (f"Saving information")
 
+    save(new_splits, output_file_name)
+
+    if comm_rank == 0:
+        print (f"Done!")
 
 if __name__ == "__main__":
 
-    import sys
-    config_path = sys.argv[1]
-    snap_index = int(sys.argv[2])
+    from virgo.mpi.util import MPIArgumentParser
 
-    generate_split_file(config_path , snap_index)
+    parser = MPIArgumentParser(comm, description="Generate HDF5 files that contain information about which particles split between consecutively outputs analysed by HBT+.")
+    parser.add_argument("path_to_config", type=str, help="Location of the configuration file for the run to be analysed with HBT+")
+    parser.add_argument("snapshot_index", type=int, help="Index number of the output to run the script for.")
+
+    args = parser.parse_args()
+
+    generate_split_file(**vars(args))
