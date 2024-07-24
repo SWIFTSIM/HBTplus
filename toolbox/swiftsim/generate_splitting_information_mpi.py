@@ -538,8 +538,12 @@ def generate_split_file(path_to_config, snapshot_index):
 
 if __name__ == "__main__":
 
-    import sys
-    config_path = sys.argv[1]
-    snap_index = int(sys.argv[2])
+    from virgo.mpi.util import MPIArgumentParser
 
-    generate_split_file(config_path , snap_index)
+    parser = MPIArgumentParser(comm, description="Generate HDF5 files that contain information about which particles split between consecutively outputs analysed by HBT+.")
+    parser.add_argument("path_to_config", type=str, help="Location of the configuration file for the run to be analysed with HBT+")
+    parser.add_argument("snapshot_index", type=int, help="Index number of the output to run the script for.")
+
+    args = parser.parse_args()
+
+    generate_split_file(**vars(args))
