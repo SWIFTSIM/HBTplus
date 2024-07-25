@@ -87,10 +87,12 @@ def generate_path_to_snapshot(config, snapshot_index):
     '''
     if 'SnapshotDirBase' in config: 
         subdirectory = f"{config['SnapshotDirBase']}_{config['SnapshotIdList'][snapshot_index]:04d}"
+        file_ending  = ".{file_nr}.hdf5"
     else:
-        subdirectory = "" 
+        subdirectory = ""
+        file_ending = ".hdf5"
 
-    return f"{config['SnapshotPath']}/{subdirectory}/{config['SnapshotFileBase']}_{config['SnapshotIdList'][snapshot_index]:04d}" +".{file_nr}.hdf5"
+    return f"{config['SnapshotPath']}/{subdirectory}/{config['SnapshotFileBase']}_{config['SnapshotIdList'][snapshot_index]:04d}" + file_ending
 
 def load_snapshot(file_path):
     '''
