@@ -688,7 +688,7 @@ void SubhaloSnapshot_t::HandleTracerlessSubhalos(MpiWorker_t &world, vector<Subh
   MPI_Allreduce(&NumberTracerlessSubhalos, &GlobalNumberTracelessSubhalos, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
 
   if((GlobalNumberTracelessSubhalos > 0) && (world.rank() == 0))
-      std::cout << "WARNING: " << GlobalNumberTracelessSubhalos << " subhalos were missing their particle tracers. This is likely due to using particles that dissapear from the simulation (e.g. merging black holes) as subahalo tracers." << std::endl;
+      std::cout << "WARNING: " << GlobalNumberTracelessSubhalos << " subhalos were missing their particle tracers. This is likely due to using particles that dissapear from the simulation (e.g. merging black holes) as subhalo tracers." << std::endl;
 }
 
 /* Constrains subhaloes to only exist within a single host. This prevents
