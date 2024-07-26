@@ -277,6 +277,8 @@ private:
   void FillDepth();
   void SetNestedParentIds();
 
+  void HandleTracerlessSubhalos(MpiWorker_t &world, vector<Subhalo_t> &LocalSubhalos);
+
 public:
   SubhaloList_t Subhalos;
   MemberShipTable_t MemberTable;
