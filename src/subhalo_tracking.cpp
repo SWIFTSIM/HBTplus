@@ -655,11 +655,40 @@ void SubhaloSnapshot_t::AssignHosts(MpiWorker_t &world, HaloSnapshot_t &halo_sna
   /* Those which require information from external ranks are dealt with here. */
   for (int rank = 0; rank < world.size(); rank++)
     FindOtherHostsSafely(world, rank, halo_snap, part_snap, Subhalos, LocalSubhalos, MPI_HBT_SubhaloShell_t);
+  
+  /* Here we will change the host halo ID of subhalos whose tracers were lost*/
+  HandleTracerlessSubhalos(world, LocalSubhalos);
 
   Subhalos.swap(LocalSubhalos);
   halo_snap.ClearParticleHash();
 
   MemberTable.Build(halo_snap.Halos.size(), Subhalos, true);
+}
+
+/* This function iterates over Subhalos and assigns a default HostHaloId (-1) to all Subhalos
+ * whose tracer particles were not found. If any such cases are present in the simulation, a 
+ * warning is printed. */
+void SubhaloSnapshot_t::HandleTracerlessSubhalos(MpiWorker_t &world, vector<Subhalo_t> &LocalSubhalos)
+{
+  HBTInt NumberTracerlessSubhalos = 0;
+
+#pragma omp parallel for reduction (+:NumberTracerlessSubhalos) if (LocalSubhalos.size() > 20)
+  for (HBTInt i = 0; i < LocalSubhalos.size(); i++)
+  {
+    if(LocalSubhalos[i].HostHaloId == -2) // Tracerless
+    {
+      LocalSubhalos[i].HostHaloId = -1; // Make them hostless
+      NumberTracerlessSubhalos++;
+    }
+  }
+
+  /* Determine if any subgroup in the simulation had missing tracers, and if so,
+   * print out a warning */
+  HBTInt GlobalNumberTracelessSubhalos = 0;
+  MPI_Allreduce(&NumberTracerlessSubhalos, &GlobalNumberTracelessSubhalos, 1, MPI_HBT_INT, MPI_SUM, world.Communicator);
+
+  if((GlobalNumberTracelessSubhalos > 0) && (world.rank() == 0))
+      std::cout << "WARNING: " << GlobalNumberTracelessSubhalos << " subhalos were missing their particle tracers." << std::endl;
 }
 
 /* Constrains subhaloes to only exist within a single host. This prevents
