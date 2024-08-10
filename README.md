@@ -62,5 +62,5 @@ Once the executable has been compiled, `HBT` can be run as follows:
 ```
 `<PATH_TO_CONFIG>` is the path to a configuration text file containing information about the run. See [configs](configs) for 
 example configuration files to get started. `<START_OUTPUT_NUMBER>` and `<END_OUTPUT_NUMBER>` are optional arguments that 
-are passed when a subset of the simulation outputs are be analysed. For example, when restarting an `HBT` analysis, or when
+are passed when a subset of the simulation outputs are analysed. For example, when restarting an `HBT` analysis, or when
 not all the simulation data is available when starting to run.
