@@ -33,6 +33,7 @@ In our main runs, we have used: `GCC 13.1.0`, `HDF5 1.12.2`, and `OpenMPI 4.1.4`
 First clone this repository:
 ```bash
 git clone https://github.com/SWIFTSIM/HBTplus
+cd HBTplus
 ```
 
 Create a directory where the `HBT` executable will be generated.
@@ -52,3 +53,14 @@ Once the appropiate options have been chosen, and the Makefile generated, you ca
 ```bash
 make -j
 ```
+
+## Running
+
+Once the executable has been compiled, `HBT` can be run as follows:
+```bash
+./HBT <PATH_TO_CONFIG> <START_OUTPUT_NUMBER> <END_OUTPUT_NUMBER>
+```
+`<PATH_TO_CONFIG>` is the path to a configuration text file containing information about the run. See [configs](configs) for 
+example configuration files to get started. `<START_OUTPUT_NUMBER>` and `<END_OUTPUT_NUMBER>` are optional arguments that 
+are passed when a subset of the simulation outputs are be analysed. For example, when restarting an `HBT` analysis, or when
+not all the simulation data is available when starting to run.
