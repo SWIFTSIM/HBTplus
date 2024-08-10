@@ -26,6 +26,8 @@ Optional:
 
  - `GSL` if interested in computing inertia tensors.
 
+In our main runs, we have used: `GCC 13.1.0`, `HDF5 1.12.2`, and `OpenMPI 4.1.4`.
+
 ## Compilation
 
 First clone this repository:
