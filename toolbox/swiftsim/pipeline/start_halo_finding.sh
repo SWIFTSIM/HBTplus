@@ -18,12 +18,6 @@ if [ ! -d $HBT_FOLDER ]; then
     echo "No HBTplus folder found in provided path. Check whether path is correct, and if so, create an HBTplus folder first."
 fi
 
-# Determine whether the snapshots are saved in their own subdirectory (named snapshots) or not
-SNAPSHOT_SUBDIR=""
-if [ -d $BASE_PATH/snapshots ]; then
-    SNAPSHOT_SUBDIR="snapshots"
-fi
-
 # Where logs for particle splits and HBT will be saved
 mkdir -p $HBT_FOLDER/logs/particle_splits/
 

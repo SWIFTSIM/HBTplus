@@ -24,12 +24,6 @@ if [ ! -f $HBT_FOLDER/config.txt ]; then
   exit 1
 fi
 
-# Determine whether the snapshots are saved in their own subdirectory (named snapshots) or not
-SNAPSHOT_SUBDIR=""
-if [ -d $BASE_FOLDER/snapshots ]; then
-    SNAPSHOT_SUBDIR="snapshots"
-fi
-
 # Where logs for particle splits and HBT will be saved (Should already exist)
 mkdir -p $HBT_FOLDER/logs/particle_splits
 
