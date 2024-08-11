@@ -9,9 +9,9 @@ The version hosted in this repository was developed from a fork of the [MPI bran
 
 Several additions have been made to the code in this version, which primarily address:
 
+ - Compatibility with [SWIFT](https://swift.strw.leidenuniv.nl/) outputs.
  - Improved tracking of subhaloes in hydrodynamical and dark matter-only simulations.
  - Better domain decomposition, which was required to run on the large-scale [FLAMINGO](https://flamingo.strw.leidenuniv.nl/) simulations.
- - Compatibility with [SWIFT](https://swift.strw.leidenuniv.nl/) outputs, which can also account for particle splits.
 
 ## Dependencies
 
@@ -44,7 +44,7 @@ cd build
 
 Generate the Makefile using `CMake`. Several options relevant to your particular setup
 can be chosen here, e.g. if it is a DMO or a hydrodynamical simulation, or if the gas thermal energy 
-is used is included in its binding energy. We therefore recommend using `ccmake` to see all the options.
+is accounted for when computing its binding energy. We therefore recommend using `ccmake` to see all the options.
 ```bash
 ccmake ../
 ```
@@ -63,4 +63,5 @@ Once the executable has been compiled, `HBT` can be run as follows:
 `<PATH_TO_CONFIG>` is the path to a configuration text file containing information about the run. See [configs](configs) for 
 example configuration files to get started. `<START_OUTPUT_NUMBER>` and `<END_OUTPUT_NUMBER>` are optional arguments that 
 are passed when a subset of the simulation outputs are analysed. For example, when restarting an `HBT` analysis, or when
-not all the simulation data is available when starting to run.
+not all the simulation data is available when running HBT. If no values are specified, they default to MinSnapshotIndex and
+MaxSnapshotIndex, as defined in the configuration file.
