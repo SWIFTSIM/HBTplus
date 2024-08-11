@@ -25,12 +25,12 @@ set -e
 # This is assuming we run in COSMA
 module purge
 module load python/3.12.4 gnu_comp/14.1.0 openmpi/5.0.3 parallel_hdf5/1.12.3
-source /cosma/apps/durham/dc-foro1/COLIBRE/HBTplus/toolbox/swiftsim/openmpi-5.0.3-hdf5-1.12.3-env/bin/activate || printf "No virtual enviroment found. Have you run ./create_cosma_env.sh first? \n"
+source CURRENT_PWD/../openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Path to the HBT configuration file to be analysed
 echo "Using configuration present in ${1}" 
 
 # Run the code
-mpirun -- python3 -u -m mpi4py /cosma/apps/durham/dc-foro1/COLIBRE/HBTplus/toolbox/swiftsim/generate_splitting_information.py "${1}" ${SLURM_ARRAY_TASK_ID}
+mpirun -- python3 -u -m mpi4py CURRENT_PWD/../particle_splitting/generate_splitting_information.py "${1}" ${SLURM_ARRAY_TASK_ID}
 
 echo "Job complete!"

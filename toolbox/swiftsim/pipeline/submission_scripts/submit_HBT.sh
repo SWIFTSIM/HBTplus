@@ -16,7 +16,7 @@ echo "Current working directory is `pwd`"
 echo
 
 # Path to HBT executable
-HBT_executable=../../../../build/HBT
+HBT_executable=CURRENT_PWD/../../../build/HBT
 
 echo "Using configuration present in ${1}" 
 
