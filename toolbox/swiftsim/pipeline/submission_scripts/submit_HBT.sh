@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --ntasks 16 ##128
+#SBATCH --ntasks 16
 #SBATCH --cpus-per-task=8
 #SBATCH -p cosma8
 #SBATCH -A dp004
-#SBATCH -t 00:05:00
+#SBATCH -t 02:00:00
 
 module purge
 module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
@@ -16,7 +16,7 @@ echo "Current working directory is `pwd`"
 echo
 
 # Path to HBT executable
-HBT_executable=/cosma/apps/durham/dc-foro1/COLIBRE/HBTplus/build/HBT
+HBT_executable=../../../../build/HBT
 
 echo "Using configuration present in ${1}" 
 
