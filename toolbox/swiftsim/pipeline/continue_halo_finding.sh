@@ -45,10 +45,10 @@ fi
 MAX_PARTICLE_SPLIT_OUTPUT=0
 while true; do
     filename=$(printf "particle_splits_%04d.hdf5" "$MAX_PARTICLE_SPLIT_OUTPUT")
-    if [ ! -f "ParticleSplits/$filename" ]; then
+    if [ ! -f "${HBT_FOLDER}/ParticleSplits/$filename" ]; then
         break
     fi
-    ((MAX_PARTICLE_SPLIT_OUTPUT++))
+    MAX_PARTICLE_SPLIT_OUTPUT=$((MAX_PARTICLE_SPLIT_OUTPUT + 1))
 done
 
 echo "HBT+ was done up to snapshot $(($MAX_HBT_OUTPUT - 1)), and ParticleSplit information exists up to $(($MAX_PARTICLE_SPLIT_OUTPUT - 1)). SWIFT outputs exist up to snapshot $(($MAX_SNAPSHOT - 1))"
