@@ -57,11 +57,11 @@ JOB_ID_SPLITS=$(sbatch --parsable \
   --output ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.out \
   --error ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.err \
   --array=$MIN_SNAPSHOT-$(($MAX_SNAPSHOT - 1))%10 \
-  -J ${1} \
+  -J "PS-${1}" \
   $HBT_FOLDER/submit_particle_splits.sh $HBT_FOLDER/config.txt)
 
 # Submit an HBT job with a dependency on the splitting of particles
-sbatch -J ${1} \
+sbatch -J "HBT-${1}" \
   --dependency=afterok:$JOB_ID_SPLITS \
   --output ${HBT_LOGS_DIR}/HBT.%j.out \
   --error ${HBT_LOGS_DIR}/HBT.%J.err \

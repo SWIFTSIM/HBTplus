@@ -5,6 +5,8 @@
 #SBATCH -A dp004
 #SBATCH -t 02:00:00
 
+set -e
+
 module purge
 module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
 
@@ -22,3 +24,5 @@ echo "Using configuration present in ${1}"
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 mpirun "${HBT_executable}" $1 $2 $3
+
+echo "Job complete!"
