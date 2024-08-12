@@ -19,10 +19,18 @@ if [ ! -d $HBT_FOLDER ]; then
 fi
 
 # Where logs for particle splits and HBT will be saved
-mkdir -p $HBT_FOLDER/logs/particle_splits/
+HBT_LOGS_DIR="${HBT_FOLDER}/logs"
+PARTICLE_SPLITS_LOGS_DIR="${HBT_LOGS_DIR}/particle_splits"
+mkdir -p $PARTICLE_SPLITS_LOGS_DIR
+chmod ug+rw $HBT_LOGS_DIR
+chmod ug+rw $PARTICLE_SPLITS_LOGS_DIR
+
+# Where particle splits will be saved
+mkdir "${HBT_FOLDER}/ParticleSplits"
+chmod ug+rw "${HBT_FOLDER}/ParticleSplits"
 
 # Copy over the configuration file with the correct paths
-(cd ./templates/;. generate_config.sh $BASE_PATH)
+(cd ./templates/;. generate_config.sh $BASE_PATH $HBT_FOLDER)
 
 # We now check how many COLIBRE snapshots have been done at the time of submission
 MIN_SNAPSHOT=0
@@ -45,7 +53,16 @@ sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_HBT.sh
 sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_particle_splits.sh
 
 # We first generate the splitting of particles 
-JOB_ID_SPLITS=$(sbatch --parsable --output ${HBT_FOLDER}/logs/particle_splits/particle_splits.%A.%a.out --error ${HBT_FOLDER}/logs/particle_splits/particle_splits.%A.%a.err --array=$MIN_SNAPSHOT-$(($MAX_SNAPSHOT - 1))%10 -J ${1} $HBT_FOLDER/submit_particle_splits.sh $HBT_FOLDER/config.txt)
+JOB_ID_SPLITS=$(sbatch --parsable \
+  --output ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.out \
+  --error ${PARTICLE_SPLITS_LOGS_DIR}/particle_splits.%A.%a.err \
+  --array=$MIN_SNAPSHOT-$(($MAX_SNAPSHOT - 1))%10 \
+  -J ${1} \
+  $HBT_FOLDER/submit_particle_splits.sh $HBT_FOLDER/config.txt)
 
 # Submit an HBT job with a dependency on the splitting of particles
-sbatch -J ${1} --dependency=afterok:$JOB_ID_SPLITS --output $HBT_FOLDER/logs/HBT.%j.out --error $HBT_FOLDER/logs/HBT.%J.err $HBT_FOLDER/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT - 1))
+sbatch -J ${1} \
+  --dependency=afterok:$JOB_ID_SPLITS \
+  --output ${HBT_LOGS_DIR}/HBT.%j.out \
+  --error ${HBT_LOGS_DIR}/HBT.%J.err \
+  $HBT_FOLDER/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT - 1))

@@ -25,7 +25,7 @@ stringContain() { case $2 in *$1* ) return 0;; *) return 1;; esac ;}
 
 # This is where the outputs should be placed
 BASE_PATH=$1
-HBT_FOLDER=$BASE_PATH/HBTplus
+HBT_FOLDER=$2
 
 # Parse the SWIFT config file
 if [ ! -f $BASE_PATH/used_parameters.yml ]; then
@@ -79,6 +79,9 @@ if [ ! -f $HBT_FOLDER/config.txt ]; then
 
   # Substitute the name of the simulation within the template
   sed -i "s@SIMULATION_PATH@${BASE_PATH}@g" $HBT_FOLDER/config.txt
+
+  # Substitute the name of the simulation within the template
+  sed -i "s@OUTPUT_PATH@${HBT_FOLDER}@g" $HBT_FOLDER/config.txt
 
   # Substitute the name of the subdirectory, if any
   sed -i "s@SNAPSHOT_BASEFILE@${SNAPSHOT_BASENAME}@g" $HBT_FOLDER/config.txt

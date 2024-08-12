@@ -1,7 +1,7 @@
 [Compulsary Params]
 SnapshotPath SIMULATION_PATH
 HaloPath SIMULATION_PATH
-SubhaloPath SIMULATION_PATH/HBTplus
+SubhaloPath OUTPUT_PATH/HBTplus
 
 SnapshotDirBase SNAPSHOT_BASEDIR
 SnapshotFileBase SNAPSHOT_BASEFILE
