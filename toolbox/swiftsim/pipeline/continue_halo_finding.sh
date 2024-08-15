@@ -74,7 +74,7 @@ if [ $MAX_PARTICLE_SPLIT_OUTPUT -ne $MAX_SNAPSHOT ]; then
     --dependency=afterok:$JOB_ID_SPLITS \
     --output ${HBT_LOGS_DIR}/HBT.%j.out \
     --error ${HBT_LOGS_DIR}/HBT.%J.err \
-    ${HBT_FOLDER}/submit_HBT.sh $HBT_FOLDER/config.txt $MIN_SNAPSHOT $(($MAX_SNAPSHOT - 1))
+    ${HBT_FOLDER}/submit_HBT.sh $HBT_FOLDER/config.txt $MAX_HBT_OUTPUT $(($MAX_SNAPSHOT - 1))
 else
   # We already have the splitting information, so we just need to run HBT without dependencies
   echo "Submitting HBT+ job without dependencies, running from snapshots $MAX_HBT_OUTPUT to $(($MAX_SNAPSHOT - 1))"
