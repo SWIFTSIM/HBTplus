@@ -22,12 +22,14 @@ fi
 HBT_LOGS_DIR="${HBT_FOLDER}/logs"
 PARTICLE_SPLITS_LOGS_DIR="${HBT_LOGS_DIR}/particle_splits"
 mkdir -p $PARTICLE_SPLITS_LOGS_DIR
+
+# Set permissions
 chmod ug+rw $HBT_LOGS_DIR
 chmod ug+rw $PARTICLE_SPLITS_LOGS_DIR
+setfacl -d -m g:dp004:rwX $HBT_FOLDER
 
 # Where particle splits will be saved
 mkdir "${HBT_FOLDER}/ParticleSplits"
-chmod ug+rw "${HBT_FOLDER}/ParticleSplits"
 
 # Copy over the configuration file with the correct paths
 (cd ./templates/;. generate_config.sh $BASE_PATH $HBT_FOLDER)
