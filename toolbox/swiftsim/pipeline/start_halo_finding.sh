@@ -33,9 +33,14 @@ mkdir "${HBT_FOLDER}/ParticleSplits"
 # Copy over the configuration file with the correct paths
 (cd ./templates/;. generate_config.sh $BASE_PATH $HBT_FOLDER)
 
+# Get the path where the snapshots are being saved. Should have been saved at the
+# configuration file.
+SNAPSHOT_FOLDER=$(grep 'HaloPath' $HBT_FOLDER/config.txt | awk '{print $2}')
+SNAPSHOT_BASENAME=$(grep 'SnapshotFileBase' $HBT_FOLDER/config.txt | awk '{print $2}')
+
 # We now check how many COLIBRE snapshots have been done at the time of submission
 MIN_SNAPSHOT=0
-MAX_SNAPSHOT=$(find $BASE_PATH/$SNAPSHOT_SUBDIR/ -maxdepth 1 -name "colibre_????" | wc -l)
+MAX_SNAPSHOT=$(find $SNAPSHOT_FOLDER -maxdepth 1 -name "${SNAPSHOT_BASENAME}_????" | wc -l)
 
 # Abort if no snapshots are found
 if [ $MAX_SNAPSHOT -eq  0 ]; then
