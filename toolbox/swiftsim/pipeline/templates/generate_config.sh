@@ -41,7 +41,7 @@ do
    fi
 
    if stringContain "Snapshots_subdir=" "$i"; then
-      SNAPSHOT_BASEDIR=`echo "$i" | cut -d'"' -f 2`
+      SNAPSHOT_DIRECTORY=`echo "$i" | cut -d'"' -f 2`
    fi
 
    if stringContain "Snapshots_output_list=" "$i"; then
@@ -53,18 +53,26 @@ do
    fi
 done
 
+# Snapshots are distributed. Each snapshot subfile is contained in its own directory,
+# which has the same base name.
 if [ $SNAPSHOTS_ARE_DISTRIBUTED == 1 ] ; then
-   # Snapshots are distributed, but a directory base name has not been specified. It
-   # defaults to the same base name as the snapshots.
-   if [ $SNAPSHOT_BASEDIR == "." ]; then
-      echo "SNAPSHOTS ARE DISTRIBUTED but we are using default"
       SNAPSHOT_BASEDIR=$SNAPSHOT_BASENAME
-   fi
-   # Snapshots are not distributed, so we should leave BaseDir blank
 else
    $SNAPSHOT_BASEDIR=""
 fi
-echo $SNAPSHOT_BASENAME $OUTPUT_LIST $SNAPSHOTS_ARE_DISTRIBUTED $SNAPSHOT_BASEDIR
+
+# Check whether the snapshots are saved somewhere beyond the main directory (e.g. a 
+# "snapshots" folder)
+if [ $SNAPSHOT_DIRECTORY == "." ]; then
+   SNAPSHOT_DIRECTORY=""
+
+   # Check whether a snapshot folder exists, regardless of the default option. Added
+   # because some users move the snapshots after being created, rather than using the
+   # parameter file option
+   if [ -d $BASE_PATH/snapshots ]; then
+      SNAPSHOT_DIRECTORY="snapshots"
+   fi
+fi
 
 # Get the number of snapshots we are expecting
 NUM_OUTPUTS="$(grep -v '^#' $BASE_PATH/$OUTPUT_LIST | wc -l)"
@@ -80,13 +88,17 @@ if [ ! -f $HBT_FOLDER/config.txt ]; then
   # Substitute the name of the simulation within the template
   sed -i "s@SIMULATION_PATH@${BASE_PATH}@g" $HBT_FOLDER/config.txt
 
+  # Substitute the name of the directory where snapshots are saved, if not in the
+  # base simulation folder
+  sed -i "s@SNAPSHOT_DIRECTORY@${SNAPSHOT_DIRECTORY}@g" $HBT_FOLDER/config.txt
+
   # Substitute the name of the simulation within the template
   sed -i "s@OUTPUT_PATH@${HBT_FOLDER}@g" $HBT_FOLDER/config.txt
 
-  # Substitute the name of the subdirectory, if any
+  # Substitute the name of the snapshot
   sed -i "s@SNAPSHOT_BASEFILE@${SNAPSHOT_BASENAME}@g" $HBT_FOLDER/config.txt
-  #
-  # Substitute the name of the subdirectory, if any
+
+  # Substitute the name of the directory of snapshot subfiles, if applicable
   sed -i "s@SNAPSHOT_BASEDIR@${SNAPSHOT_BASEDIR}@g" $HBT_FOLDER/config.txt
 
   # Substitute the number of outputs within the HBT template
