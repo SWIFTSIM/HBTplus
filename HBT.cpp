@@ -159,6 +159,13 @@ int main(int argc, char **argv)
     subsnap.Save(world);
     global_timer.Tick("write_subhalos", world.Communicator);
 
+    /* Print that this snapshot is done, and how long it took. */
+    if(world.rank() == 0)
+    {
+      cout << "SnapshotIndex " << isnap  << " done. It took " << global_timer.GetSeconds(global_timer.Size() - 1) - global_timer.GetSeconds(0) << " seconds." << endl;
+      cout << endl;
+    }
+
     /* Output timing information */
     if (world.rank() == 0)
     {
