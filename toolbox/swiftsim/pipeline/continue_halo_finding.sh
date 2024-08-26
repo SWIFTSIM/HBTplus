@@ -32,8 +32,8 @@ PARTICLE_SPLITS_LOGS_DIR="${HBT_LOGS_DIR}/particle_splits"
 MIN_SNAPSHOT=0
 MAX_SNAPSHOT=$(find $BASE_FOLDER/$SNAPSHOT_SUBDIR/ -maxdepth 1 -name "colibre_????" | wc -l)
 
-# We check how many HBT catalogues have been done
-if [ ! -f $HBT_FOLDER/timing.log ]; then
+# We check how many HBT catalogues have been done.
+if [ ! -f $HBT_FOLDER/timing.log ] || [ ! -s $HBT_FOLDER/timing.log ]; then
   MAX_HBT_OUTPUT=0
 else
   MAX_HBT_OUTPUT=$(tail -n 1 $HBT_FOLDER/timing.log | awk '{print $1}')
