@@ -28,9 +28,14 @@ fi
 HBT_LOGS_DIR="${HBT_FOLDER}/logs"
 PARTICLE_SPLITS_LOGS_DIR="${HBT_LOGS_DIR}/particle_splits"
 
-# We check how many SWIFT particle outputs have been done
+# Get the path where the snapshots are being saved. Should have been saved at the
+# configuration file.
+SNAPSHOT_FOLDER=$(grep 'HaloPath' $HBT_FOLDER/config.txt | awk '{print $2}')
+SNAPSHOT_BASENAME=$(grep 'SnapshotFileBase' $HBT_FOLDER/config.txt | awk '{print $2}')
+
+# We now check how many COLIBRE snapshots have been done at the time of submission
 MIN_SNAPSHOT=0
-MAX_SNAPSHOT=$(find $BASE_FOLDER/$SNAPSHOT_SUBDIR/ -maxdepth 1 -name "colibre_????" | wc -l)
+MAX_SNAPSHOT=$(find $SNAPSHOT_FOLDER -maxdepth 1 -name "${SNAPSHOT_BASENAME}_????" | wc -l)
 
 # We check how many HBT catalogues have been done.
 if [ ! -f $HBT_FOLDER/timing.log ] || [ ! -s $HBT_FOLDER/timing.log ]; then
