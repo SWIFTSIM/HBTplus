@@ -27,11 +27,14 @@ MassInMsunh 6.81e9 # Removes h factors from the final output
 LengthInMpch 0.681 # Removes h factors from the final output
 VelInKmS 1
 
-MaxConcurrentIO 28 # Number of cores in a cosma7 node                    
+MaxConcurrentIO 28 # Number of cores in a cosma7 node
 
 # Slower, but it makes outputs reproducible  
 BoundMassPrecision 1
 MaxSampleSizeOfPotentialEstimate 0
+
+# Test simulation does not provide splitting information
+ParticlesSplit 0
 
 # Optional parameters; default values are shown here
 #MinNumPartOfSub 20

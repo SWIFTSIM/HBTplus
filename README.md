@@ -1,24 +1,67 @@
 ## HBT+
 
-New implementation of HBT in C++ . This is the hybrid MPI/OpenMP parallelized version. 
-Check the [Hydro](https://github.com/Kambrian/HBT2/tree/Hydro) branch for a pure OpenMP 
-version.
-
+Implementation of the Hierarchical Bound Tracing Algorithm (HBT+) in C++, using MPI and OpenMP.
 Documentation is available on the [wiki](https://github.com/Kambrian/HBT2/wiki).
 
-## About
+## About this repository.
 
-This HBT+ version is compatible with [SWIFT](https://swift.strw.leidenuniv.nl/) 
-outputs, and was originally forked from the [following branch](https://github.com/jchelly/HBTplus/tree/swiftsim_pr). 
-Since then, a number of additions enhancing the capabilities of HBT, as well as how it 
-interfaces with SWIFT-based data outputs have been added.
+The version hosted in this repository was developed from a fork of the [MPI branch](https://github.com/Kambrian/HBTplus) that contained the original HBT+ code.
 
-Summary of additions/changes:
+Several additions have been made to the code in this version, which primarily address:
 
-- Ability to specify which particle types to use as tracers of which FoF group hosts a subgroup/track, via the *TracerTypeParticles* parameter.
-- Ability to specify two different gravitational softening values, reflecting the commonplace use in cosmological simulations of a comoving and maximum physical softening values: *SofteningHalo* and *MaxPhysicalSofteningHalo*, respectively.
-- Automatic reading of gravitational softenings from SWIFT outputs, preventing the accidental use of incorrect values.
-- Parameters.log file now groups the values of related parameters together.
-- Compile-time git version information printed and saved to catalogues.
+ - Compatibility with [SWIFT](https://swift.strw.leidenuniv.nl/) outputs.
+ - Improved tracking of subhaloes in hydrodynamical and dark matter-only simulations.
+ - Better domain decomposition, which was required to run on the large-scale [FLAMINGO](https://flamingo.strw.leidenuniv.nl/) simulations.
 
-**NOTE**: these are currently under development, and so caution is advised.
+## Dependencies
+
+Required:
+
+ - `C++` compiler with OpenMP support.
+ - `HDF5` library.
+ - `MPI` library.
+ - `cmake`.
+
+Optional:
+
+ - `GSL` if interested in computing inertia tensors.
+
+In our main runs, we have used: `GCC 13.1.0`, `HDF5 1.12.2`, and `OpenMPI 4.1.4`.
+
+## Compilation
+
+First clone this repository:
+```bash
+git clone https://github.com/SWIFTSIM/HBTplus
+cd HBTplus
+```
+
+Create a directory where the `HBT` executable will be generated.
+```bash
+mkdir build
+cd build
+```
+
+Generate the Makefile using `CMake`. Several options relevant to your particular setup
+can be chosen here, e.g. if it is a DMO or a hydrodynamical simulation, or if the gas thermal energy 
+is accounted for when computing its binding energy. We therefore recommend using `ccmake` to see all the options.
+```bash
+ccmake ../
+```
+
+Once the appropiate options have been chosen, and the Makefile generated, you can compile HBT+ as follows:
+```bash
+make -j
+```
+
+## Running
+
+Once the executable has been compiled, `HBT` can be run as follows:
+```bash
+./HBT <PATH_TO_CONFIG> <START_OUTPUT_NUMBER> <END_OUTPUT_NUMBER>
+```
+`<PATH_TO_CONFIG>` is the path to a configuration text file containing information about the run. See [configs](configs) for 
+example configuration files to get started. `<START_OUTPUT_NUMBER>` and `<END_OUTPUT_NUMBER>` are optional arguments that 
+are passed when a subset of the simulation outputs are analysed. For example, when restarting an `HBT` analysis, or when
+not all the simulation data is available when running HBT. If no values are specified, they default to MinSnapshotIndex and
+MaxSnapshotIndex, as defined in the configuration file.

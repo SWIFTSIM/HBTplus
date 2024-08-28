@@ -6,3 +6,5 @@ cmake_install.cmake
 **/__pycache__
 testing/build/
 testing/test_output/
+openmpi-5.0.3-hdf5-1.12.3-env
+build
