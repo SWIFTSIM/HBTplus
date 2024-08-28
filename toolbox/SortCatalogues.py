@@ -12,7 +12,6 @@ import virgo.mpi.util
 import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 
-
 def read_snapshot(snapshot_file, snap_nr, particle_ids):
     """
     Read particle properties for the specified particle IDs.
@@ -21,7 +20,7 @@ def read_snapshot(snapshot_file, snap_nr, particle_ids):
 
     # Datasets to pass through from the snapshot
     passthrough_datasets = ("Coordinates", "Masses", "FOFGroupIDs")
-    
+
     # Sub in the snapshot number
     from virgo.util.partial_formatter import PartialFormatter
     formatter = PartialFormatter()
@@ -75,9 +74,8 @@ def read_snapshot(snapshot_file, snap_nr, particle_ids):
 
     # Should have matched all particles
     assert np.all(particle_data["Type"] >= 0)
-        
+
     return particle_data
-    
 
 def read_particles(filenames, nr_local_subhalos):
     """
@@ -103,7 +101,7 @@ def read_particles(filenames, nr_local_subhalos):
     nr_files = comm.bcast(nr_files)
     subhalos_per_file = np.asarray(comm.bcast(subhalos_per_file), dtype=int)
     first_subhalo_in_file = np.cumsum(subhalos_per_file) - subhalos_per_file
-    
+
     # Determine offset to first subhalo this rank reads
     first_local_subhalo = comm.scan(nr_local_subhalos) - nr_local_subhalos
 
@@ -135,10 +133,9 @@ def read_particles(filenames, nr_local_subhalos):
     # Handle case of no subhalos on any rank
     if particle_ids is None:
         particle_ids = np.zeros(0, dtype=int)
-    
+
     return particle_ids
-    
-                
+
 def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
     """
     This reorganizes a set of HBT SubSnap files into a single file which
@@ -150,7 +147,7 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
 
     # Make a format string for the filenames
     filenames = f"{basedir}/{snap_nr:03d}/SubSnap_{snap_nr:03d}" + ".{file_nr}.hdf5"
-    
+
     # Read in the input subhalos
     if comm_rank == 0:
         print(f"Reading HBTplus output for snapshot {snap_nr}")
@@ -162,13 +159,13 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
 
         if comm_rank == 0:
             print(f"Reading particle IDs")
-        
+
         # Read the particle IDs in our local subhalos
         particle_ids = read_particles(filenames, len(subhalos))
         nbound = subhalos["Nbound"]
         nr_local_particles = len(particle_ids)
         assert nr_local_particles == np.sum(nbound)
-        
+
         # Assign TrackIds to the particles
         particle_sort_key = np.repeat(subhalos["TrackId"], subhalos["Nbound"]).astype(np.int64)
 
@@ -185,10 +182,10 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
         for n in subhalos["Nbound"]:
             particle_sort_key[offset:offset+n] += np.arange(n, dtype=int)
             offset += n
-                
+
     # Find total number of subhalos
     total_nr_subhalos = comm.allreduce(len(subhalos))
-    
+
     # Convert array of structs to dict of arrays
     data = {}
     for name in field_names:
@@ -207,7 +204,7 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
                 print(f"Reordering subhalo property: {name}")
             data[name] = psort.fetch_elements(data[name], order, comm=comm)
     del order
-            
+
     if with_particles:
 
         # Sort particle IDs too
@@ -226,7 +223,7 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
 
     if snapshot_file is not None:
         particle_data = read_snapshot(snapshot_file, snap_nr, particle_ids)
-        
+
     # Write subhalo properties to the output file
     output_filename = f"{outdir}/OrderedSubSnap_{snap_nr:03d}.hdf5"
     if comm_rank == 0:
@@ -249,7 +246,7 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
             if snapshot_file is not None:
                 for name, data in particle_data.items():
                     phdf5.collective_write(particle_group, name, data, comm)
-            
+
     # Copy metadata from the first file
     comm.barrier()
     if comm_rank == 0:
@@ -263,16 +260,15 @@ def sort_hbt_output(basedir, snap_nr, outdir, with_particles, snapshot_file):
             output_file["NumberOfFiles"] = (1,)
             output_file["SnapshotId"] = input_file["SnapshotId"][...]
             output_file["NumberOfSubhalosInAllFiles"] = (total_nr_subhalos,)
-                
+
     comm.barrier()
     if comm_rank == 0:
         print("Done.")
-                
 
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
-    
+
     parser = MPIArgumentParser(comm, description="Reorganize HBTplus SubSnap outputs")
     parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
     parser.add_argument("snap_nr", type=int, help="Index of the snapshot to process")
@@ -283,4 +279,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     sort_hbt_output(**vars(args))
-    
