@@ -220,6 +220,7 @@ void SubhaloSnapshot_t::UpdateParticles(MpiWorker_t &world, const ParticleSnapsh
     Subhalos[i].CountParticles();
 }
 
+#ifndef DM_ONLY
 /* This function iterates over all local subhaloes, and adds newly spawned particles
  * to the respective Particle vector */
 void SubhaloSnapshot_t::UpdateSplitParticles(const ParticleSnapshot_t &snapshot)
@@ -240,6 +241,7 @@ void SubhaloSnapshot_t::UpdateSplitParticles(const ParticleSnapshot_t &snapshot)
     }
   }
 }
+#endif
 
 void Subhalo_t::AverageCoordinates()
 {
