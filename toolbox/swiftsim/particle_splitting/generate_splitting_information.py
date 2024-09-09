@@ -281,7 +281,7 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
             # If we have a new tree, all new particle IDs have as their progenitor the
             # particle ID that originated this unique tree.
             # NOTE: Disabled because SWIFT runs had incorrect ParticleProgenitorIDs
-            progenitor_id_old = tree_progenitor_ID
+            # progenitor_id_old = tree_progenitor_ID
 
             new_ids = new_snapshot_data['particle_ids'][tree_index]
 
