@@ -234,6 +234,10 @@ def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees,
         # Remove the progenitor particle from the descendant particle id
         new_ids = new_ids[new_ids != progenitor_particle_id]
 
+        # NOTE: This assert is introduced to ensure none of the negative ParticleProgenitorIDs from 
+        # SWIFT make it here.
+        assert(progenitor_particle_id > 0)
+
         # Add new
         if len(new_ids) > 0:
             new_splits[progenitor_particle_id] = np.sort(new_ids)
