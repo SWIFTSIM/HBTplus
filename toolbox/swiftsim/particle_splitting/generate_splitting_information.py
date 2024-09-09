@@ -130,8 +130,11 @@ def load_snapshot(file_path):
         particle_ids = file.read(f"PartType{particle_type}/ParticleIDs")
         progenitor_ids = file.read(f"PartType{particle_type}/ProgenitorParticleIDs")
 
-        # Append to the final list only those which have split before
-        has_split = counts > 0
+        # Append to the final list only those which have split before. Additionally,
+        # we ignore all particles that have split more than the valid count (64) within SWIFT.
+        # Their split trees are not trustworthy. NOTE: if SWIFT is modified to handle those 
+        # splits without corrupt split trees, we could load them.
+        has_split = (counts > 0) & (counts < 64)
 
         split_counts.append(counts[has_split])
         split_trees.append(trees[has_split])
@@ -196,7 +199,7 @@ def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees,
         IDs of the particles belonging to a unique split tree in snapshot N-1.
     progenitor_split_trees : np.ndarray
         Binary tree containing split information for the particles belonging to a unique
-        split tree in snapshot N-1
+        split tree in snapshot N-1.
     progenitor_split_counts : np.ndarray
         Number of times particles belonging to a unique split tree in snapshot N-1 have 
         split.
@@ -460,7 +463,7 @@ def generate_split_file(path_to_config, snapshot_index):
             os.makedirs(output_base_dir)
 
     #==========================================================================
-    # There will be no splits for snapshot 0, so we can skip its analysis 
+    # There will be no splits for snapshot 0, so we can skip its analysis
     #==========================================================================
     if snapshot_index == 0:
         if(comm_rank == 0):
