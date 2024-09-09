@@ -267,6 +267,9 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
     '''
     new_splits = {}
 
+    # To report if any issues have been encountered with new split trees
+    local_no_progenitors_found = 0
+
     # Iterate over unique split trees in snapshot N
     for tree_index, tree_progenitor_ID in enumerate(new_snapshot_data['progenitor_ids']):
 
@@ -277,9 +280,23 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
 
             # If we have a new tree, all new particle IDs have as their progenitor the
             # particle ID that originated this unique tree.
-            progenitor_id = tree_progenitor_ID
+            # NOTE: Disabled because SWIFT runs had incorrect ParticleProgenitorIDs
+            progenitor_id_old = tree_progenitor_ID
 
             new_ids = new_snapshot_data['particle_ids'][tree_index]
+
+            # We get the ID that has all 0s in its split tree (it retained the ID of
+            # the original particle)
+            progenitor_id = new_ids[new_snapshot_data["trees"][tree_index] == 0]
+
+            # Print out a warning if no progenitor ID was found... We cannot do much more
+            # than that.
+            if len(progenitor_id) == 0:
+                local_no_progenitors_found += 1
+                continue
+
+            progenitor_id = progenitor_id[0]
+
             new_ids = new_ids[new_ids != progenitor_id]
 
             # We could encounter cases where a particle has split and its descendants
@@ -298,6 +315,10 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
                                                           old_snapshot_data['counts'][tree_index_old],
                                                           new_snapshot_data['particle_ids'][tree_index],
                                                           new_snapshot_data['trees'][tree_index]))
+    global_no_progenitors_found = comm.allreduce(local_no_progenitors_found)
+    if global_no_progenitors_found > 0:
+        if comm_rank == 0:
+            print(f"We could not find progenitors for {global_no_progenitors_found} new split trees.")
 
     return new_splits
 
