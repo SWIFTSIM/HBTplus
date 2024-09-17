@@ -289,6 +289,9 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
             # the original particle)
             progenitor_id = new_ids[new_snapshot_data["trees"][tree_index] == 0]
 
+            # We should have either 1 or 0 progenitor ids.
+            assert(len(progenitor_id) < 2)
+
             # Print out a warning if no progenitor ID was found... We cannot do much more
             # than that.
             if len(progenitor_id) == 0:
