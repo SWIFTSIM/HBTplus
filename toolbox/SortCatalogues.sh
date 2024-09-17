@@ -38,4 +38,4 @@ snap_nr=${SLURM_ARRAY_TASK_ID}
 # Path to snapshot file. Only required if the joint catalogues contain particle information.
 snap_files="/cosma8/data/dp004/flamingo/Runs/L1000N0900/HYDRO_FIDUCIAL/snapshots/flamingo_{snap_nr:04d}/flamingo_{snap_nr:04d}.{file_nr}.hdf5"
 
-mpirun -- python3 -m mpi4py ./sort_hbt_output.py "${indir}" "${snap_nr}" "${outdir}" --with-particles --snapshot-file="${snap_files}"
+mpirun -- python3 -m mpi4py ./SortCatalogues.py "${indir}" "${snap_nr}" "${outdir}" --with-particles --snapshot-file="${snap_files}"

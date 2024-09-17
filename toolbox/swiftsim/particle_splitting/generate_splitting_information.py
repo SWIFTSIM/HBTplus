@@ -130,8 +130,11 @@ def load_snapshot(file_path):
         particle_ids = file.read(f"PartType{particle_type}/ParticleIDs")
         progenitor_ids = file.read(f"PartType{particle_type}/ProgenitorParticleIDs")
 
-        # Append to the final list only those which have split before
-        has_split = counts > 0
+        # Append to the final list only those which have split before. Additionally,
+        # we ignore all particles that have split more than the valid count (64) within SWIFT.
+        # Their split trees are not trustworthy. NOTE: if SWIFT is modified to handle those 
+        # splits without corrupt split trees, we could load them.
+        has_split = (counts > 0) & (counts < 64)
 
         split_counts.append(counts[has_split])
         split_trees.append(trees[has_split])
@@ -196,7 +199,7 @@ def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees,
         IDs of the particles belonging to a unique split tree in snapshot N-1.
     progenitor_split_trees : np.ndarray
         Binary tree containing split information for the particles belonging to a unique
-        split tree in snapshot N-1
+        split tree in snapshot N-1.
     progenitor_split_counts : np.ndarray
         Number of times particles belonging to a unique split tree in snapshot N-1 have 
         split.
@@ -231,6 +234,10 @@ def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees,
         # Remove the progenitor particle from the descendant particle id
         new_ids = new_ids[new_ids != progenitor_particle_id]
 
+        # NOTE: This assert is introduced to ensure none of the negative ParticleProgenitorIDs from 
+        # SWIFT make it here.
+        assert(progenitor_particle_id > 0)
+
         # Add new
         if len(new_ids) > 0:
             new_splits[progenitor_particle_id] = np.sort(new_ids)
@@ -260,6 +267,9 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
     '''
     new_splits = {}
 
+    # To report if any issues have been encountered with new split trees
+    local_no_progenitors_found = 0
+
     # Iterate over unique split trees in snapshot N
     for tree_index, tree_progenitor_ID in enumerate(new_snapshot_data['progenitor_ids']):
 
@@ -270,9 +280,26 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
 
             # If we have a new tree, all new particle IDs have as their progenitor the
             # particle ID that originated this unique tree.
-            progenitor_id = tree_progenitor_ID
+            # NOTE: Disabled because SWIFT runs had incorrect ParticleProgenitorIDs
+            # progenitor_id_old = tree_progenitor_ID
 
             new_ids = new_snapshot_data['particle_ids'][tree_index]
+
+            # We get the ID that has all 0s in its split tree (it retained the ID of
+            # the original particle)
+            progenitor_id = new_ids[new_snapshot_data["trees"][tree_index] == 0]
+
+            # We should have either 1 or 0 progenitor ids.
+            assert(len(progenitor_id) < 2)
+
+            # Print out a warning if no progenitor ID was found... We cannot do much more
+            # than that.
+            if len(progenitor_id) == 0:
+                local_no_progenitors_found += 1
+                continue
+
+            progenitor_id = progenitor_id[0]
+
             new_ids = new_ids[new_ids != progenitor_id]
 
             # We could encounter cases where a particle has split and its descendants
@@ -291,6 +318,10 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
                                                           old_snapshot_data['counts'][tree_index_old],
                                                           new_snapshot_data['particle_ids'][tree_index],
                                                           new_snapshot_data['trees'][tree_index]))
+    global_no_progenitors_found = comm.allreduce(local_no_progenitors_found)
+    if global_no_progenitors_found > 0:
+        if comm_rank == 0:
+            print(f"We could not find progenitors for {global_no_progenitors_found} new split trees.")
 
     return new_splits
 
@@ -460,7 +491,7 @@ def generate_split_file(path_to_config, snapshot_index):
             os.makedirs(output_base_dir)
 
     #==========================================================================
-    # There will be no splits for snapshot 0, so we can skip its analysis 
+    # There will be no splits for snapshot 0, so we can skip its analysis
     #==========================================================================
     if snapshot_index == 0:
         if(comm_rank == 0):
