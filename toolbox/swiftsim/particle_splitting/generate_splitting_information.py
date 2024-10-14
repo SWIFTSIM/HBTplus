@@ -67,6 +67,38 @@ def load_hbt_config(config_path):
 
     return config
 
+def load_overflow_data(path_to_split_log_files):
+    '''
+    Loads particle splitting information for particles which
+    split enough times to overflow the SplitTrees dataset.
+
+    Parameters
+    ----------
+    config_path : str
+        Path to the HBT configuration used to analyse a simulation.
+
+    Returns
+    -------
+    overflow_data : dict
+        Dictionary indexed by (count, prog_id), where count was the split count
+        when the SplitTrees dataset was reset, and prog_id is the particle id that
+        forms the root of the new split tree.
+    '''
+    overflow_data = {}
+    if path_to_split_log_files is None:
+        return overflow_data
+
+    for filename in os.listdir(path_to_split_log_files):
+        file_data = np.loadtxt(f'{path_to_split_log_files}/{filename}', dtype=np.int64)
+        for row in file_data:
+            _, new_prog_id, old_prog_id, count, tree = row
+            overflow_data[(count, new_prog_id)] = {
+                    'progenitor_id': old_prog_id,
+                    'tree': tree,
+                }
+
+    return overflow_data
+
 def generate_path_to_snapshot(config, snapshot_index):
     '''
     Returns the path to the virtual file of a snapshot to analyse.
@@ -94,7 +126,7 @@ def generate_path_to_snapshot(config, snapshot_index):
 
     return f"{config['SnapshotPath']}/{subdirectory}/{config['SnapshotFileBase']}_{config['SnapshotIdList'][snapshot_index]:04d}" + file_ending
 
-def load_snapshot(file_path):
+def load_snapshot(file_path, overflow_data):
     '''
     Returns the information required to reconstruct which particles were split and which ones
     are its descendants. Does not provide information about particles that have never split.
@@ -103,6 +135,9 @@ def load_snapshot(file_path):
     ----------
     file_path : str
         Location of the snapshot to load.
+    overflow_data : dict
+        Information about particles which have split enough times to overflow their
+        SplitTrees field
 
     Returns
     -------
@@ -130,12 +165,28 @@ def load_snapshot(file_path):
         particle_ids = file.read(f"PartType{particle_type}/ParticleIDs")
         progenitor_ids = file.read(f"PartType{particle_type}/ProgenitorParticleIDs")
 
-        # Append to the final list only those which have split before. Additionally,
-        # we ignore all particles that have split more than the valid count (64) within SWIFT.
-        # Their split trees are not trustworthy. NOTE: if SWIFT is modified to handle those 
-        # splits without corrupt split trees, we could load them.
-        has_split = (counts > 0) & (counts < 64)
+        # TODO: What do we want to do for overflows if there is no overflow_data?
 
+        # Check for particles that overflowed their split tree
+        tree_size = trees.itemsize * 8
+        trees = trees.astype('object')
+        # What is the maximum number of times a particle has overflowed
+        n_overflow = np.max((counts - 1) // tree_size)
+        while n_overflow > 0:
+            overflow_count = tree_size * n_overflow
+            # Loop over particles that overflowed
+            for idx in np.where(counts > overflow_count)[0]:
+                key = (overflow_count, progenitor_ids[idx])
+                # Set progenitor id to pre-overflow value
+                progenitor_ids[idx] = overflow_data[key]['progenitor_id']
+                # Shift overflow splits
+                tree[idx] = tree[idx] << tree_size
+                # Add pre-overflow split
+                tree[idx] += overflow_data[key]['tree']
+            n_overflow -= 1
+
+        # Append to the final list only those which have split before
+        has_split = (counts > 0)
         split_counts.append(counts[has_split])
         split_trees.append(trees[has_split])
         split_particle_ids.append(particle_ids[has_split])
@@ -280,6 +331,7 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
 
             # If we have a new tree, all new particle IDs have as their progenitor the
             # particle ID that originated this unique tree.
+            # TODO: Should we remove this?
             # NOTE: Disabled because SWIFT runs had incorrect ParticleProgenitorIDs
             # progenitor_id_old = tree_progenitor_ID
 
@@ -449,7 +501,7 @@ def gather_by_progenitor_id(data):
 
     return data
 
-def generate_split_file(path_to_config, snapshot_index):
+def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files):
     '''
     This will create an HDF5 file that is loaded by HBT to handle
     particle splittings.
@@ -462,6 +514,8 @@ def generate_split_file(path_to_config, snapshot_index):
     snapshot_index : int
         Number of the snapshot to analyse, given relative to the subset
         analysed by HBT.
+    path_to_split_log_files : str
+        Directory containing overflow particle splitting data generated by SWIFT
     '''
     #==========================================================================
     # Load settings of this run into all ranks 
@@ -501,16 +555,21 @@ def generate_split_file(path_to_config, snapshot_index):
         return
 
     #==========================================================================
+    # Load information for particles which overflowed split tree
+    #==========================================================================
+    if comm_rank == 0:
+        overflow_data = load_overflow_data(path_to_split_log_files)
+    overflow_data = comm.bcast(overflow_data, root=0)
+
+    #==========================================================================
     # Load data for snapshot N.
     #==========================================================================
     if comm_rank == 0:
         print (f"Loading data for snapshot index {snapshot_index}")
 
-    # Get path to snapshot
-    new_snapshot_path = generate_path_to_snapshot(config, snapshot_index)
-
     # Load the data
-    new_data = load_snapshot(new_snapshot_path)
+    new_snapshot_path = generate_path_to_snapshot(config, snapshot_index)
+    new_data = load_snapshot(new_snapshot_path, overflow_data)
 
     # Get how many particles that have been split exist in current snapshot
     total_number_splits = comm.allreduce(len(new_data["counts"]))
@@ -529,7 +588,7 @@ def generate_split_file(path_to_config, snapshot_index):
         print (f"Loading data from snapshot index {snapshot_index - 1}")
 
     old_snapshot_path = generate_path_to_snapshot(config, snapshot_index - 1)
-    old_data = load_snapshot(old_snapshot_path)
+    old_data = load_snapshot(old_snapshot_path, overflow_data)
 
     #==========================================================================
     # We now need to collect particles that share progenitor ids in the same
@@ -576,6 +635,7 @@ if __name__ == "__main__":
     parser = MPIArgumentParser(comm, description="Generate HDF5 files that contain information about which particles split between consecutively outputs analysed by HBT+.")
     parser.add_argument("path_to_config", type=str, help="Location of the configuration file for the run to be analysed with HBT+")
     parser.add_argument("snapshot_index", type=int, help="Index number of the output to run the script for.")
+    parser.add_argument("path_to_split_log_files", type=str, default=None, help="Directory containing overflow particle splitting data generated by SWIFT")
 
     args = parser.parse_args()
 
