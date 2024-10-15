@@ -443,7 +443,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         // update particle list
         sort(Elist.begin(), Elist.begin() + Nbound, CompEnergy); // sort the self-bound part
         if (RefineMostboundParticle && Nbound > MaxSampleSize)   // refine most-bound particle, not necessary usually..
-          RefineBindingEnergyOrder(ESnap, MaxSampleSize, tree, RefPos, RefVel);
+        {
+          int Nrefine = max(MaxSampleSize, static_cast<HBTInt>(0.1 * Nbound));
+          RefineBindingEnergyOrder(ESnap, Nrefine, tree, RefPos, RefVel);
+        }
         // todo: optimize this with in-place permutation, to avoid mem alloc and copying.
         ParticleList_t p(Particles.size());
         for (HBTInt i = 0; i < Particles.size(); i++)
