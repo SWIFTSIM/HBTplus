@@ -126,7 +126,7 @@ def generate_path_to_snapshot(config, snapshot_index):
 
     return f"{config['SnapshotPath']}/{subdirectory}/{config['SnapshotFileBase']}_{config['SnapshotIdList'][snapshot_index]:04d}" + file_ending
 
-def load_snapshot(file_path, overflow_data):
+def load_snapshot(file_path):
     '''
     Returns the information required to reconstruct which particles were split and which ones
     are its descendants. Does not provide information about particles that have never split.
@@ -135,9 +135,6 @@ def load_snapshot(file_path, overflow_data):
     ----------
     file_path : str
         Location of the snapshot to load.
-    overflow_data : dict
-        Information about particles which have split enough times to overflow their
-        SplitTrees field
 
     Returns
     -------
@@ -164,26 +161,6 @@ def load_snapshot(file_path, overflow_data):
         trees = file.read(f"PartType{particle_type}/SplitTrees")
         particle_ids = file.read(f"PartType{particle_type}/ParticleIDs")
         progenitor_ids = file.read(f"PartType{particle_type}/ProgenitorParticleIDs")
-
-        # TODO: What do we want to do for overflows if there is no overflow_data?
-
-        # Check for particles that overflowed their split tree
-        tree_size = trees.itemsize * 8
-        trees = trees.astype('object')
-        # What is the maximum number of times a particle has overflowed
-        n_overflow = np.max((counts - 1) // tree_size)
-        while n_overflow > 0:
-            overflow_count = tree_size * n_overflow
-            # Loop over particles that overflowed
-            for idx in np.where(counts > overflow_count)[0]:
-                key = (overflow_count, progenitor_ids[idx])
-                # Set progenitor id to pre-overflow value
-                progenitor_ids[idx] = overflow_data[key]['progenitor_id']
-                # Shift overflow splits
-                tree[idx] = tree[idx] << tree_size
-                # Add pre-overflow split
-                tree[idx] += overflow_data[key]['tree']
-            n_overflow -= 1
 
         # Append to the final list only those which have split before
         has_split = (counts > 0)
@@ -238,6 +215,57 @@ def group_by_progenitor(split_data):
     subarray_data["progenitor_ids"] = unique_progenitor_ids
 
     return subarray_data 
+
+def update_overflow_split_trees(split_data, overflow_data):
+    '''
+    # TODO
+    Updates the trees so 
+    Returns the information required to reconstruct which particles were split and which ones
+    are its descendants. Does not provide information about particles that have never split.
+
+    Parameters
+    ----------
+    file_path : str
+        Location of the snapshot to load.
+    overflow_data : dict
+        Information about particles which have split enough times to overflow their
+        SplitTrees field
+
+    Returns
+    -------
+    split_data : dict
+        Dictionary with four keys, each of which contains how many times a particle split, 
+        its ParticleID, its progenitor ParticleID and the binary split tree.
+    '''
+
+    # Return if the rank has no data
+    if split_data["counts"].shape[0] == 0:
+        return split_data
+
+    # TODO: What do we want to do for overflows if there is no overflow_data?
+
+    # Check for particles that overflowed their split tree
+    tree_size = split_data["trees"].itemsize * 8
+    # Set datatype as object so we can have arbitrarily large values
+    split_data["trees"] = split_data["trees"].astype('object')
+    # Calculate the maximum number of times a particle has overflowed
+    n_overflow = np.max((split_data["counts"] - 1) // tree_size)
+    while n_overflow > 0:
+        overflow_count = tree_size * n_overflow
+        # Loop over particles that overflowed
+        for idx in np.where(split_data["counts"] > overflow_count)[0]:
+            key = (overflow_count, split_data["progenitor_ids"][idx])
+            # Set progenitor id to pre-overflow value
+            split_data["progenitor_ids"][idx] = overflow_data[key]["progenitor_id"]
+            # Shift overflow splits
+            split_data["trees"][idx] = split_data["trees"][idx] << tree_size
+            # Add pre-overflow split
+            split_data["trees"][idx] += overflow_data[key]["tree"]
+        n_overflow -= 1
+
+    return split_data
+
+
 
 def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees, progenitor_split_counts, descendant_particle_ids, descendant_split_trees):
     '''
@@ -569,7 +597,7 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
 
     # Load the data
     new_snapshot_path = generate_path_to_snapshot(config, snapshot_index)
-    new_data = load_snapshot(new_snapshot_path, overflow_data)
+    new_data = load_snapshot(new_snapshot_path)
 
     # Get how many particles that have been split exist in current snapshot
     total_number_splits = comm.allreduce(len(new_data["counts"]))
@@ -588,7 +616,7 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
         print (f"Loading data from snapshot index {snapshot_index - 1}")
 
     old_snapshot_path = generate_path_to_snapshot(config, snapshot_index - 1)
-    old_data = load_snapshot(old_snapshot_path, overflow_data)
+    old_data = load_snapshot(old_snapshot_path)
 
     #==========================================================================
     # We now need to collect particles that share progenitor ids in the same
@@ -599,6 +627,15 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
 
     new_data = gather_by_progenitor_id(new_data)
     old_data = gather_by_progenitor_id(old_data)
+
+    #==========================================================================
+    # Correct trees which have overflowed the SplitTree field. Must be done
+    # after gathering since we set the dtype of the trees array as 'object'
+    # so that they can have arbitrary size
+    #==========================================================================
+
+    new_data = update_overflow_split_trees(new_data, overflow_data)
+    old_data = update_overflow_split_trees(old_data, overflow_data)
 
     #==========================================================================
     # Each rank can analyse the data it contains independently from each other.
