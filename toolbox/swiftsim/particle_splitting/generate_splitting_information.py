@@ -219,7 +219,8 @@ def group_by_progenitor(split_data):
 
 def get_corrected_split_trees(split_data, overflow_data):
     '''
-    TODO: Document
+    Uses the auxilary split.txt files output by SWIFT to reconstruct the full split
+    trees of any particles which have overflowed their SplitTrees field.
 
     Parameters
     ----------
@@ -229,6 +230,14 @@ def get_corrected_split_trees(split_data, overflow_data):
     overflow_data : dict
         Information about particles which have split enough times to overflow their
         SplitTrees field
+
+    Returns
+    -------
+    progenitor_ids : arr
+        The root progenitor id of each particle
+    trees : arr
+        The full split tree of each particle. This array is of dtype 'object' so that
+        it can hold split trees of any size
     '''
 
     # Create copy of arrays to be updated
@@ -260,13 +269,11 @@ def get_corrected_split_trees(split_data, overflow_data):
     return progenitor_ids, trees
 
 
-def update_overflow_split_trees(split_data, overflow_data):
+def update_overflow_split_trees(split_data, overflow_data=None):
     '''
-    Overwrites the arrays in split_data with the over
-    # TODO
-    Updates the trees so 
-    Returns the information required to reconstruct which particles were split and which ones
-    are its descendants. Does not provide information about particles that have never split.
+    If overflow_data is passed then this will overwrite the "trees" and
+    "progenitor_ids" arrays with the corrected values. If overflow_data is
+    not passed then this removes any particles which have overflowed.
 
     Parameters
     ----------
