@@ -216,8 +216,53 @@ def group_by_progenitor(split_data):
 
     return subarray_data 
 
+
+def get_corrected_split_trees(split_data, overflow_data):
+    '''
+    TODO: Document
+
+    Parameters
+    ----------
+    split_data : dict
+        Dictionary with four keys, each of which contains how many times a particle split, 
+        its ParticleID, its progenitor ParticleID and the binary split tree.
+    overflow_data : dict
+        Information about particles which have split enough times to overflow their
+        SplitTrees field
+    '''
+
+    # Create copy of arrays to be updated
+    progenitor_ids = split_data["progenitor_ids"].copy()
+    # Set datatype as object so we can have arbitrarily large values
+    trees = split_data["trees"].astype('object')
+
+    # Return if the rank has no data
+    if split_data["counts"].shape[0] == 0:
+        return progenitor_ids, trees
+
+    # Calculate the maximum number of times a particle has overflowed
+    tree_size = split_data["trees"].itemsize * 8
+    n_overflow = np.max((split_data["counts"] - 1) // tree_size)
+
+    while n_overflow > 0:
+        overflow_count = tree_size * n_overflow
+        # Loop over particles that overflowed
+        for idx in np.where(split_data["counts"] > overflow_count)[0]:
+            key = (overflow_count, progenitor_ids[idx])
+            # Set progenitor id to pre-overflow value
+            progenitor_ids[idx] = overflow_data[key]["progenitor_id"]
+            # Shift overflow splits
+            trees[idx] = trees[idx] << tree_size
+            # Add pre-overflow split
+            trees[idx] += overflow_data[key]["tree"]
+        n_overflow -= 1
+
+    return progenitor_ids, trees
+
+
 def update_overflow_split_trees(split_data, overflow_data):
     '''
+    Overwrites the arrays in split_data with the over
     # TODO
     Updates the trees so 
     Returns the information required to reconstruct which particles were split and which ones
@@ -225,8 +270,9 @@ def update_overflow_split_trees(split_data, overflow_data):
 
     Parameters
     ----------
-    file_path : str
-        Location of the snapshot to load.
+    split_data : dict
+        Dictionary with four keys, each of which contains how many times a particle split, 
+        its ParticleID, its progenitor ParticleID and the binary split tree.
     overflow_data : dict
         Information about particles which have split enough times to overflow their
         SplitTrees field
@@ -238,33 +284,12 @@ def update_overflow_split_trees(split_data, overflow_data):
         its ParticleID, its progenitor ParticleID and the binary split tree.
     '''
 
-    # Return if the rank has no data
-    if split_data["counts"].shape[0] == 0:
-        return split_data
-
     # TODO: What do we want to do for overflows if there is no overflow_data?
-
-    # Check for particles that overflowed their split tree
-    tree_size = split_data["trees"].itemsize * 8
-    # Set datatype as object so we can have arbitrarily large values
-    split_data["trees"] = split_data["trees"].astype('object')
-    # Calculate the maximum number of times a particle has overflowed
-    n_overflow = np.max((split_data["counts"] - 1) // tree_size)
-    while n_overflow > 0:
-        overflow_count = tree_size * n_overflow
-        # Loop over particles that overflowed
-        for idx in np.where(split_data["counts"] > overflow_count)[0]:
-            key = (overflow_count, split_data["progenitor_ids"][idx])
-            # Set progenitor id to pre-overflow value
-            split_data["progenitor_ids"][idx] = overflow_data[key]["progenitor_id"]
-            # Shift overflow splits
-            split_data["trees"][idx] = split_data["trees"][idx] << tree_size
-            # Add pre-overflow split
-            split_data["trees"][idx] += overflow_data[key]["tree"]
-        n_overflow -= 1
+    progenitor_ids, trees = get_corrected_split_trees(split_data, overflow_data)
+    split_data['trees'] = trees
+    split_data['progenitor_ids'] = progenitor_ids
 
     return split_data
-
 
 
 def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees, progenitor_split_counts, descendant_particle_ids, descendant_split_trees):
@@ -359,7 +384,6 @@ def get_descendant_particle_ids(old_snapshot_data, new_snapshot_data):
 
             # If we have a new tree, all new particle IDs have as their progenitor the
             # particle ID that originated this unique tree.
-            # TODO: Should we remove this?
             # NOTE: Disabled because SWIFT runs had incorrect ParticleProgenitorIDs
             # progenitor_id_old = tree_progenitor_ID
 
@@ -484,7 +508,7 @@ def assign_task_based_on_id(ids):
 
     return abs(ids) % comm.size
 
-def gather_by_progenitor_id(data):
+def gather_by_progenitor_id(data, overflow_data):
     """
     It gathers all data concerning particles that share a progenitor ID in the
     same MPI task
@@ -502,10 +526,13 @@ def gather_by_progenitor_id(data):
         ID are in the same task.
     """
 
+    # Get the root progenitor IDs for SplitTree values that overflowed
+    root_ids, _ = get_corrected_split_trees(split_data, overflow_data)
+
     # We first assign a task to each particle. We base it on their
     # progenitor ID so that the same tree of split particles ends up
     # in the same rank.
-    target_task = assign_task_based_on_id(data["progenitor_ids"])
+    target_task = assign_task_based_on_id(root_ids)
 
     # Count how many elements we will end up per task
     local_task_counts = np.zeros(comm_size, int)
@@ -518,13 +545,15 @@ def gather_by_progenitor_id(data):
     order = psort.parallel_sort(target_task, return_index=True, comm=comm)
     for key, value in data.items():
         data[key] = psort.fetch_elements(value, order, comm=comm)
+        root_ids = psort.fetch_elements(root_ids, order, comm=comm)
 
     # Repartition, so that whole trees are contained within their assigned tasks
     for key, value in data.items():
         data[key] = psort.repartition(value, global_task_counts, comm=comm)
+        root_ids = psort.repartition(root_ids, global_task_counts, comm=comm)
 
     # This is for testing if all particles ended up where they should have.
-    target_task = assign_task_based_on_id(data["progenitor_ids"])
+    target_task = assign_task_based_on_id(root_ids)
     assert((target_task != comm_rank).sum() == 0)
 
     return data
