@@ -84,10 +84,10 @@ def load_overflow_data(path_to_split_log_files):
         when the SplitTrees dataset was reset, and prog_id is the particle id that
         forms the root of the new split tree.
     '''
-    overflow_data = {}
     if path_to_split_log_files is None:
-        return overflow_data
+        return None
 
+    overflow_data = {}
     for filename in os.listdir(path_to_split_log_files):
         file_data = np.loadtxt(f'{path_to_split_log_files}/{filename}', dtype=np.int64)
         for row in file_data:
@@ -237,7 +237,7 @@ def get_corrected_split_trees(split_data, overflow_data):
     trees = split_data["trees"].astype('object')
 
     # Return if the rank has no data
-    if split_data["counts"].shape[0] == 0:
+    if (split_data["counts"].shape[0] == 0) or (overflow_data is None):
         return progenitor_ids, trees
 
     # Calculate the maximum number of times a particle has overflowed
@@ -284,10 +284,22 @@ def update_overflow_split_trees(split_data, overflow_data):
         its ParticleID, its progenitor ParticleID and the binary split tree.
     '''
 
-    # TODO: What do we want to do for overflows if there is no overflow_data?
-    progenitor_ids, trees = get_corrected_split_trees(split_data, overflow_data)
-    split_data['trees'] = trees
-    split_data['progenitor_ids'] = progenitor_ids
+    # Not correcting particles which overflowed
+    if overflow_data is None:
+        # TODO: Test
+        tree_size = split_data["trees"].itemsize * 8
+        invalid_trees = split_data["counts"] > tree_size
+        if np.sum(invalid_trees) == 0:
+            return split_data
+        print(f'np.sum(invalid_trees) particles with invalid trees skipped')
+        split_data['trees'] = split_data['trees'][~invalid_trees]
+        split_data['counts'] = split_data['counts'][~invalid_trees]
+        split_data['progenitor_ids'] = split_data['progenitor_ids'][~invalid_trees]
+        split_data['particle_ids'] = split_data['particle_ids'][~invalid_trees]
+    else:
+        progenitor_ids, trees = get_corrected_split_trees(split_data, overflow_data)
+        split_data['trees'] = trees
+        split_data['progenitor_ids'] = progenitor_ids
 
     return split_data
 
