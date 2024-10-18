@@ -442,7 +442,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         }
         // update particle list
         sort(Elist.begin(), Elist.begin() + Nbound, CompEnergy); // sort the self-bound part
-        if (RefineMostboundParticle && Nbound > MaxSampleSize)   // refine most-bound particle, not necessary usually..
+
+        /* We need to refine the most bound particle, as subsampling large subhaloes will lead to 
+         * incorrect ordering of binding energies. Hence, the most bound particle before this step
+         * may not be the true most bound particle. */
+        if (RefineMostboundParticle && Nbound > MaxSampleSize)
         {
           int Nrefine = max(MaxSampleSize, static_cast<HBTInt>(0.1 * Nbound));
           RefineBindingEnergyOrder(ESnap, Nrefine, tree, RefPos, RefVel);
