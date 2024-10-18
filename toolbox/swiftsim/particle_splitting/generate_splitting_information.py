@@ -502,6 +502,14 @@ def save(split_dictionary, file_path):
 
     comm.barrier()
 
+    # Check we don't have any duplicate keys/values
+    if comm_rank == 0:
+        with h5py.File(file_path, 'r') as file:
+            keys = file['SplitInformation/Keys'][:]
+            assert np.unique(keys).shape[0] == keys.shape[0]
+            values = file['SplitInformation/Keys'][:]
+            assert np.unique(values).shape[0] == values.shape[0]
+
 def assign_task_based_on_id(ids):
     """
     Uses a hash function and modulus operation to assign a
