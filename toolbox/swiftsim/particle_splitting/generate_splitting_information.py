@@ -296,9 +296,10 @@ def update_overflow_split_trees(split_data, overflow_data=None):
         tree_size = split_data["trees"].itemsize * 8
         invalid_trees = split_data["counts"] > tree_size
         if np.sum(invalid_trees) == 0:
+            split_data['trees'] = split_data['trees'].astype('object')
             return split_data
         print(f'{np.sum(invalid_trees)} particles with invalid trees skipped on rank {comm_rank}')
-        split_data['trees'] = split_data['trees'][~invalid_trees]
+        split_data['trees'] = split_data['trees'][~invalid_trees].astype('object')
         split_data['counts'] = split_data['counts'][~invalid_trees]
         split_data['progenitor_ids'] = split_data['progenitor_ids'][~invalid_trees]
         split_data['particle_ids'] = split_data['particle_ids'][~invalid_trees]
