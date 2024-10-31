@@ -508,7 +508,7 @@ def save(split_dictionary, file_path):
         with h5py.File(file_path, 'r') as file:
             keys = file['SplitInformation/Keys'][:]
             assert np.unique(keys).shape[0] == keys.shape[0]
-            values = file['SplitInformation/Keys'][:]
+            values = file['SplitInformation/Values'][:]
             assert np.unique(values).shape[0] == values.shape[0]
 
 def assign_task_based_on_id(ids):
