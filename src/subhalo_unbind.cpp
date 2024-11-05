@@ -448,7 +448,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
          * may not be the true most bound particle. */
         if (RefineMostboundParticle && Nbound > MaxSampleSize)
         {
-          int Nrefine = max(MaxSampleSize, static_cast<HBTInt>(0.1 * Nbound));
+          int Nrefine = max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCentreRefinement * Nbound));
           RefineBindingEnergyOrder(ESnap, Nrefine, tree, RefPos, RefVel);
         }
         // todo: optimize this with in-place permutation, to avoid mem alloc and copying.

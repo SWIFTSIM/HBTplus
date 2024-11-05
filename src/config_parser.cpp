@@ -65,6 +65,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(TreeMinNumOfCells);
   TrySetPar(MaxSampleSizeOfPotentialEstimate);
   TrySetPar(RefineMostboundParticle);
+  TrySetPar(BoundFractionCentreRefinement);
   TrySetPar(MassInMsunh);
   TrySetPar(LengthInMpch);
   TrySetPar(VelInKmS);
@@ -313,6 +314,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
 
   _SyncAtom(MaxSampleSizeOfPotentialEstimate, MPI_HBT_INT);
   _SyncBool(RefineMostboundParticle);
+  _SyncReal(BoundFractionCentreRefinement);
 
   _SyncReal(TreeNodeOpenAngleSquare);
   _SyncReal(TreeNodeResolution);
@@ -429,6 +431,8 @@ void Parameter_t::DumpParameters()
   DumpPar(BoundMassPrecision);
   DumpPar(SourceSubRelaxFactor);
   DumpPar(RefineMostboundParticle);
+  if(RefineMostboundParticle)
+    DumpPar(BoundFractionCentreRefinement);
   DumpPar(MaxSampleSizeOfPotentialEstimate);
 
   DumpHeader("Subhalo Tracking");
