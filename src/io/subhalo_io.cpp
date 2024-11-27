@@ -453,10 +453,14 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
     {
       vl[i].len = Subhalos[i].Nbound;
       vl[i].p = Subhalos[i].ParticleBindingEnergies.data();
+
+      /* Clear the vector to reduce memory footprint and because it will be overwritten anyway. */
+      Subhalos[i].ParticleBindingEnergies.clear();
     }
     writeHDFmatrix(file, vl.data(), "BindingEnergies", ndim, dim_sub, H5T_FloatArr);
     H5Tclose(H5T_FloatArr);
   }
+
   vector<HBTInt> IdBuffer;
   {
     HBTInt NumberOfParticles = 0;
