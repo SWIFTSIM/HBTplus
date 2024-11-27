@@ -484,7 +484,6 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 #pragma omp parallel for if (Nbound > 100)
     for (HBTInt i = 0; i < Nbound; i++)
       Energies[i] = Elist[i].E;
-#endif
   }
 
 }
