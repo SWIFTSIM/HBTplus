@@ -288,9 +288,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     Nbound = Particles.size();
     CountParticles();
     GetCorePhaseSpaceProperties();
-#ifdef SAVE_BINDING_ENERGY
-    Energies.clear();
-#endif
+
+    /* No bound particles, hence zero binding energies will be saved */
+    if(HBTConfig.SaveBoundParticleBindingEnergies)
+      ParticleBindingEnergies.clear();
+
     return;
   }
 
@@ -308,6 +310,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * prevents accessing entries beyond the corresponding particle array. */
   SetTracerIndex(0);
 
+  /* Variables that store the centre of mass reference frame, which is used during
+   * unbinding. In the first iteration, the centre of mass reference frame is that
+   * of all particles associated to the subhalo in the previous output. Subsequent
+   * iterations use the centre of mass frame of particles identified as bound. */
   HBTxyz OldRefPos, OldRefVel;
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
@@ -343,7 +349,6 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         HBTxyz OldVel;
         epoch.RelativeVelocity(x, v, OldRefPos, OldRefVel, OldVel);
         Elist[i].E += VecDot(OldVel, RefVelDiff) + dK - tree.EvaluatePotential(x, 0);
-        ;
       }
       Nlast = Nbound;
     }
@@ -429,8 +434,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           copyHBTxyz(OldRefVel, RefVel);
         }
       }
+
+      /* The centre of mass frame is updated here */
       Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
       ESnap.AveragePosition(ComovingAveragePosition, Nbound);
+
       if (Nbound >= Nlast * BoundMassPrecision) // converge
       {
         if (!IsAlive())
@@ -475,12 +483,15 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   GetCorePhaseSpaceProperties();
 
-#ifdef SAVE_BINDING_ENERGY
-  Energies.resize(Nbound);
-#pragma omp paralle for if (Nbound > 100)
-  for (HBTInt i = 0; i < Nbound; i++)
-    Energies[i] = Elist[i].E;
-#endif
+  /* Store the binding energy information to save later */
+  if(HBTConfig.SaveBoundParticleBindingEnergies)
+  {
+    ParticleBindingEnergies.resize(Nbound);
+#pragma omp parallel for if (Nbound > 100)
+    for (HBTInt i = 0; i < Nbound; i++)
+      ParticleBindingEnergies[i] = Elist[i].E;
+  }
+
 }
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 {
