@@ -481,7 +481,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   if(HBTConfig.SaveParticleBindingEnergies)
   {
     Energies.resize(Nbound);
-#pragma omp paralle for if (Nbound > 100)
+#pragma omp parallel for if (Nbound > 100)
     for (HBTInt i = 0; i < Nbound; i++)
       Energies[i] = Elist[i].E;
 #endif
