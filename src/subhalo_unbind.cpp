@@ -291,7 +291,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
     /* No bound particles, hence zero binding energies will be saved */
     if(HBTConfig.SaveParticleBindingEnergies)
-      Energies.clear();
+      ParticleBindingEnergies.clear();
 
     return;
   }
@@ -480,10 +480,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   /* Store the binding energy information to save later */
   if(HBTConfig.SaveParticleBindingEnergies)
   {
-    Energies.resize(Nbound);
+    ParticleBindingEnergies.resize(Nbound);
 #pragma omp parallel for if (Nbound > 100)
     for (HBTInt i = 0; i < Nbound; i++)
-      Energies[i] = Elist[i].E;
+      ParticleBindingEnergies[i] = Elist[i].E;
   }
 
 }

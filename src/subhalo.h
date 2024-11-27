@@ -97,7 +97,10 @@ public:
 
   ParticleList_t Particles;
 
-  vector<float> Energies; /* Binding energies of the particles bound to the subhalo */
+  /* Binding energies of the particles bound to the subhalo. It is a separate instance from ParticleList_t
+   * because it does not need communicating before unbinding. */
+  vector<float> ParticleBindindingEnergies; 
+
   SubIdList_t NestedSubhalos; // list of sub-in-subs.
 
   /* Methods relating to new merging approach */

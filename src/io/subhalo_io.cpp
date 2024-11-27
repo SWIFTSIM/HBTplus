@@ -452,7 +452,7 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
     for (HBTInt i = 0; i < vl.size(); i++)
     {
       vl[i].len = Subhalos[i].Nbound;
-      vl[i].p = Subhalos[i].Energies.data();
+      vl[i].p = Subhalos[i].ParticleBindingEnergies.data();
     }
     writeHDFmatrix(file, vl.data(), "BindingEnergies", ndim, dim_sub, H5T_FloatArr);
     H5Tclose(H5T_FloatArr);
