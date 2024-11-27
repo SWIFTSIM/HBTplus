@@ -310,6 +310,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * prevents accessing entries beyond the corresponding particle array. */
   SetTracerIndex(0);
 
+  /* Variables that store the centre of mass reference frame, which is used during
+   * unbinding. In the first iteration, the centre of mass reference frame is that
+   * of all particles associated to the subhalo in the previous output. Subsequent
+   * iterations use the centre of mass frame of particles identified as bound. */
   HBTxyz OldRefPos, OldRefVel;
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
@@ -430,8 +434,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           copyHBTxyz(OldRefVel, RefVel);
         }
       }
+
+      /* The centre of mass frame is updated here */
       Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
       ESnap.AveragePosition(ComovingAveragePosition, Nbound);
+
       if (Nbound >= Nlast * BoundMassPrecision) // converge
       {
         if (!IsAlive())
