@@ -56,6 +56,7 @@ public:
   bool ParticleIdNeedHash;  // performance related; disabled if ParticleIdRankStyle is true
   bool SnapshotIdUnsigned;
   bool SaveSubParticleProperties;
+  bool SaveParticleBindingEnergies;
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
   vector<int> SnapshotIdList;
   vector<int> TracerParticleTypes;
@@ -108,6 +109,7 @@ public:
     ParticleIdNeedHash = true;
     SnapshotIdUnsigned = false;
     SaveSubParticleProperties = false;
+    SaveParticleBindingEnergies = false;
 #ifdef NO_STRIPPING
     MergeTrappedSubhalos = false;
 #else
