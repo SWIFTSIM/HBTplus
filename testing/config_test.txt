@@ -35,6 +35,7 @@ MaxSampleSizeOfPotentialEstimate 0
 
 # Test simulation does not provide splitting information
 ParticlesSplit 0
+SaveParticleBindindingEnergies 1
 
 # Optional parameters; default values are shown here
 #MinNumPartOfSub 20
