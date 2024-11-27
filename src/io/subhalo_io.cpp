@@ -372,7 +372,7 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
   vector<hvl_t> vl(Subhalos.size());
   hsize_t dim_sub[] = {Subhalos.size()};
   // now write the particle list for each subhalo
-  if (HBTConfig.SaveSubParticleProperties)
+  if (HBTConfig.SaveBoundParticleProperties)
   {
     hid_t H5T_ParticleInMem = H5Tcreate(H5T_COMPOUND, sizeof(Particle_t));
     hsize_t dim_xyz = 3;
@@ -423,7 +423,7 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
   H5LTset_attribute_string(file, "/NestedSubhalos", "Comment",
                            "List of the TrackIds of first-level sub-subhaloes within each subhalo.");
 
-  if (HBTConfig.SaveParticleBindingEnergies)
+  if (HBTConfig.SaveBoundParticleBindingEnergies)
   {
     hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
     for (HBTInt i = 0; i < vl.size(); i++)

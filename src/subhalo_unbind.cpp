@@ -290,7 +290,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     GetCorePhaseSpaceProperties();
 
     /* No bound particles, hence zero binding energies will be saved */
-    if(HBTConfig.SaveParticleBindingEnergies)
+    if(HBTConfig.SaveBoundParticleBindingEnergies)
       ParticleBindingEnergies.clear();
 
     return;
@@ -484,7 +484,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   GetCorePhaseSpaceProperties();
 
   /* Store the binding energy information to save later */
-  if(HBTConfig.SaveParticleBindingEnergies)
+  if(HBTConfig.SaveBoundParticleBindingEnergies)
   {
     ParticleBindingEnergies.resize(Nbound);
 #pragma omp parallel for if (Nbound > 100)

@@ -55,8 +55,8 @@ public:
   bool ParticleIdRankStyle; // performance related; load particleId as id ranks. not implemented yet.
   bool ParticleIdNeedHash;  // performance related; disabled if ParticleIdRankStyle is true
   bool SnapshotIdUnsigned;
-  bool SaveSubParticleProperties;
-  bool SaveParticleBindingEnergies;
+  bool SaveBoundParticleProperties;
+  bool SaveBoundParticleBindingEnergies;
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
   vector<int> SnapshotIdList;
   vector<int> TracerParticleTypes;
@@ -108,8 +108,8 @@ public:
     ParticleIdRankStyle = false; // to be removed
     ParticleIdNeedHash = true;
     SnapshotIdUnsigned = false;
-    SaveSubParticleProperties = false;
-    SaveParticleBindingEnergies = false;
+    SaveBoundParticleProperties = false;
+    SaveBoundParticleBindingEnergies = false;
 #ifdef NO_STRIPPING
     MergeTrappedSubhalos = false;
 #else
