@@ -345,7 +345,6 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         HBTxyz OldVel;
         epoch.RelativeVelocity(x, v, OldRefPos, OldRefVel, OldVel);
         Elist[i].E += VecDot(OldVel, RefVelDiff) + dK - tree.EvaluatePotential(x, 0);
-        ;
       }
       Nlast = Nbound;
     }
