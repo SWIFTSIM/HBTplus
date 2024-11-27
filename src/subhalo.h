@@ -96,9 +96,8 @@ public:
   HBTInt NestedParentTrackId; // the trackID of the subhalo containing this subhalo, or -1 for top level subhalos
 
   ParticleList_t Particles;
-#ifdef SAVE_BINDING_ENERGY
-  vector<float> Energies;
-#endif
+
+  vector<float> Energies; /* Binding energies of the particles bound to the subhalo */
   SubIdList_t NestedSubhalos; // list of sub-in-subs.
 
   /* Methods relating to new merging approach */

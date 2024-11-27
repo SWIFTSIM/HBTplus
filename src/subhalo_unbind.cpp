@@ -288,9 +288,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     Nbound = Particles.size();
     CountParticles();
     GetCorePhaseSpaceProperties();
-#ifdef SAVE_BINDING_ENERGY
-    Energies.clear();
-#endif
+
+    /* No bound particles, hence zero binding energies will be saved */
+    if(HBTConfig.SaveParticleBindingEnergies)
+      Energies.clear();
+
     return;
   }
 
@@ -475,12 +477,16 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   GetCorePhaseSpaceProperties();
 
-#ifdef SAVE_BINDING_ENERGY
-  Energies.resize(Nbound);
+  /* Store the binding energy information to save later */
+  if(HBTConfig.SaveParticleBindingEnergies)
+  {
+    Energies.resize(Nbound);
 #pragma omp paralle for if (Nbound > 100)
-  for (HBTInt i = 0; i < Nbound; i++)
-    Energies[i] = Elist[i].E;
+    for (HBTInt i = 0; i < Nbound; i++)
+      Energies[i] = Elist[i].E;
 #endif
+  }
+
 }
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 {

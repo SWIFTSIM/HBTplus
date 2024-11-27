@@ -264,24 +264,28 @@ void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
       H5Dclose(dset);
     }
 
-#ifdef SAVE_BINDING_ENERGY
-    { // read binding energies
-      dset = H5Dopen2(file, "BindingEnergies", H5P_DEFAULT);
-      GetDatasetDims(dset, dims);
-      assert(dims[0] == nsubhalos);
-      hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
-      H5Dread(dset, H5T_FloatArr, H5S_ALL, H5S_ALL, H5P_DEFAULT, vl.data());
-      for (HBTInt i = 0; i < nsubhalos; i++)
-      {
-        NewSubhalos[i].Energies.resize(vl[i].len);
-        memcpy(NewSubhalos[i].Energies.data(), vl[i].p, sizeof(float) * vl[i].len);
-      }
-      ReclaimVlenData(dset, H5T_FloatArr, vl.data());
-      H5Tclose(H5T_FloatArr);
-      H5Dclose(dset);
-    }
-#endif
+    /* NOTE: disabled for now because I am unsure of why we should re-read the binding
+     * energy array if we will overwrite it in Subhalo::Unbind. I do not clear out the vector here,
+     * since I already do that after saving the energies in the previous output. */
 
+// #ifdef SAVE_BINDING_ENERGY
+//     { // read binding energies
+//       dset = H5Dopen2(file, "BindingEnergies", H5P_DEFAULT);
+//       GetDatasetDims(dset, dims);
+//       assert(dims[0] == nsubhalos);
+//       hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
+//       H5Dread(dset, H5T_FloatArr, H5S_ALL, H5S_ALL, H5P_DEFAULT, vl.data());
+//       for (HBTInt i = 0; i < nsubhalos; i++)
+//       {
+//         NewSubhalos[i].Energies.resize(vl[i].len);
+//         memcpy(NewSubhalos[i].Energies.data(), vl[i].p, sizeof(float) * vl[i].len);
+//       }
+//       ReclaimVlenData(dset, H5T_FloatArr, vl.data());
+//       H5Tclose(H5T_FloatArr);
+//       H5Dclose(dset);
+//     }
+// #endif
+//
     H5Tclose(H5T_HBTIntArr);
   }
 
@@ -442,17 +446,17 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
   H5LTset_attribute_string(file, "/NestedSubhalos", "Comment",
                            "List of the TrackIds of first-level sub-subhaloes within each subhalo.");
 
-#ifdef SAVE_BINDING_ENERGY
-  hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
-  for (HBTInt i = 0; i < vl.size(); i++)
+  if (HBTConfig.SaveParticleBindingEnergies)
   {
-    vl[i].len = Subhalos[i].Nbound;
-    vl[i].p = Subhalos[i].Energies.data();
+    hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
+    for (HBTInt i = 0; i < vl.size(); i++)
+    {
+      vl[i].len = Subhalos[i].Nbound;
+      vl[i].p = Subhalos[i].Energies.data();
+    }
+    writeHDFmatrix(file, vl.data(), "BindingEnergies", ndim, dim_sub, H5T_FloatArr);
+    H5Tclose(H5T_FloatArr);
   }
-  writeHDFmatrix(file, vl.data(), "BindingEnergies", ndim, dim_sub, H5T_FloatArr);
-  H5Tclose(H5T_FloatArr);
-#endif
-
   vector<HBTInt> IdBuffer;
   {
     HBTInt NumberOfParticles = 0;
