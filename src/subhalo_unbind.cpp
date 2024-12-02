@@ -452,7 +452,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
            * Using too few particles without this scaling would not result in a better centering. This is because it
            * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be 
            * extremely sensitive to the randomness used during unbinding. */
-          HBTInt SampleSizeCenterRefinement = max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCentreRefinement * Nbound));
+          HBTInt SampleSizeCenterRefinement = max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
 
           RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
         }

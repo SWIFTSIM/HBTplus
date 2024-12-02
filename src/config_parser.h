@@ -76,7 +76,7 @@ public:
   bool RefineMostboundParticle; // whether to further improve mostbound particle accuracy in case a
                                 // MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but
                                 // leads to more accuracy mostbound particle
-  float BoundFractionCentreRefinement; /* The fraction of most bound particles to use if the most bound particle will be refined */
+  float BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be refined */
 
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
   int ParticlesSplit; /* Whether baryonic particles are able to split. Relevant to swift simulations */
@@ -124,7 +124,7 @@ public:
     TreeMinNumOfCells = 10;
     MaxSampleSizeOfPotentialEstimate = 1000; // set to 0 to disable sampling
     RefineMostboundParticle = true;
-    BoundFractionCentreRefinement = 0.1; /* Default values chosen based on tests */
+    BoundFractionCenterRefinement = 0.1; /* Default values chosen based on tests */
     GroupLoadedFullParticle = false;
     MaxPhysicalSofteningHalo = -1; // Indicates no max. physical softening is used.
 
