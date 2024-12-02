@@ -73,7 +73,7 @@ public:
   HBTInt ParticleNullGroupId;
 
   HBTInt MaxSampleSizeOfPotentialEstimate;
-  bool RefineMostboundParticle; // whether to further improve mostbound particle accuracy in case a
+  bool RefineMostBoundParticle; // whether to further improve mostbound particle accuracy in case a
                                 // MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but
                                 // leads to more accuracy mostbound particle
   float BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be refined */
@@ -123,7 +123,7 @@ public:
     TreeNodeOpenAngle = 0.45;
     TreeMinNumOfCells = 10;
     MaxSampleSizeOfPotentialEstimate = 1000; // set to 0 to disable sampling
-    RefineMostboundParticle = true;
+    RefineMostBoundParticle = true;
     BoundFractionCenterRefinement = 0.1; /* Default values chosen based on tests */
     GroupLoadedFullParticle = false;
     MaxPhysicalSofteningHalo = -1; // Indicates no max. physical softening is used.

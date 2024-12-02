@@ -300,7 +300,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   assert(Particles.size() >= 1);
 
   HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
-  bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
+  bool RefineMostBoundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostBoundParticle);
   HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
 
   /* Need to initialise here, since orphans/disrupted objects do not call the
@@ -446,7 +446,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         /* We need to refine the most bound particle, as subsampling large subhaloes will lead to 
          * incorrect ordering of binding energies. Hence, the most bound particle before this step
          * may not be the true most bound particle. */
-        if (RefineMostboundParticle && Nbound > MaxSampleSize)
+        if (RefineMostBoundParticle && Nbound > MaxSampleSize)
         {
           /* If the number of bound particles is large, the number of particles used in this step scales with Nbound.
            * Using too few particles without this scaling would not result in a better centering. This is because it
