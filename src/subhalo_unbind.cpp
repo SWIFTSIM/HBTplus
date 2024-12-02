@@ -448,9 +448,15 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
          * may not be the true most bound particle. */
         if (RefineMostboundParticle && Nbound > MaxSampleSize)
         {
-          HBTInt Nrefine = max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCentreRefinement * Nbound));
-          RefineBindingEnergyOrder(ESnap, Nrefine, tree, RefPos, RefVel);
+          /* If the number of bound particles is large, the number of particles used in this step scales with Nbound.
+           * Using too few particles without this scaling would not result in a better centering. This is because it
+           * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be 
+           * extremely sensitive to the randomness used during unbinding. */
+          HBTInt SampleSizeCenterRefinement = max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCentreRefinement * Nbound));
+
+          RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
         }
+
         // todo: optimize this with in-place permutation, to avoid mem alloc and copying.
         ParticleList_t p(Particles.size());
         for (HBTInt i = 0; i < Particles.size(); i++)
