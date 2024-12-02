@@ -302,7 +302,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   assert(Particles.size() >= 1);
 
   HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
-  bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
+  bool RefineMostBoundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostBoundParticle);
   HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
 
   /* Need to initialise here, since orphans/disrupted objects do not call the
@@ -450,8 +450,21 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         }
         // update particle list
         sort(Elist.begin(), Elist.begin() + Nbound, CompEnergy); // sort the self-bound part
-        if (RefineMostboundParticle && Nbound > MaxSampleSize)   // refine most-bound particle, not necessary usually..
-          RefineBindingEnergyOrder(ESnap, MaxSampleSize, tree, RefPos, RefVel);
+
+        /* We need to refine the most bound particle, as subsampling large subhaloes will lead to 
+         * incorrect ordering of binding energies. Hence, the most bound particle before this step
+         * may not be the true most bound particle. */
+        if (RefineMostBoundParticle && Nbound > MaxSampleSize)
+        {
+          /* If the number of bound particles is large, the number of particles used in this step scales with Nbound.
+           * Using too few particles without this scaling would not result in a better centering. This is because it
+           * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be 
+           * extremely sensitive to the randomness used during unbinding. */
+          HBTInt SampleSizeCenterRefinement = max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
+
+          RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
+        }
+
         // todo: optimize this with in-place permutation, to avoid mem alloc and copying.
         ParticleList_t p(Particles.size());
         for (HBTInt i = 0; i < Particles.size(); i++)
