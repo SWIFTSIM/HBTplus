@@ -51,6 +51,7 @@ public:
   bool PeriodicBoundaryOn;
   bool SnapshotHasIdBlock; // set to False when your snapshot is sorted according to particle id so that no id block is
                            // present.
+  bool ParticleIdNeedHash;
   bool SnapshotIdUnsigned;
   bool SaveBoundParticleProperties;
   bool SaveBoundParticleBindingEnergies;
@@ -103,6 +104,7 @@ public:
     VelInKmS = 1.;
     PeriodicBoundaryOn = true;
     SnapshotHasIdBlock = true;
+    ParticleIdNeedHash = true;
     SnapshotIdUnsigned = false;
     SaveBoundParticleProperties = false;
     SaveBoundParticleBindingEnergies = false;
