@@ -51,9 +51,6 @@ public:
   bool PeriodicBoundaryOn;
   bool SnapshotHasIdBlock; // set to False when your snapshot is sorted according to particle id so that no id block is
                            // present.
-  //   bool SnapshotNoMassBlock;//to disable checking for presence of mass block, even if some header.mass==0.
-  bool ParticleIdRankStyle; // performance related; load particleId as id ranks. not implemented yet.
-  bool ParticleIdNeedHash;  // performance related; disabled if ParticleIdRankStyle is true
   bool SnapshotIdUnsigned;
   bool SaveBoundParticleProperties;
   bool SaveBoundParticleBindingEnergies;
@@ -106,8 +103,6 @@ public:
     VelInKmS = 1.;
     PeriodicBoundaryOn = true;
     SnapshotHasIdBlock = true;
-    ParticleIdRankStyle = false; // to be removed
-    ParticleIdNeedHash = true;
     SnapshotIdUnsigned = false;
     SaveBoundParticleProperties = false;
     SaveBoundParticleBindingEnergies = false;
