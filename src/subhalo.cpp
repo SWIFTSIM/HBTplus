@@ -205,9 +205,9 @@ void SubhaloSnapshot_t::UpdateParticles(MpiWorker_t &world, const ParticleSnapsh
   /* We need to split particles here, since ExchangeSubHalos updates the particle information of
    * subhaloes based on the Particle IDs present in the Particle vector when it is called.*/
 #ifndef DM_ONLY
-  if(HBTConfig.ParticlesSplit)
+  if (HBTConfig.ParticlesSplit)
   {
-      UpdateSplitParticles(snapshot);
+    UpdateSplitParticles(snapshot);
   }
 #endif
 
@@ -225,10 +225,10 @@ void SubhaloSnapshot_t::UpdateParticles(MpiWorker_t &world, const ParticleSnapsh
  * to the respective Particle vector */
 void SubhaloSnapshot_t::UpdateSplitParticles(const ParticleSnapshot_t &snapshot)
 {
-  for(std::size_t sub_number = 0; sub_number < Subhalos.size(); ++sub_number)
+  for (std::size_t sub_number = 0; sub_number < Subhalos.size(); ++sub_number)
   {
-    for(std::size_t particle_number = 0; particle_number < Subhalos[sub_number].Particles.size(); ++particle_number)
-    { 
+    for (std::size_t particle_number = 0; particle_number < Subhalos[sub_number].Particles.size(); ++particle_number)
+    {
       if (snapshot.ParticleSplitMap.count(Subhalos[sub_number].Particles[particle_number].Id) == 1)
       {
         const HBTInt new_id = snapshot.ParticleSplitMap.at(Subhalos[sub_number].Particles[particle_number].Id);
@@ -237,7 +237,7 @@ void SubhaloSnapshot_t::UpdateSplitParticles(const ParticleSnapshot_t &snapshot)
         new_particle.Id = new_id;
 
         Subhalos[sub_number].Particles.push_back(new_particle);
-      } 
+      }
     }
   }
 }

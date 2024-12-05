@@ -164,7 +164,7 @@ void Parameter_t::ParseConfigFile(const char *param_file)
   PhysicalConst::H0 = 100. * (1. / VelInKmS) / (1. / LengthInMpch);
 
   /* Make particles split by default in swift (only relevant for hydro runs) */
-  if((SnapshotFormat == "swiftsim") & (ParticlesSplit == -1))
+  if ((SnapshotFormat == "swiftsim") & (ParticlesSplit == -1))
     ParticlesSplit = 1;
   else
     ParticlesSplit = 0;
@@ -428,7 +428,7 @@ void Parameter_t::DumpParameters()
   DumpPar(BoundMassPrecision);
   DumpPar(SourceSubRelaxFactor);
   DumpPar(RefineMostBoundParticle);
-  if(RefineMostBoundParticle)
+  if (RefineMostBoundParticle)
     DumpPar(BoundFractionCenterRefinement);
   DumpPar(MaxSampleSizeOfPotentialEstimate);
 

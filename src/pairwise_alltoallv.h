@@ -9,9 +9,9 @@
   Template parameter T should be an integer type large enough to store the largest
   count on any MPI rank.
 */
-template<typename T>
-int Pairwise_Alltoallv(const void *sendbuf, const T *sendcounts, const T *sdispls, MPI_Datatype sendtype,
-                       void *recvbuf, const T *recvcounts, const T *rdispls, MPI_Datatype recvtype, MPI_Comm comm,
+template <typename T>
+int Pairwise_Alltoallv(const void *sendbuf, const T *sendcounts, const T *sdispls, MPI_Datatype sendtype, void *recvbuf,
+                       const T *recvcounts, const T *rdispls, MPI_Datatype recvtype, MPI_Comm comm,
                        const size_t max_send_size = (1 << 30))
 {
 
@@ -78,14 +78,14 @@ int Pairwise_Alltoallv(const void *sendbuf, const T *sendcounts, const T *sdispl
 /*
   This version accepts vector arguments. Recvbuf must already be large enough for the result.
 */
-template<typename T, typename U, typename V>
-int Pairwise_Alltoallv(const std::vector<U> &sendbuf, const std::vector<T> &sendcounts, const std::vector<T> &sdispls, MPI_Datatype sendtype,
-                       std::vector<V> &recvbuf, const std::vector<T> &recvcounts, const std::vector<T> &rdispls, MPI_Datatype recvtype,
-                       MPI_Comm comm, const size_t max_send_size = (1 << 30))
+template <typename T, typename U, typename V>
+int Pairwise_Alltoallv(const std::vector<U> &sendbuf, const std::vector<T> &sendcounts, const std::vector<T> &sdispls,
+                       MPI_Datatype sendtype, std::vector<V> &recvbuf, const std::vector<T> &recvcounts,
+                       const std::vector<T> &rdispls, MPI_Datatype recvtype, MPI_Comm comm,
+                       const size_t max_send_size = (1 << 30))
 {
-  return Pairwise_Alltoallv(sendbuf.data(), sendcounts.data(), sdispls.data(), sendtype,
-                            recvbuf.data(), recvcounts.data(), rdispls.data(), recvtype,
-                            comm, max_send_size);
+  return Pairwise_Alltoallv(sendbuf.data(), sendcounts.data(), sdispls.data(), sendtype, recvbuf.data(),
+                            recvcounts.data(), rdispls.data(), recvtype, comm, max_send_size);
 }
 
 /*

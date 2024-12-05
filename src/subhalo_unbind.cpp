@@ -290,7 +290,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     GetCorePhaseSpaceProperties();
 
     /* No bound particles, hence zero binding energies will be saved */
-    if(HBTConfig.SaveBoundParticleBindingEnergies)
+    if (HBTConfig.SaveBoundParticleBindingEnergies)
       ParticleBindingEnergies.clear();
 
     return;
@@ -451,16 +451,17 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         // update particle list
         sort(Elist.begin(), Elist.begin() + Nbound, CompEnergy); // sort the self-bound part
 
-        /* We need to refine the most bound particle, as subsampling large subhaloes will lead to 
+        /* We need to refine the most bound particle, as subsampling large subhaloes will lead to
          * incorrect ordering of binding energies. Hence, the most bound particle before this step
          * may not be the true most bound particle. */
         if (RefineMostBoundParticle && Nbound > MaxSampleSize)
         {
           /* If the number of bound particles is large, the number of particles used in this step scales with Nbound.
            * Using too few particles without this scaling would not result in a better centering. This is because it
-           * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be 
+           * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be
            * extremely sensitive to the randomness used during unbinding. */
-          HBTInt SampleSizeCenterRefinement = max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
+          HBTInt SampleSizeCenterRefinement =
+            max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
 
           RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
         }
@@ -497,14 +498,13 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   GetCorePhaseSpaceProperties();
 
   /* Store the binding energy information to save later */
-  if(HBTConfig.SaveBoundParticleBindingEnergies)
+  if (HBTConfig.SaveBoundParticleBindingEnergies)
   {
     ParticleBindingEnergies.resize(Nbound);
 #pragma omp parallel for if (Nbound > 100)
     for (HBTInt i = 0; i < Nbound; i++)
       ParticleBindingEnergies[i] = Elist[i].E;
   }
-
 }
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 {
