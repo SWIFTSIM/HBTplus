@@ -1,7 +1,8 @@
 #include <cstdio>
 #include <iostream>
 #include <omp.h>
-using namespace std;
+#include <thread>
+#include <chrono>
 
 int main()
 {
@@ -10,8 +11,10 @@ int main()
   {
     int ithread = omp_get_thread_num();
     printf("Thread %d: i=%d\n", ithread, i);
+
     if (1 == ithread)
-      sleep(2);
+      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
 // #pragma omp barrier
 #pragma omp for // this will start to create tasks
     for (int j = 0; j < i; j++)

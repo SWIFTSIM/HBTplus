@@ -30,6 +30,11 @@ foreach(TEST_NAME
     test_build_pos_vel
     test_argsort
     test_sort_by_hash
+    previous_test_ompfirstprivate
+    previous_test_ompfor
+    previous_test_ompnest
+    previous_test_omptask
+    previous_test_ompvector
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
