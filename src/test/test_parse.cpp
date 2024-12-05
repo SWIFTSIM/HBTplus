@@ -5,7 +5,6 @@ using namespace std;
 #include <omp.h>
 #include <string>
 
-#include "../boost_mpi.h"
 #include "../config_parser.h"
 #include "../datatypes.h"
 #include "../mymath.h"

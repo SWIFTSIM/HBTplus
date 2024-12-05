@@ -1,5 +1,4 @@
 using namespace std;
-#include "../boost_mpi.h"
 #include <iostream>
 #include <string>
 
