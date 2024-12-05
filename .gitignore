@@ -7,4 +7,4 @@ cmake_install.cmake
 testing/build/
 testing/test_output/
 openmpi-5.0.3-hdf5-1.12.3-env
-*build*
+*build*/
