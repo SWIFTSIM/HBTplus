@@ -30,11 +30,6 @@ foreach(TEST_NAME
     test_build_pos_vel
     test_argsort
     test_sort_by_hash
-    previous_test_ompfirstprivate
-    previous_test_ompfor
-    previous_test_ompnest
-    previous_test_omptask
-    previous_test_ompvector
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
@@ -57,6 +52,8 @@ foreach(TEST_NAME
     test_locate_ids_random
     test_mergertree
     test_myalltoall
+    previous_test_mpi_packed
+    previous_test_mpi_reduce
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
