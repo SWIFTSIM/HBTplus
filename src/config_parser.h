@@ -75,10 +75,11 @@ public:
   bool RefineMostBoundParticle; // whether to further improve mostbound particle accuracy in case a
                                 // MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but
                                 // leads to more accuracy mostbound particle
-  float BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be refined */
+  float BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be
+                                          refined */
 
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
-  int ParticlesSplit; /* Whether baryonic particles are able to split. Relevant to swift simulations */
+  int ParticlesSplit;        /* Whether baryonic particles are able to split. Relevant to swift simulations */
 
   /*derived parameters; do not require user input*/
   HBTReal TreeNodeOpenAngleSquare;
@@ -135,7 +136,7 @@ public:
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
 
-    /* The value is negative to indicate whether the parameter has been set in the. If not, 
+    /* The value is negative to indicate whether the parameter has been set in the. If not,
      * we will default to a value of 1 if this is a swift HYDRO run. This way we reminder the
      * user to pre-process snapshots (toolbox/swiftsim/generate_splitting_information.py) */
     ParticlesSplit = -1;

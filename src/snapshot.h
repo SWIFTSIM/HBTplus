@@ -219,7 +219,7 @@ public:
 
   void Load(MpiWorker_t &world, int snapshot_index, bool fill_particle_hash = true);
   void Clear();
-  
+
   /* For use when including particles that split. */
 #ifndef DM_ONLY
   std::unordered_map<HBTInt, HBTInt> ParticleSplitMap;

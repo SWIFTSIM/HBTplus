@@ -169,9 +169,9 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
   Header.NullGroupId = (HBTInt)NullGroupId;
 
   /* Load the units used in the snapshot */
-  Header.MassInMsunh  = (mass_cgs / solar_mass_cgs) * Header.h;
+  Header.MassInMsunh = (mass_cgs / solar_mass_cgs) * Header.h;
   Header.LengthInMpch = (length_cgs / (1.0e6 * parsec_cgs)) * Header.h;
-  Header.VelInKmS     = (length_cgs / time_cgs) / km_cgs;
+  Header.VelInKmS = (length_cgs / time_cgs) / km_cgs;
 
   /*
      Read per-type header entries
@@ -359,8 +359,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
         // Convert units and store the particle velocities
         for (hsize_t i = 0; i < count; i += 1)
           for (int j = 0; j < 3; j += 1)
-            ParticlesToRead[offset + i].PhysicalVelocity[j] =
-              v[i][j] * pow(Header.ScaleFactor, aexp);
+            ParticlesToRead[offset + i].PhysicalVelocity[j] = v[i][j] * pow(Header.ScaleFactor, aexp);
       }
     }
 
@@ -395,7 +394,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
         vector<HBTReal> m(count);
         ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset + read_offset, count);
         for (hsize_t i = 0; i < count; i += 1)
-          ParticlesToRead[offset + i].Mass = m[i] *  pow(Header.ScaleFactor, aexp);
+          ParticlesToRead[offset + i].Mass = m[i] * pow(Header.ScaleFactor, aexp);
       }
     }
 
@@ -550,8 +549,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile
           // Convert units and store the particle velocities
           for (hsize_t i = 0; i < count; i += 1)
             for (int j = 0; j < 3; j += 1)
-              ParticlesToRead[offset + i].PhysicalVelocity[j] =
-                v[i][j] * pow(Header.ScaleFactor, aexp);
+              ParticlesToRead[offset + i].PhysicalVelocity[j] = v[i][j] * pow(Header.ScaleFactor, aexp);
         }
       }
 
@@ -605,8 +603,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile
           vector<HBTReal> u(count);
           ReadPartialDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data(), offset + read_offset, count);
           for (hsize_t i = 0; i < count; i += 1)
-            ParticlesToRead[offset + i].InternalEnergy =
-              u[i] * pow(Header.ScaleFactor, aexp);
+            ParticlesToRead[offset + i].InternalEnergy = u[i] * pow(Header.ScaleFactor, aexp);
         }
       }
 #endif
@@ -684,7 +681,8 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
 
   /* Update the gravitational constant and H based on the units loaded from
    * swift */
-  PhysicalConst::G = 43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
+  PhysicalConst::G =
+    43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
 
   /* This will be used to determine which particles are hostless when
@@ -1035,7 +1033,8 @@ bool IsSwiftSimGroup(const string &GroupFileFormat)
 void SwiftSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename)
 {
   stringstream formatter;
-  formatter << HBTConfig.SubhaloPath << "/ParticleSplits/particle_splits_" << setw(4) << setfill('0') << snapshotId << ".hdf5";
+  formatter << HBTConfig.SubhaloPath << "/ParticleSplits/particle_splits_" << setw(4) << setfill('0') << snapshotId
+            << ".hdf5";
   filename = formatter.str();
 }
 
@@ -1073,7 +1072,7 @@ void SwiftSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &Pa
   /* Get the number of splits that occured in this snapshot. Exit if none have occured */
   HBTInt NumberSplits = 0;
   ReadAttribute(file, "SplitInformation", "NumberSplits", H5T_HBTInt, &NumberSplits);
-  if(NumberSplits == 0)
+  if (NumberSplits == 0)
     return;
 
   /* Open the HDF5 group */
@@ -1089,7 +1088,7 @@ void SwiftSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &Pa
   ReadDataset(split_data, "Values", H5T_HBTInt, SplitValues.data());
 
   /* Populate the map */
-  for(std::size_t i = 0; i < NumberSplits; ++i)
+  for (std::size_t i = 0; i < NumberSplits; ++i)
     ParticleSplitMap[SplitKeys[i]] = SplitValues[i];
 
   /* Close the file */
