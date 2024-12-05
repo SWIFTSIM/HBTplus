@@ -209,4 +209,4 @@ mark_as_advanced(CLEAR CMAKE_CXX_FLAGS_RELEASE)
 mark_as_advanced(CLEAR CMAKE_CXX_FLAGS_DEBUG)
 
 # Add unit tests directory
-add_subdirectory(./unit_tests)
+add_subdirectory(./test/unit_test)
