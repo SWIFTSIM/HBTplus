@@ -52,8 +52,6 @@ foreach(TEST_NAME
     test_locate_ids_random
     test_mergertree
     test_myalltoall
-    previous_test_mpi_packed
-    previous_test_mpi_reduce
   )
 
   add_executable(${TEST_NAME} ${TEST_NAME}.cpp $<TARGET_OBJECTS:hbtfuncs> $<TARGET_OBJECTS:testfuncs>)
