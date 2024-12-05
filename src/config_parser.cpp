@@ -50,7 +50,6 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(MinNumTracerPartOfSub);
   TrySetPar(NumTracerHostFinding);
   TrySetPar(NumTracersForDescendants);
-  TrySetPar(ParticleIdRankStyle);
   TrySetPar(ParticleIdNeedHash);
   TrySetPar(SnapshotIdUnsigned);
   TrySetPar(SaveBoundParticleProperties);
@@ -169,9 +168,6 @@ void Parameter_t::ParseConfigFile(const char *param_file)
     ParticlesSplit = 1;
   else
     ParticlesSplit = 0;
-
-  if (ParticleIdRankStyle)
-    ParticleIdNeedHash = false;
 
   BoxHalf = BoxSize / 2.;
   TreeNodeResolution = SofteningHalo * 0.1;
@@ -292,7 +288,6 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncReal(VelInKmS);
   _SyncBool(PeriodicBoundaryOn);
   _SyncBool(SnapshotHasIdBlock);
-  _SyncBool(ParticleIdRankStyle);
   _SyncBool(ParticleIdNeedHash);
   _SyncBool(SnapshotIdUnsigned);
   _SyncBool(SaveBoundParticleProperties);
@@ -399,7 +394,6 @@ void Parameter_t::DumpParameters()
   DumpHeader("Particle Properties");
   DumpComment(GroupLoadedFullParticle);
   DumpPar(SnapshotHasIdBlock);
-  DumpPar(ParticleIdRankStyle);
   DumpPar(ParticleIdNeedHash);
   DumpPar(SnapshotIdUnsigned);
   DumpPar(SaveBoundParticleProperties);
