@@ -15,6 +15,7 @@
 #include "../halo.h"
 #include "gadget_group_io.h"
 #include "apostle_io.h"
+#include "swiftsim_io.h"
 
 void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 {
@@ -26,6 +27,8 @@ void HaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index)
 	GadgetGroup::Load(world, SnapshotId, Halos);
   else if(IsApostleGroup(GroupFileFormat))
 	ApostleReader_t().LoadGroups(world, SnapshotId, Halos);
+  else if(IsSwiftSimGroup(GroupFileFormat))
+	SwiftSimReader_t().LoadGroups(world, SnapshotId, Halos);
   else if(GroupFileFormat=="my_group_format")
   {/*extend your own group reader here, input SnapshotId and output filled Halo list, e.g.:
 	

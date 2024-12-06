@@ -43,7 +43,7 @@ int main(int argc, char **argv)
   
   subsnap.Load(world, snapshot_start-1, SubReaderDepth_t::SrcParticles);
   
-  Timer_t timer;
+  Timer_t global_timer;
   ofstream time_log;
   if(world.rank()==0)
   {
@@ -52,46 +52,48 @@ int main(int argc, char **argv)
   }
   for(int isnap=snapshot_start;isnap<=snapshot_end;isnap++)
   {
-	timer.Tick(world.Communicator);
+	global_timer.Tick("start", world.Communicator);
 	ParticleSnapshot_t partsnap;
 	partsnap.Load(world, isnap);
+	global_timer.Tick("read_snap", world.Communicator);
 	subsnap.SetSnapshotIndex(isnap);
 	HaloSnapshot_t halosnap;
 	halosnap.Load(world, isnap);
 	
-	timer.Tick(world.Communicator);
+	global_timer.Tick("read_halo",world.Communicator);
 // 	cout<<"updating halo particles...\n";
 	halosnap.UpdateParticles(world, partsnap);
-	timer.Tick(world.Communicator);
+	global_timer.Tick("update_halo",world.Communicator);
 // 	if(world.rank()==0) cout<<"updateing subsnap particles...\n";
 	subsnap.UpdateParticles(world, partsnap);
 	
-	timer.Tick(world.Communicator);
+	global_timer.Tick("update_subhalo",world.Communicator);
 	subsnap.AssignHosts(world, halosnap, partsnap);
+	global_timer.Tick("assign_hosts",world.Communicator);
 	subsnap.PrepareCentrals(world, halosnap);
 	
-	timer.Tick(world.Communicator);
+	global_timer.Tick("prepare_centrals",world.Communicator);
 	if(world.rank()==0) cout<<"unbinding...\n";
 	subsnap.RefineParticles();
 	
-	timer.Tick(world.Communicator);
+	global_timer.Tick("unbind",world.Communicator);
 	subsnap.MergeSubhalos();
 	
-	timer.Tick(world.Communicator);
+	global_timer.Tick("merge_subhalos",world.Communicator);
 	subsnap.UpdateTracks(world, halosnap);
 	
-	timer.Tick(world.Communicator);
+	global_timer.Tick("update_tracks",world.Communicator);
 	subsnap.Save(world);
 	
-	timer.Tick(world.Communicator);
+	global_timer.Tick("write_subhalos",world.Communicator);
 	if(world.rank()==0)
 	{
 	time_log<<isnap;
-	for(int i=1;i<timer.Size();i++)
-	  time_log<<"\t"<<timer.GetSeconds(i);
+	for(int i=1;i<global_timer.Size();i++)
+	  time_log<<"\t"<<global_timer.GetSeconds(i);
 	time_log<<endl;
 	}
-	timer.Reset();
+	global_timer.Reset();
   }
   
   MPI_Finalize();

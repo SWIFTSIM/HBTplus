@@ -34,6 +34,7 @@ public:
   vector <bool> IsSet;
   
   /*optional*/
+  string SnapshotDirBase;
   string SnapshotFormat;
   string GroupFileFormat;
   int MaxConcurrentIO;
@@ -63,7 +64,8 @@ public:
   HBTReal TreeAllocFactor;
   HBTReal TreeNodeOpenAngle;
   HBTInt TreeMinNumOfCells;
-  
+  HBTInt ParticleNullGroupId;
+
   HBTInt MaxSampleSizeOfPotentialEstimate;
   bool RefineMostboundParticle; //whether to further improve mostbound particle accuracy in case a MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but leads to more accuracy mostbound particle
   
@@ -76,6 +78,7 @@ public:
   
   Parameter_t(): IsSet(NumberOfCompulsaryConfigEntries, false),SnapshotIdList(), SnapshotNameList()
   {
+	SnapshotDirBase ="";
 	SnapshotFormat="gadget"; //see example config file for alternative formats
 	GroupFileFormat="gadget3_int";
 	MaxConcurrentIO=10;
