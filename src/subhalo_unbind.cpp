@@ -476,7 +476,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         Particles.swap(p);
 
         /* Update the most bound coordinate. Note that for resolved subhaloes,
-         * this is not necceserally a tracer particle. */
+         * this is not necessarily a tracer particle. */
         copyHBTxyz(ComovingMostBoundPosition, Particles[0].ComovingPosition);
         copyHBTxyz(PhysicalMostBoundVelocity, Particles[0].GetPhysicalVelocity());
         break;
