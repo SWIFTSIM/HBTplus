@@ -2,7 +2,7 @@
 
 # Retrieve helper functions, without having to define an __init__.py 
 import sys
-sys.path.append('../toolbox')
+sys.path.append('../../../toolbox')
 from helper_functions import read_source_particles, read_snapshot
 
 from mpi4py import MPI
@@ -24,7 +24,7 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
 
     Parameters
     ----------
-    basedir : str    
+    basedir : str
         Location of the HBT catalogues.
     hbt_nr : int
         Snapshot index to test.
@@ -40,10 +40,10 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
         Number of particles part of a FOF group that is different to the one
         assigned to the subhalo they are associated to. 
     """
-    
+
     if comm_rank == 0:
         print(f"Testing whether HBTplus subgroups are contained within their assigned FOF at snapshot index {hbt_nr}")
-        
+
     #===========================================================================
     # Load catalogues for snapshot N 
     #===========================================================================
@@ -72,7 +72,7 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
     # Find total number of resolved subhalos
     local_nr_subhalos_resolved = (subhalos_before['Nbound'] > 1).sum()
     total_nr_subhalos_resolved = comm.allreduce(local_nr_subhalos_resolved)
-    
+
     # Skip if we do not have any
     if(total_nr_subhalos_resolved == 0):
         if (comm_rank == 0):
@@ -100,16 +100,16 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
     particle_ids, data['Nsource'] = read_source_particles(filenames, local_nr_subhalos, nr_files)    
 
     #===========================================================================
-    # Readm particle data to obtain the FOF groups.
+    # Read particle data to obtain the FOF groups.
     #===========================================================================
 
     # Read the following outputs
     if comm_rank == 0:
         print()
         print(f"Reading particle information.")
-    
+
     particle_data = read_snapshot(snapshot_file, snap_nr, particle_ids, ('FOFGroupIDs',))
-    
+
     if comm_rank == 0:
         print(f"Done reading particle information.")
         print()
@@ -129,7 +129,7 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
 
         # Get particles in source
         subhalo_particle_fofs  = particle_data["FOFGroupIDs"][offset : offset + subhalo_length]
-        
+
         # Which fofs do they belong to?
         unique_fofs = np.unique(subhalo_particle_fofs)
 
@@ -140,14 +140,14 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
             local_incorrect_fof_count += 1
 
         offset += subhalo_length
-    
+
     #===========================================================================
     # Compare our results to what HBT says they should be
     #===========================================================================
 
     # Check across all ranks
     total_incorrect_fof_count = comm.allreduce(local_incorrect_fof_count)
-    
+
     # Get how many tests we did
     local_number_checks = (data['Nsource'] > 0).sum()
     total_number_checks = comm.allreduce(local_number_checks)
@@ -160,7 +160,7 @@ def check_interhost_subhaloes(basedir, hbt_nr, snap_nr, snapshot_file):
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
-    
+
     parser = MPIArgumentParser(comm, description="Check for the presence of particles not in the same FOF as the subhalo they are bound to.")
     parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")

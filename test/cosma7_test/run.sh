@@ -8,5 +8,5 @@ else
     rm -rf $OUTPUTDIR # Remove to prevent partially overwritting previous tests.
     bash compile.sh
     mkdir -p $OUTPUTDIR/logs
-    sbatch --export=OUTPUTDIR=$OUTPUTDIR --output $OUTPUTDIR/logs/output.out --error $OUTPUTDIR/logs/error.err submit_test.sh
+    sbatch --export=OUTPUTDIR=$OUTPUTDIR --output $OUTPUTDIR/logs/output.out --error $OUTPUTDIR/logs/error.err submit.sh
 fi
