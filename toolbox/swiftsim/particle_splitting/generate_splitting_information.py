@@ -88,14 +88,18 @@ def load_overflow_data(path_to_split_log_files):
         return None
 
     overflow_data = {}
-    for filename in os.listdir(path_to_split_log_files):
-        file_data = np.loadtxt(f'{path_to_split_log_files}/{filename}', dtype=np.int64)
+    i_chunk = 0
+    filename = f'{path_to_split_log_files}/splits_{i_chunk:04}.txt'
+    while os.path.exists(filename):
+        file_data = np.loadtxt(filename, dtype=np.int64)
         for row in file_data:
             _, new_prog_id, old_prog_id, count, tree = row
             overflow_data[(count, new_prog_id)] = {
                     'progenitor_id': old_prog_id,
                     'tree': tree,
                 }
+        i_chunk += 1
+        filename = f'{path_to_split_log_files}/splits_{i_chunk:04}.txt'
 
     return overflow_data
 

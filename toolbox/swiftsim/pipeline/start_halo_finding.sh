@@ -57,6 +57,7 @@ cp ./submission_scripts/submit_particle_splits.sh $HBT_FOLDER
 # Replace the current PWD in those submission scripts, so that they have the global path of the HBT
 sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_HBT.sh
 sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_particle_splits.sh
+sed -i "s@HBT_FOLDER@${HBT_FOLDER}@g" $HBT_FOLDER/submit_particle_splits.sh
 
 # We first generate the splitting of particles 
 JOB_ID_SPLITS=$(sbatch --parsable \
