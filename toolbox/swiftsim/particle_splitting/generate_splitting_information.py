@@ -74,14 +74,14 @@ def load_overflow_data(path_to_split_log_files):
 
     Parameters
     ----------
-    config_path : str
-        Path to the HBT configuration used to analyse a simulation.
+    path_to_split_log_files : str
+        Path to the directory containing overflow particle splitting data.
 
     Returns
     -------
     overflow_data : dict
         Dictionary indexed by (count, prog_id), where count was the split count
-        when the SplitTrees dataset was reset, and prog_id is the particle id that
+        when the SplitTrees dataset was reset, and prog_id is the particle ID that
         forms the root of the new split tree.
     '''
     if path_to_split_log_files is None:
@@ -216,7 +216,6 @@ def group_by_progenitor(split_data):
 
     return subarray_data 
 
-
 def get_corrected_split_trees(split_data, overflow_data):
     '''
     Uses the auxilary split.txt files output by SWIFT to reconstruct the full split
@@ -234,7 +233,7 @@ def get_corrected_split_trees(split_data, overflow_data):
     Returns
     -------
     progenitor_ids : arr
-        The root progenitor id of each particle
+        The root progenitor ID of each particle
     trees : arr
         The full split tree of each particle. This array is of dtype 'object' so that
         it can hold split trees of any size
@@ -258,7 +257,7 @@ def get_corrected_split_trees(split_data, overflow_data):
         # Loop over particles that overflowed
         for idx in np.where(split_data["counts"] > overflow_count)[0]:
             key = (overflow_count, progenitor_ids[idx])
-            # Set progenitor id to pre-overflow value
+            # Set progenitor ID to pre-overflow value
             progenitor_ids[idx] = overflow_data[key]["progenitor_id"]
             # Shift overflow splits
             trees[idx] = trees[idx] << tree_size
@@ -267,7 +266,6 @@ def get_corrected_split_trees(split_data, overflow_data):
         n_overflow -= 1
 
     return progenitor_ids, trees
-
 
 def update_overflow_split_trees(split_data, overflow_data=None):
     '''
@@ -309,7 +307,6 @@ def update_overflow_split_trees(split_data, overflow_data=None):
         split_data['progenitor_ids'] = progenitor_ids
 
     return split_data
-
 
 def get_splits_of_existing_tree(progenitor_particle_ids, progenitor_split_trees, progenitor_split_counts, descendant_particle_ids, descendant_split_trees):
     '''
@@ -537,8 +534,9 @@ def assign_task_based_on_id(ids):
 
 def gather_by_progenitor_id(data, overflow_data):
     """
-    It gathers all data concerning particles that share a progenitor ID in the
-    same MPI task
+    It gathers all data concerning particles that share a root progenitor ID
+    (for particles which overflow their split trees the root progenitor ID
+    is the progenitor ID before any overflows) in the same MPI task.
 
     Parameters
     ----------
@@ -687,8 +685,8 @@ def generate_split_file(path_to_config, snapshot_index, path_to_split_log_files)
 
     #==========================================================================
     # Correct trees which have overflowed the SplitTree field. Must be done
-    # after gathering since we set the dtype of the trees array as 'object'
-    # so that they can have arbitrary size
+    # after gathering since we set the dtype of the trees array as 'object' so
+    # that they can have arbitrary size, and MPI cannot pass 'object' arrays.
     #==========================================================================
 
     new_data = update_overflow_split_trees(new_data, overflow_data)
