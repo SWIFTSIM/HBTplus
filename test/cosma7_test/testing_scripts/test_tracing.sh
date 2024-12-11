@@ -1,5 +1,6 @@
 module purge
-module load gnu_comp/11.1.0 openmpi/4.1.1 python/3.10.1
+module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
+source ../../../toolbox/swiftsim/openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 
 # Example path for COLIBRE
 indir=/cosma8/data/dp004/dc-foro1/hbt_runs/groups_COLIBRE_L25N188
