@@ -14,7 +14,7 @@
 # sbatch --array=0-128 generate_splitting_information.sh
 #
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=4
 #SBATCH -p cosma8
 #SBATCH -A dp004
 #SBATCH --exclusive
@@ -31,6 +31,10 @@ source CURRENT_PWD/../openmpi-5.0.3-hdf5-1.12.3-env/bin/activate
 echo "Using configuration present in ${1}" 
 
 # Run the code
-mpirun -- python3 -u -m mpi4py CURRENT_PWD/../particle_splitting/generate_splitting_information.py "${1}" ${SLURM_ARRAY_TASK_ID}
+mpirun -- python3 -u -m mpi4py \
+  CURRENT_PWD/../particle_splitting/generate_splitting_information.py \
+  "${1}" \
+  ${SLURM_ARRAY_TASK_ID} \
+  BASE_FOLDER/splits
 
 echo "Job complete!"
