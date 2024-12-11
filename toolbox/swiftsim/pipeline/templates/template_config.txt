@@ -24,3 +24,6 @@ VelInKmS -1
 MinNumPartOfSub 20
 TracerParticleTypes 1 4
 MinNumTracerPartOfSub 10
+
+[Additional information]
+SaveBoundParticleBindingEnergies 1

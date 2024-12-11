@@ -195,7 +195,7 @@ void ParticleExchanger_t<Halo_T>::QueryParticles()
   HBTInt order = 0;
   for (auto &&p : RoamParticles)
     p.Order = order++;
-  
+
   /* Sort by particle ID */
   sort(RoamParticles.begin(), RoamParticles.end(), ParticleExchangeComp::CompParticleId);
 

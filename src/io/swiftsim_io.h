@@ -55,7 +55,7 @@ class SwiftSimReader_t
   void GetFileName(int ifile, string &filename);
   void SetSnapshot(int snapshotId);
   void GetParticleCountInFile(hid_t file, int np[]);
-  
+
   /* To load information about particle splits */
   void GetParticleSplitFileName(int snapshotId, string &filename);
   hid_t OpenParticleSplitFile(int snapshotId);

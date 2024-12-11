@@ -386,12 +386,6 @@ void GadgetReader_t::ReadGadgetFile(int iFile)
 
   if (HBTConfig.SnapshotHasIdBlock)
   {
-    if (HBTConfig.ParticleIdRankStyle)
-    {
-      cout << "Error: ParticleIdRankStyle not implemented yet\n";
-      exit(1);
-    }
-
     if (IntTypeSize == 4)
     {
       if (HBTConfig.SnapshotIdUnsigned) // unsigned int

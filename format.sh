@@ -22,7 +22,7 @@ source ./clang_formatting_env/bin/activate
 
 # Formatting command
 clang=${CLANG_FORMAT_CMD:="clang-format"}
-cmd="$clang -style=file $(git ls-files '*.c' '*.h' '*.cpp')"
+cmd="$clang -style=file $(git ls-files '*.c' '*.h' '*.cpp' '*.tpp')"
 
 # Test if `clang-format` works
 command -v $clang > /dev/null

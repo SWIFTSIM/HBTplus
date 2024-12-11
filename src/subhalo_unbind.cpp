@@ -288,9 +288,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
     Nbound = Particles.size();
     CountParticles();
     GetCorePhaseSpaceProperties();
-#ifdef SAVE_BINDING_ENERGY
-    Energies.clear();
-#endif
+
+    /* No bound particles, hence zero binding energies will be saved */
+    if (HBTConfig.SaveBoundParticleBindingEnergies)
+      ParticleBindingEnergies.clear();
+
     return;
   }
 
@@ -300,7 +302,7 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
   assert(Particles.size() >= 1);
 
   HBTInt MaxSampleSize = HBTConfig.MaxSampleSizeOfPotentialEstimate;
-  bool RefineMostboundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostboundParticle);
+  bool RefineMostBoundParticle = (MaxSampleSize > 0 && HBTConfig.RefineMostBoundParticle);
   HBTReal BoundMassPrecision = HBTConfig.BoundMassPrecision;
 
   /* Need to initialise here, since orphans/disrupted objects do not call the
@@ -308,6 +310,10 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
    * prevents accessing entries beyond the corresponding particle array. */
   SetTracerIndex(0);
 
+  /* Variables that store the centre of mass reference frame, which is used during
+   * unbinding. In the first iteration, the centre of mass reference frame is that
+   * of all particles associated to the subhalo in the previous output. Subsequent
+   * iterations use the centre of mass frame of particles identified as bound. */
   HBTxyz OldRefPos, OldRefVel;
   auto &RefPos = ComovingAveragePosition;
   auto &RefVel = PhysicalAverageVelocity;
@@ -343,7 +349,6 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         HBTxyz OldVel;
         epoch.RelativeVelocity(x, v, OldRefPos, OldRefVel, OldVel);
         Elist[i].E += VecDot(OldVel, RefVelDiff) + dK - tree.EvaluatePotential(x, 0);
-        ;
       }
       Nlast = Nbound;
     }
@@ -429,8 +434,11 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
           copyHBTxyz(OldRefVel, RefVel);
         }
       }
+
+      /* The centre of mass frame is updated here */
       Mbound = ESnap.AverageVelocity(PhysicalAverageVelocity, Nbound);
       ESnap.AveragePosition(ComovingAveragePosition, Nbound);
+
       if (Nbound >= Nlast * BoundMassPrecision) // converge
       {
         if (!IsAlive())
@@ -442,8 +450,22 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
         }
         // update particle list
         sort(Elist.begin(), Elist.begin() + Nbound, CompEnergy); // sort the self-bound part
-        if (RefineMostboundParticle && Nbound > MaxSampleSize)   // refine most-bound particle, not necessary usually..
-          RefineBindingEnergyOrder(ESnap, MaxSampleSize, tree, RefPos, RefVel);
+
+        /* We need to refine the most bound particle, as subsampling large subhaloes will lead to
+         * incorrect ordering of binding energies. Hence, the most bound particle before this step
+         * may not be the true most bound particle. */
+        if (RefineMostBoundParticle && Nbound > MaxSampleSize)
+        {
+          /* If the number of bound particles is large, the number of particles used in this step scales with Nbound.
+           * Using too few particles without this scaling would not result in a better centering. This is because it
+           * would be limited to the (MaxSampleSize / Nbound) fraction of most bound particles, whose ranking can be
+           * extremely sensitive to the randomness used during unbinding. */
+          HBTInt SampleSizeCenterRefinement =
+            max(MaxSampleSize, static_cast<HBTInt>(HBTConfig.BoundFractionCenterRefinement * Nbound));
+
+          RefineBindingEnergyOrder(ESnap, SampleSizeCenterRefinement, tree, RefPos, RefVel);
+        }
+
         // todo: optimize this with in-place permutation, to avoid mem alloc and copying.
         ParticleList_t p(Particles.size());
         for (HBTInt i = 0; i < Particles.size(); i++)
@@ -475,12 +497,14 @@ void Subhalo_t::Unbind(const Snapshot_t &epoch)
 
   GetCorePhaseSpaceProperties();
 
-#ifdef SAVE_BINDING_ENERGY
-  Energies.resize(Nbound);
-#pragma omp paralle for if (Nbound > 100)
-  for (HBTInt i = 0; i < Nbound; i++)
-    Energies[i] = Elist[i].E;
-#endif
+  /* Store the binding energy information to save later */
+  if (HBTConfig.SaveBoundParticleBindingEnergies)
+  {
+    ParticleBindingEnergies.resize(Nbound);
+#pragma omp parallel for if (Nbound > 100)
+    for (HBTInt i = 0; i < Nbound; i++)
+      ParticleBindingEnergies[i] = Elist[i].E;
+  }
 }
 void Subhalo_t::RecursiveUnbind(SubhaloList_t &Subhalos, const Snapshot_t &snap)
 {

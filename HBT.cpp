@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
   subsnap.Load(world, snapshot_start - 1, SubReaderDepth_t::SrcParticles);
 
-  if(world.rank() == 0)
+  if (world.rank() == 0)
     cout << endl;
 
   /* Create the timing log file */
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
     /* Output timing information */
     if (world.rank() == 0)
     {
-       // To report on how long the snapshot took to analyse in total
+      // To report on how long the snapshot took to analyse in total
       double total_time = 0;
 
       time_log << isnap << " \t" << subsnap.GetSnapshotId();
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
       }
       time_log << endl;
 
-      cout << "SnapshotIndex " << isnap  << " done. It took " << total_time << " seconds." << endl;
+      cout << "SnapshotIndex " << isnap << " done. It took " << total_time << " seconds." << endl;
       cout << endl;
     }
     global_timer.Reset();
