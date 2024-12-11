@@ -10,8 +10,8 @@ then
 fi
 
 # Base folder of the simulation
-BASE_PATH=${1}
-HBT_FOLDER=$BASE_PATH/HBTplus
+BASE_FOLDER="${1}"
+HBT_FOLDER=$BASE_FOLDER/HBTplus
 
 # There should be an HBT folder already there. If not, a path may be wrong.
 if [ ! -d $HBT_FOLDER ]; then
@@ -31,7 +31,7 @@ chmod ug+rw $PARTICLE_SPLITS_LOGS_DIR
 mkdir "${HBT_FOLDER}/ParticleSplits"
 
 # Copy over the configuration file with the correct paths
-(cd ./templates/;. generate_config.sh $BASE_PATH $HBT_FOLDER)
+(cd ./templates/;. generate_config.sh $BASE_FOLDER $HBT_FOLDER)
 
 # Get the path where the snapshots are being saved. Should have been saved at the
 # configuration file.
@@ -57,7 +57,7 @@ cp ./submission_scripts/submit_particle_splits.sh $HBT_FOLDER
 # Replace the current PWD in those submission scripts, so that they have the global path of the HBT
 sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_HBT.sh
 sed -i "s@CURRENT_PWD@${PWD}@g" $HBT_FOLDER/submit_particle_splits.sh
-sed -i "s@HBT_FOLDER@${HBT_FOLDER}@g" $HBT_FOLDER/submit_particle_splits.sh
+sed -i "s@BASE_FOLDER@${BASE_FOLDER}@g" $HBT_FOLDER/submit_particle_splits.sh
 
 # We first generate the splitting of particles 
 JOB_ID_SPLITS=$(sbatch --parsable \

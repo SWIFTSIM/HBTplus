@@ -35,6 +35,6 @@ mpirun -- python3 -u -m mpi4py \
   CURRENT_PWD/../particle_splitting/generate_splitting_information.py \
   "${1}" \
   ${SLURM_ARRAY_TASK_ID} \
-  HBT_FOLDER/splits
+  BASE_FOLDER/splits
 
 echo "Job complete!"
