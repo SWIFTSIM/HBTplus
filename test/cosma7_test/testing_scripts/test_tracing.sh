@@ -1,3 +1,4 @@
+# Load the modules. We assume we have created the relevant virtual enviroment in COSMA
 module purge
 module load gnu_comp/13.1.0 hdf5/1.12.2 openmpi/4.1.4
 source ../../../toolbox/swiftsim/openmpi-5.0.3-hdf5-1.12.3-env/bin/activate

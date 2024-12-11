@@ -1,9 +1,5 @@
 #!/bin/env python
 
-# Retrieve helper functions, without having to define an __init__.py 
-import sys
-sys.path.append('../toolbox')
-
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()

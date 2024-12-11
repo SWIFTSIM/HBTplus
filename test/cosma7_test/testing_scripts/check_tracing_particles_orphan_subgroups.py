@@ -2,7 +2,7 @@
 
 # Retrieve helper functions, without having to define an __init__.py 
 import sys
-sys.path.append('../toolbox')
+sys.path.append('../../../toolbox')
 from helper_functions import read_snapshot
 
 from mpi4py import MPI
