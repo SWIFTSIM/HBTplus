@@ -13,7 +13,6 @@ import virgo.mpi.parallel_hdf5 as phdf5
 import virgo.mpi.parallel_sort as psort
 
 def check_consistency_orphan_tracers(basedir, hbt_nr):
-
     """
     This checks if the particle IDs of orphan tracers remain the same between 
     snapshots. The check excludes orphans that formed through mergers, since
@@ -22,12 +21,12 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
 
     Parameters
     ----------
-    basedir : str    
+    basedir : str
         Location of the HBT catalogues.
     hbt_nr : int
         Snapshot index to take as a reference. Values will be checked against 
         snapshot index + 1.
-    
+
     Returns
     -------
     total_number_disagreements : int
@@ -41,7 +40,7 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
     #===========================================================================
     # Load catalogues for snapshot N 
     #===========================================================================
-    
+
     # Make a format string for the filenames
     filenames = f"{basedir}/{hbt_nr:03d}/SubSnap_{hbt_nr:03d}" + ".{file_nr}.hdf5"
     if comm_rank ==0:
@@ -65,7 +64,7 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
     #===========================================================================
     # Load catalogues for snapshot N + 1
     #===========================================================================
-    
+
     # Make a format string for the filenames
     filenames = f"{basedir}/{hbt_nr + 1:03d}/SubSnap_{hbt_nr + 1:03d}" + ".{file_nr}.hdf5"
     if comm_rank == 0:
@@ -113,7 +112,7 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
     local_number_disagreements = np.sum((mostboundids != data_after['MostBoundParticleId']))
     total_number_disagreements = comm.allreduce(local_number_disagreements)
     total_number_checks = comm.allreduce(len(data_after['MostBoundParticleId']))
-    
+
     if comm_rank == 0:
         print(f"{total_number_disagreements} out of {total_number_checks} orphans disagree.")                
 
@@ -122,7 +121,7 @@ def check_consistency_orphan_tracers(basedir, hbt_nr):
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
-    
+
     parser = MPIArgumentParser(comm, description="Check that the tracer ID of orphans does not change across consecutive outputs.")
     parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
