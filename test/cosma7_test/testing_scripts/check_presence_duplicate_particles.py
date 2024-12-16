@@ -2,7 +2,7 @@
 
 # Retrieve helper functions, without having to define an __init__.py 
 import sys
-sys.path.append('../toolbox')
+sys.path.append('../../../toolbox')
 from helper_functions import read_particles
 
 from mpi4py import MPI
@@ -18,11 +18,11 @@ import virgo.mpi.gather_array as gather_array
 def check_duplicate_particles(basedir, hbt_nr):
     """
     This function checks for the presence of particles that are bound to more
-    than one HBT subgroup. 
+    than one HBT subgroup.
 
     Parameters
     ----------
-    basedir: str    
+    basedir: str
         Location of the HBT catalogues.
     hbt_nr : int
         Snapshot index to test.
@@ -41,7 +41,7 @@ def check_duplicate_particles(basedir, hbt_nr):
     #===========================================================================
     # Load catalogues for snapshot N 
     #===========================================================================
-    
+
     # Make a format string for the filenames
     filenames = f"{basedir}/{hbt_nr:03d}/SubSnap_{hbt_nr:03d}" + ".{file_nr}.hdf5"
     if comm_rank ==0:
@@ -55,7 +55,7 @@ def check_duplicate_particles(basedir, hbt_nr):
 
     # Assign TrackIds to the particles
     particle_trackids = np.repeat(subhalos["TrackId"], subhalos["Nbound"])
-        
+
     # Convert array of structs to dict of arrays
     data = {}
     for name in field_names:
@@ -87,7 +87,7 @@ def check_duplicate_particles(basedir, hbt_nr):
 
     # Element number to retrieve (the next particle id)
     element_to_retrieve = np.arange(nr_local_particles) + nr_particles_vector[:comm_rank].sum() + 1
-    
+
     # We manually overwrite the last entry in the array of the last rank, as it 
     # will otherwise try to access out of bounds.
     if(comm_rank == comm_size - 1):
@@ -109,14 +109,16 @@ def check_duplicate_particles(basedir, hbt_nr):
 
     # Retrieve the subhalos that share particles, if any
     if total_number_duplicates != 0:
+
         # Number of unique subhalos that share particles
         local_subhaloes_with_shared_particles = np.hstack([particle_trackids[next_particle_ids == particle_ids],next_particle_track_ids[next_particle_ids == particle_ids]])
         subhalos_with_shared_particles = gather_array.allgather_array(local_subhaloes_with_shared_particles, comm=comm)
         unique_subhaloes = np.unique(subhalos_with_shared_particles)
         number_unique_subhalos_with_duplicate_particles = len(unique_subhaloes)
+
         # Number of subhalos we tested 
         global_number_subhalos = comm.allreduce(local_nr_subhalos)
-        
+
         if comm_rank == 0:
            print(f"{number_unique_subhalos_with_duplicate_particles} unique subhalos out of {global_number_subhalos} share particles.")
     else:
@@ -127,7 +129,7 @@ def check_duplicate_particles(basedir, hbt_nr):
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
-    
+
     parser = MPIArgumentParser(comm, description="Check for the presence of particles bound to more than one subgroup.")
     parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")

@@ -1,9 +1,5 @@
 #!/bin/env python
 
-# Retrieve helper functions, without having to define an __init__.py 
-import sys
-sys.path.append('../toolbox')
-
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
 comm_rank = comm.Get_rank()
@@ -23,9 +19,9 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
 
     Parameters
     ----------
-    basedir_1 : str    
+    basedir_1 : str
         Location of the HBT catalogue to take as reference.
-    basedir_2 : str    
+    basedir_2 : str
         Location of the HBT catalogue to compare against.
     hbt_nr : int
         Snapshot index of the output to use as a comparison
@@ -40,11 +36,11 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
     # Read in the input subhalos
     if comm_rank == 0:
         print(f"Testing orphan MostBoundParticleId consistency across two HBT+ catalogues")
-        
+
     #===========================================================================
     # Load catalogues for snapshot N 
     #===========================================================================
-    
+
     # Make a format string for the filenames
     filenames = f"{basedir_1}/{hbt_nr:03d}/SubSnap_{hbt_nr:03d}" + ".{file_nr}.hdf5"
     if comm_rank ==0:
@@ -60,7 +56,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
     #===========================================================================
     # Load catalogues for snapshot N + 1
     #===========================================================================
-    
+
     # Make a format string for the filenames
     filenames = f"{basedir_2}/{hbt_nr:03d}/SubSnap_{hbt_nr:03d}" + ".{file_nr}.hdf5"
     if comm_rank == 0:
@@ -68,7 +64,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
 
     mf = phdf5.MultiFile(filenames, file_nr_dataset="NumberOfFiles", comm=comm)
     subhalos_2 = mf.read("Subhalos")
-    
+
     if comm_rank == 0:
         print("DONE")
 
@@ -81,7 +77,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
 
     # We only allow zero particle orphans
     assert(comm.allreduce((subhalos_1['Nbound'] == 1).sum()) == 0 )
-    
+
     # Find total number of subhalos
     local_nr_subhalos_1 = len(subhalos_1)
     total_nr_subhalos_1 = comm.allreduce(local_nr_subhalos_1)
@@ -94,7 +90,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
 
     # Get the particle Ids from the field of the most bound particle field.
     orphan_ids_1 = np.array([sub['MostBoundParticleId'] for sub in subhalos_1])
-    
+
     # We should have as many particles as orphan subhalos.
     nr_local_particles = len(orphan_ids_1)
     assert nr_local_particles == local_nr_subhalos_1
@@ -104,7 +100,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
     for name in field_names:
         data_1[name] = np.ascontiguousarray(subhalos_1[name])
     del subhalos_1
-    
+
     #===========================================================================
     # Keep orphans of catalogue N, and retrieve which particle IDs should 
     # be retrieved.
@@ -114,7 +110,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
 
     # We only allow zero particle orphans
     assert(comm.allreduce((subhalos_2['Nbound'] == 1).sum()) == 0 )
-    
+
     # Find total number of subhalos
     local_nr_subhalos_2 = len(subhalos_2)
     total_nr_subhalos_2 = comm.allreduce(local_nr_subhalos_2)
@@ -127,7 +123,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
 
     # Get the particle Ids from the field of the most bound particle field.
     orphan_ids_2 = np.array([sub['MostBoundParticleId'] for sub in subhalos_2])
-    
+
     # We should have as many particles as orphan subhalos.
     nr_local_particles = len(orphan_ids_2)
     assert nr_local_particles == local_nr_subhalos_2
@@ -137,7 +133,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
     for name in field_names:
         data_2[name] = np.ascontiguousarray(subhalos_2[name])
     del subhalos_2
-    
+
     #===========================================================================
     # Do we have the same number of orphans in both?
     #===========================================================================
@@ -150,9 +146,9 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
     # Check in individual ranks
     local_number_disagreements = np.sum(orphan_ids_1 != orphan_ids_2)
 
-    # # Check across all ranks across
+    # Check across all ranks
     total_number_mismatches = comm.allreduce(local_number_disagreements)
-    
+
     if comm_rank == 0:
         print(f"Reference catalogue has {total_nr_subhalos_1} orphans; other catalogue has {total_nr_subhalos_2}.")
         print(f"A total of {total_number_mismatches} orphans disagree about their MostBoundId.")
@@ -162,7 +158,7 @@ def compare_orphan_tracing_ids(basedir_1, basedir_2, hbt_nr):
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
-    
+
     parser = MPIArgumentParser(comm, description="Compare orphan tracer IDs between two HBTplus catalogues.")
     parser.add_argument("basedir_1", type=str, help="Location of one of the HBTplus outputs")
     parser.add_argument("basedir_2", type=str, help="Location of other HBTplus output to compare against")

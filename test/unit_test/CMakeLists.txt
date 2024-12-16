@@ -1,4 +1,4 @@
-include_directories(../src/)
+include_directories(../../src/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 # Helper functions available for use in all unit tests

@@ -22,13 +22,13 @@ echo
 
 # Need to do this so that the catalogue parameter file reflects the absolute path.
 # Otherwise the HBT reader will not work.
-sed -i "/.*SubhaloPath.*/c\SubhaloPath ${OUTPUTDIR}" config_test.txt
+sed -i "/.*SubhaloPath.*/c\SubhaloPath ${OUTPUTDIR}" config.txt
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-mpirun $RP_OPENMPI_ARGS -np $SLURM_NTASKS ./build/HBT config_test.txt
+mpirun $RP_OPENMPI_ARGS -np $SLURM_NTASKS ./build/HBT config.txt
 
 # Revert to the original value of the path
-sed -i '/.*SubhaloPath.*/c\SubhaloPath' config_test.txt
+sed -i '/.*SubhaloPath.*/c\SubhaloPath' config.txt
 
 echo
 echo "Job complete."

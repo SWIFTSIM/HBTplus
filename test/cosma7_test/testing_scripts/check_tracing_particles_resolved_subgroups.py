@@ -2,7 +2,7 @@
 
 # Retrieve helper functions, without having to define an __init__.py 
 import sys
-sys.path.append('../toolbox')
+sys.path.append('../../../toolbox')
 from helper_functions import score_function, read_particles, read_snapshot
 
 from mpi4py import MPI
@@ -17,11 +17,11 @@ import virgo.mpi.parallel_sort as psort
 def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
     """
     This function checks if the internally assigned host FOF of resolved 
-    subhaloes is done correctly. 
+    subhaloes is done correctly.
 
     Parameters
     ----------
-    basedir : str    
+    basedir : str
         Location of the HBT catalogues.
     hbt_nr : int
         Snapshot index to select the ids used for tracing. Their FOF hosts will
@@ -42,7 +42,7 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
     # Read in the input subhalos
     if comm_rank == 0:
         print(f"Testing HBTplus tracing of resolved subgroups between snapshot index {hbt_nr} and {hbt_nr + 1}")
-        
+
     #===========================================================================
     # Load catalogues for snapshot N 
     #===========================================================================
@@ -72,7 +72,7 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
     # Find total number of resolved subhalos
     local_nr_subhalos_resolved = (subhalos_before['Nbound'] > 1).sum()
     total_nr_subhalos_resolved = comm.allreduce(local_nr_subhalos_resolved)
-    
+
     # Skip if we do not have any
     if(total_nr_subhalos_resolved == 0):
         if (comm_rank == 0):
@@ -95,7 +95,7 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
     #===========================================================================
     # Load catalogues for snapshot N + 1
     #===========================================================================
-    
+
     # Make a format string for the filenames
     filenames = f"{basedir}/{hbt_nr + 1:03d}/SubSnap_{hbt_nr + 1:03d}" + ".{file_nr}.hdf5"
     if comm_rank == 0:
@@ -103,7 +103,7 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
 
     mf = phdf5.MultiFile(filenames, file_nr_dataset="NumberOfFiles", comm=comm)
     subhalos_after = mf.read("Subhalos")
-    
+
     # Convert array of structs to dict of arrays
     data_next_snapshot = {}
     for name in field_names:
@@ -131,16 +131,16 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
     if comm_rank == 0:
         print()
         print(f"Reading particle information.")
-    
+
     particle_data = read_snapshot(snapshot_file, snap_nr + 1, particle_ids,("FOFGroupIDs",))
-    
+
     if comm_rank == 0:
         print(f"Done reading particle information.")
         print()
 
     fof_decisions = {}
     offset = 0
-    
+
     if comm_rank == 0:
         print ("Scoring FoF hosts", end=' --- ')
 
@@ -156,10 +156,10 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
         # Get previously bound particles
         subhalo_particle_fofs  = particle_data["FOFGroupIDs"][offset : offset + subhalo_length]
         subhalo_particle_types = particle_data["Type"][offset : offset + subhalo_length]
-                
+
         # Get tracer types only
         subhalo_particle_fofs = subhalo_particle_fofs[(subhalo_particle_types == 1) | (subhalo_particle_types == 4)]
-        
+
         # We should at least have 10 tracer particles.
         assert(len(subhalo_particle_fofs >= 10))
 
@@ -169,7 +169,7 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
         fof_decisions[subhalo_trackid] = score_function(subhalo_particle_fofs)
 
         offset += subhalo_length
-    
+
     if comm_rank == 0:
         print("DONE")
 
@@ -188,7 +188,7 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
     # Check across all ranks across
     total_number_mistracks = comm.allreduce(local_number_disagreements)
     total_number_checks = comm.allreduce(len(fof_decisions))
-    
+
     if comm_rank == 0:
         print(f"{total_number_mistracks} out of {total_number_checks} disagree.")
 
@@ -197,7 +197,7 @@ def check_tracing_resolved_subgroups(basedir, hbt_nr, snap_nr, snapshot_file):
 if __name__ == "__main__":
 
     from virgo.mpi.util import MPIArgumentParser
-    
+
     parser = MPIArgumentParser(comm, description="Check correctness of the FOF hosts assigned to resolved subgroups by HBT")
     parser.add_argument("basedir", type=str, help="Location of the HBTplus output")
     parser.add_argument("hbt_nr", type=int, help="Index of the HBT output to process")
