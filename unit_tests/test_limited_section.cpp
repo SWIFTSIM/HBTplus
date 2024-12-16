@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <time.h>
 #include <errno.h>
+#include <iostream>
 
 #include "task_limited_section.h"
 #include "verify.h"

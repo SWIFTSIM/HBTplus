@@ -1,5 +1,6 @@
 #include <mpi.h>
 #include <assert.h>
+#include <cstdlib>
 
 /*
   Class to limit the number of MPI ranks executing a piece of code
