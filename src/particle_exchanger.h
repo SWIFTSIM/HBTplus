@@ -191,17 +191,21 @@ void ParticleExchanger_t<Halo_T>::SendParticles()
 template <class Halo_T>
 void ParticleExchanger_t<Halo_T>::QueryParticles()
 {
+  /* Store original ordering before sorting by particle ID. */
   HBTInt order = 0;
   for (auto &&p : RoamParticles)
     p.Order = order++;
+
+  /* Sort by particle ID */
   sort(RoamParticles.begin(), RoamParticles.end(), ParticleExchangeComp::CompParticleId);
 
+  /* Retrieve the particle information */
   snap.GetIndices(RoamParticles);
   for (auto &&p : RoamParticles)
   {
     if (p.Id != SpecialConst::NullParticleId)
     {
-      p = snap.Particles[p.Id]; // query the particle property; may need to spawn particles due to star formation here.
+      p = snap.Particles[p.Id]; // Query the particle property; may need to spawn particles due to star formation here.
     }
     else
     {
@@ -218,6 +222,7 @@ void ParticleExchanger_t<Halo_T>::QueryParticles()
     }
   }
 
+  /* Return to original order */
   ParticleExchangeComp::RestoreParticleOrder(RoamParticles);
 }
 

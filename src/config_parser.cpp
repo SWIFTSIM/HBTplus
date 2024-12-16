@@ -50,10 +50,10 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(MinNumTracerPartOfSub);
   TrySetPar(NumTracerHostFinding);
   TrySetPar(NumTracersForDescendants);
-  TrySetPar(ParticleIdRankStyle);
   TrySetPar(ParticleIdNeedHash);
   TrySetPar(SnapshotIdUnsigned);
-  TrySetPar(SaveSubParticleProperties);
+  TrySetPar(SaveBoundParticleProperties);
+  TrySetPar(SaveBoundParticleBindingEnergies);
   TrySetPar(MergeTrappedSubhalos);
   TrySetPar(MajorProgenitorMassRatio);
   TrySetPar(BoundMassPrecision);
@@ -64,7 +64,8 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(TreeNodeOpenAngle);
   TrySetPar(TreeMinNumOfCells);
   TrySetPar(MaxSampleSizeOfPotentialEstimate);
-  TrySetPar(RefineMostboundParticle);
+  TrySetPar(RefineMostBoundParticle);
+  TrySetPar(BoundFractionCenterRefinement);
   TrySetPar(MassInMsunh);
   TrySetPar(LengthInMpch);
   TrySetPar(VelInKmS);
@@ -72,6 +73,7 @@ bool Parameter_t::TrySingleValueParameter(string ParameterName, stringstream &Pa
   TrySetPar(SnapshotHasIdBlock);
   TrySetPar(MaxPhysicalSofteningHalo);
   TrySetPar(TracerParticleBitMask);
+  TrySetPar(ParticlesSplit);
 
 #undef TrySetPar
 
@@ -161,8 +163,11 @@ void Parameter_t::ParseConfigFile(const char *param_file)
   PhysicalConst::G = 43.0071 * (MassInMsunh / 1e10) / VelInKmS / VelInKmS / LengthInMpch;
   PhysicalConst::H0 = 100. * (1. / VelInKmS) / (1. / LengthInMpch);
 
-  if (ParticleIdRankStyle)
-    ParticleIdNeedHash = false;
+  /* Make particles split by default in swift (only relevant for hydro runs) */
+  if ((SnapshotFormat == "swiftsim") & (ParticlesSplit == -1))
+    ParticlesSplit = 1;
+  else
+    ParticlesSplit = 0;
 
   BoxHalf = BoxSize / 2.;
   TreeNodeResolution = SofteningHalo * 0.1;
@@ -283,10 +288,10 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncReal(VelInKmS);
   _SyncBool(PeriodicBoundaryOn);
   _SyncBool(SnapshotHasIdBlock);
-  _SyncBool(ParticleIdRankStyle);
   _SyncBool(ParticleIdNeedHash);
   _SyncBool(SnapshotIdUnsigned);
-  _SyncBool(SaveSubParticleProperties);
+  _SyncBool(SaveBoundParticleProperties);
+  _SyncBool(SaveBoundParticleBindingEnergies);
   _SyncBool(MergeTrappedSubhalos);
   _SyncVec(SnapshotIdList, MPI_INT);
   world.SyncVectorString(SnapshotNameList, root);
@@ -305,7 +310,8 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
   _SyncAtom(TreeMinNumOfCells, MPI_HBT_INT);
 
   _SyncAtom(MaxSampleSizeOfPotentialEstimate, MPI_HBT_INT);
-  _SyncBool(RefineMostboundParticle);
+  _SyncBool(RefineMostBoundParticle);
+  _SyncReal(BoundFractionCenterRefinement);
 
   _SyncReal(TreeNodeOpenAngleSquare);
   _SyncReal(TreeNodeResolution);
@@ -317,6 +323,7 @@ void Parameter_t::BroadCast(MpiWorker_t &world, int root)
 
   _SyncBool(GroupLoadedFullParticle);
   _SyncAtom(TracerParticleBitMask, MPI_INT);
+  _SyncAtom(ParticlesSplit, MPI_INT);
   //---------------end sync params-------------------------//
 
   _SyncReal(PhysicalConst::G);
@@ -387,10 +394,13 @@ void Parameter_t::DumpParameters()
   DumpHeader("Particle Properties");
   DumpComment(GroupLoadedFullParticle);
   DumpPar(SnapshotHasIdBlock);
-  DumpPar(ParticleIdRankStyle);
   DumpPar(ParticleIdNeedHash);
   DumpPar(SnapshotIdUnsigned);
-  DumpPar(SaveSubParticleProperties);
+  DumpPar(SaveBoundParticleProperties);
+  DumpPar(SaveBoundParticleBindingEnergies);
+#ifndef DM_ONLY
+  DumpPar(ParticlesSplit);
+#endif
   if (GroupParticleIdMask)
     version_file << "GroupParticleIdMask " << hex << GroupParticleIdMask << dec << endl;
 
@@ -417,7 +427,9 @@ void Parameter_t::DumpParameters()
   DumpPar(SubCoreSizeFactor);
   DumpPar(BoundMassPrecision);
   DumpPar(SourceSubRelaxFactor);
-  DumpPar(RefineMostboundParticle);
+  DumpPar(RefineMostBoundParticle);
+  if (RefineMostBoundParticle)
+    DumpPar(BoundFractionCenterRefinement);
   DumpPar(MaxSampleSizeOfPotentialEstimate);
 
   DumpHeader("Subhalo Tracking");

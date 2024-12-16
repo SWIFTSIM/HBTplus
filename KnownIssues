@@ -1,3 +1,6 @@
+NOTE: These issues were all discovered in the previous version of HBT+, so it is unclear whether they are still present
+in the current version.
+
 - There could be significant performance degradation on an overloaded system. (OpenMP version)
 
   This is probably caused by the compiler (g++) failing to optimize the code well in case of system overload. Have to rely on resource allocation from a batch job scheduler (e.g., LSF). Or make sure the cpus are not overloaded if you are running on an interactive machine.

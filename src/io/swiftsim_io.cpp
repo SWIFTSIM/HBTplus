@@ -49,10 +49,9 @@ void create_SwiftSimHeader_MPI_type(MPI_Datatype &dtype)
   RegisterAttr(h, MPI_DOUBLE, 1) RegisterAttr(mass, MPI_DOUBLE, TypeMax);
   RegisterAttr(npart[0], MPI_INT, TypeMax);
   RegisterAttr(npartTotal[0], MPI_HBT_INT, TypeMax);
-  RegisterAttr(length_conversion, MPI_DOUBLE, 1);
-  RegisterAttr(mass_conversion, MPI_DOUBLE, 1);
-  RegisterAttr(velocity_conversion, MPI_DOUBLE, 1);
-  RegisterAttr(energy_conversion, MPI_DOUBLE, 1);
+  RegisterAttr(MassInMsunh, MPI_DOUBLE, 1);
+  RegisterAttr(LengthInMpch, MPI_DOUBLE, 1);
+  RegisterAttr(VelInKmS, MPI_DOUBLE, 1);
   RegisterAttr(NullGroupId, MPI_HBT_INT, 1);
   RegisterAttr(DM_comoving_softening, MPI_DOUBLE, 1);
   RegisterAttr(DM_maximum_physical_softening, MPI_DOUBLE, 1);
@@ -170,14 +169,10 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
     throw std::overflow_error("The precision of HBTInt is insufficient to hold the value of NullGroupId");
   Header.NullGroupId = (HBTInt)NullGroupId;
 
-  /* Compute conversion from SWIFT's unit system to HBT's unit system (apart from any a factors) */
-  Header.length_conversion = (length_cgs / (1.0e6 * parsec_cgs)) * Header.h / HBTConfig.LengthInMpch;
-  Header.mass_conversion = (mass_cgs / solar_mass_cgs) * Header.h / HBTConfig.MassInMsunh;
-  Header.velocity_conversion = (length_cgs / time_cgs) / km_cgs / HBTConfig.VelInKmS;
-  Header.energy_conversion = Header.velocity_conversion * Header.velocity_conversion;
-
-  /* Convert box size to HBT units */
-  Header.BoxSize *= Header.length_conversion;
+  /* Load the units used in the snapshot */
+  Header.MassInMsunh = (mass_cgs / solar_mass_cgs) * Header.h;
+  Header.LengthInMpch = (length_cgs / (1.0e6 * parsec_cgs)) * Header.h;
+  Header.VelInKmS = (length_cgs / time_cgs) / km_cgs;
 
   /*
      Read per-type header entries
@@ -200,21 +195,21 @@ void SwiftSimReader_t::ReadHeader(int ifile, SwiftSimHeader_t &header)
       Header.npartTotal[i] = 0;
   }
 
-  /* Read softening values used by SWIFT and convert them to internal HBT units */
+  /* Read softening values used by SWIFT */
   // NOTE: Whenever reading "Parameters", we need to use a string to load into.
 
   // DM softening
   ReadAttribute(file, "Parameters", "Gravity:comoving_DM_softening", buf);
-  Header.DM_comoving_softening = stof(buf) * Header.length_conversion;
+  Header.DM_comoving_softening = stof(buf);
   ReadAttribute(file, "Parameters", "Gravity:max_physical_DM_softening", buf);
-  Header.DM_maximum_physical_softening = stof(buf) * Header.length_conversion;
+  Header.DM_maximum_physical_softening = stof(buf);
 
 #ifndef DM_ONLY
   // Baryonic softening
   ReadAttribute(file, "Parameters", "Gravity:comoving_baryon_softening", buf);
-  Header.baryon_comoving_softening = stof(buf) * Header.length_conversion;
+  Header.baryon_comoving_softening = stof(buf);
   ReadAttribute(file, "Parameters", "Gravity:max_physical_baryon_softening", buf);
-  Header.baryon_maximum_physical_softening = stof(buf) * Header.length_conversion;
+  Header.baryon_maximum_physical_softening = stof(buf);
 #endif
 
   H5Fclose(file);
@@ -334,10 +329,6 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
           count = chunksize;
         vector<HBTxyz> x(count);
         ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset + read_offset, count);
-        // Convert to HBT units
-        for (hsize_t i = 0; i < count; i++)
-          for (int j = 0; j < 3; j++)
-            x[i][j] *= Header.length_conversion;
         // Box wrap if necessary
         if (HBTConfig.PeriodicBoundaryOn)
         {
@@ -369,8 +360,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
         // Convert units and store the particle velocities
         for (hsize_t i = 0; i < count; i += 1)
           for (int j = 0; j < 3; j += 1)
-            ParticlesToRead[offset + i].PhysicalVelocity[j] =
-              v[i][j] * Header.velocity_conversion * pow(Header.ScaleFactor, aexp);
+            ParticlesToRead[offset + i].PhysicalVelocity[j] = v[i][j] * pow(Header.ScaleFactor, aexp);
       }
     }
 
@@ -405,7 +395,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
         vector<HBTReal> m(count);
         ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset + read_offset, count);
         for (hsize_t i = 0; i < count; i += 1)
-          ParticlesToRead[offset + i].Mass = m[i] * Header.mass_conversion * pow(Header.ScaleFactor, aexp);
+          ParticlesToRead[offset + i].Mass = m[i] * pow(Header.ScaleFactor, aexp);
       }
     }
 
@@ -424,7 +414,7 @@ void SwiftSimReader_t::ReadSnapshot(int ifile, Particle_t *ParticlesInFile, HBTI
         vector<HBTReal> u(count);
         ReadPartialDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data(), offset + read_offset, count);
         for (hsize_t i = 0; i < count; i += 1)
-          ParticlesToRead[offset + i].InternalEnergy = u[i] * Header.energy_conversion * pow(Header.ScaleFactor, aexp);
+          ParticlesToRead[offset + i].InternalEnergy = u[i] * pow(Header.ScaleFactor, aexp);
       }
     }
     else
@@ -529,10 +519,6 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile
             count = chunksize;
           vector<HBTxyz> x(count);
           ReadPartialDataset(particle_data, "Coordinates", H5T_HBTReal, x.data(), offset + read_offset, count);
-          // Convert to HBT units
-          for (hsize_t i = 0; i < count; i++)
-            for (int j = 0; j < 3; j++)
-              x[i][j] *= Header.length_conversion;
           // Box wrap if necessary
           if (HBTConfig.PeriodicBoundaryOn)
           {
@@ -564,8 +550,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile
           // Convert units and store the particle velocities
           for (hsize_t i = 0; i < count; i += 1)
             for (int j = 0; j < 3; j += 1)
-              ParticlesToRead[offset + i].PhysicalVelocity[j] =
-                v[i][j] * Header.velocity_conversion * pow(Header.ScaleFactor, aexp);
+              ParticlesToRead[offset + i].PhysicalVelocity[j] = v[i][j] * pow(Header.ScaleFactor, aexp);
         }
       }
 
@@ -600,7 +585,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile
           vector<HBTReal> m(count);
           ReadPartialDataset(particle_data, name.c_str(), H5T_HBTReal, m.data(), offset + read_offset, count);
           for (hsize_t i = 0; i < count; i += 1)
-            ParticlesToRead[offset + i].Mass = m[i] * Header.mass_conversion * pow(Header.ScaleFactor, aexp);
+            ParticlesToRead[offset + i].Mass = m[i] * pow(Header.ScaleFactor, aexp);
         }
       }
 
@@ -619,8 +604,7 @@ void SwiftSimReader_t::ReadGroupParticles(int ifile, Particle_t *ParticlesInFile
           vector<HBTReal> u(count);
           ReadPartialDataset(particle_data, "InternalEnergies", H5T_HBTReal, u.data(), offset + read_offset, count);
           for (hsize_t i = 0; i < count; i += 1)
-            ParticlesToRead[offset + i].InternalEnergy =
-              u[i] * Header.energy_conversion * pow(Header.ScaleFactor, aexp);
+            ParticlesToRead[offset + i].InternalEnergy = u[i] * pow(Header.ScaleFactor, aexp);
         }
       }
 #endif
@@ -663,16 +647,8 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   {
     ReadHeader(0, Header);
     CompileFileOffsets(Header.NumberOfFiles);
-
-    /* Report conversion factors used to go from SWIFT to HBT units */
-    cout << "Conversion factor from SWIFT length units to " << HBTConfig.LengthInMpch
-         << " Mpc/h = " << Header.length_conversion << endl;
-    cout << "Conversion factor from SWIFT mass units to " << HBTConfig.MassInMsunh
-         << " Msun/h = " << Header.mass_conversion << endl;
-    cout << "Conversion factor from SWIFT velocity units to " << HBTConfig.VelInKmS
-         << " km/s = " << Header.velocity_conversion << endl;
-    cout << "Null group ID is " << Header.NullGroupId << endl;
   }
+
   MPI_Bcast(&Header, 1, MPI_SwiftSimHeader_t, root, world.Communicator);
   world.SyncContainer(np_file, MPI_HBT_INT, root);
   world.SyncContainer(offset_file, MPI_HBT_INT, root);
@@ -690,6 +666,17 @@ void SwiftSimReader_t::LoadSnapshot(MpiWorker_t &world, int snapshotId, vector<P
   /* Update the tree parameters based on the softenings */
   HBTConfig.TreeNodeResolution = HBTConfig.SofteningHalo * 0.1;
   HBTConfig.TreeNodeResolutionHalf = HBTConfig.TreeNodeResolution / 2.;
+
+  /* Update the units */
+  HBTConfig.MassInMsunh = Header.MassInMsunh;
+  HBTConfig.LengthInMpch = Header.LengthInMpch;
+  HBTConfig.VelInKmS = Header.VelInKmS;
+
+  /* Update the gravitational constant and H based on the units loaded from
+   * swift */
+  PhysicalConst::G =
+    43.0071 * (HBTConfig.MassInMsunh / 1e10) / HBTConfig.VelInKmS / HBTConfig.VelInKmS / HBTConfig.LengthInMpch;
+  PhysicalConst::H0 = 100. * (1. / HBTConfig.VelInKmS) / (1. / HBTConfig.LengthInMpch);
 
   /* This will be used to determine which particles are hostless when
    * constraining subhaloes to their assigned hosts. */
@@ -1005,4 +992,71 @@ void SwiftSimReader_t::LoadGroups(MpiWorker_t &world, int snapshotId, vector<Hal
 bool IsSwiftSimGroup(const string &GroupFileFormat)
 {
   return GroupFileFormat.substr(0, 8) == "swiftsim";
+}
+
+/* Returns the path to the file containing information about which
+ * particles have split between the current and previous output. */
+void SwiftSimReader_t::GetParticleSplitFileName(int snapshotId, string &filename)
+{
+  stringstream formatter;
+  formatter << HBTConfig.SubhaloPath << "/ParticleSplits/particle_splits_" << setw(4) << setfill('0') << snapshotId
+            << ".hdf5";
+  filename = formatter.str();
+}
+
+/* Opens the file containing the split particle information */
+hid_t SwiftSimReader_t::OpenParticleSplitFile(int snapshotId)
+{
+  H5E_auto_t err_func;
+  char *err_data;
+  H5Eget_auto(H5E_DEFAULT, &err_func, (void **)&err_data);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+
+  /* Open file with split information, which is contained in a single HDF5 file. */
+  string filename;
+  GetParticleSplitFileName(snapshotId, filename);
+  hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+  if (file < 0)
+  {
+    cout << "Failed to open file (see toolbox/swiftsim on how to generate): " << filename << "\n";
+    MPI_Abort(MPI_COMM_WORLD, 1);
+  }
+
+  H5Eset_auto(H5E_DEFAULT, err_func, (void *)err_data);
+
+  return file;
+}
+
+/* This function loads the keys and values of the particle IDs that have been involved
+ * in splits. */
+void SwiftSimReader_t::ReadParticleSplits(std::unordered_map<HBTInt, HBTInt> &ParticleSplitMap, int snapshotId)
+{
+  /* Open the file. */
+  hid_t file = OpenParticleSplitFile(snapshotId);
+
+  /* Get the number of splits that occured in this snapshot. Exit if none have occured */
+  HBTInt NumberSplits = 0;
+  ReadAttribute(file, "SplitInformation", "NumberSplits", H5T_HBTInt, &NumberSplits);
+  if (NumberSplits == 0)
+    return;
+
+  /* Open the HDF5 group */
+  stringstream grpname;
+  grpname << "SplitInformation";
+  hid_t split_data = H5Gopen2(file, grpname.str().c_str(), H5P_DEFAULT);
+
+  /* Load keys and values */
+  vector<HBTInt> SplitKeys(NumberSplits);
+  ReadDataset(split_data, "Keys", H5T_HBTInt, SplitKeys.data());
+
+  vector<HBTInt> SplitValues(NumberSplits);
+  ReadDataset(split_data, "Values", H5T_HBTInt, SplitValues.data());
+
+  /* Populate the map */
+  for (std::size_t i = 0; i < NumberSplits; ++i)
+    ParticleSplitMap[SplitKeys[i]] = SplitValues[i];
+
+  /* Close the file */
+  H5Fclose(file);
 }

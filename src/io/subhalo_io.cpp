@@ -177,14 +177,15 @@ void SubhaloSnapshot_t::Load(MpiWorker_t &world, int snapshot_index, const SubRe
   // On restarting we don't know the particle types because only Ids were saved to the SrcSnap.
   // Set Type=TypeMax to avoid tripping assert due to tracer not found when updating particles.
   // Don't need to do this in DM only runs.
-  for(auto &sub : Subhalos) {
-    for(auto &part : sub.Particles) {
+  for (auto &sub : Subhalos)
+  {
+    for (auto &part : sub.Particles)
+    {
       part.Type = TypeMax;
     }
   }
 #endif
 #endif
-  
 }
 void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
 { // Read iFile for current snapshot.
@@ -263,25 +264,6 @@ void SubhaloSnapshot_t::ReadFile(int iFile, const SubReaderDepth_t depth)
       ReclaimVlenData(dset, H5T_HBTIntArr, vl.data());
       H5Dclose(dset);
     }
-
-#ifdef SAVE_BINDING_ENERGY
-    { // read binding energies
-      dset = H5Dopen2(file, "BindingEnergies", H5P_DEFAULT);
-      GetDatasetDims(dset, dims);
-      assert(dims[0] == nsubhalos);
-      hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
-      H5Dread(dset, H5T_FloatArr, H5S_ALL, H5S_ALL, H5P_DEFAULT, vl.data());
-      for (HBTInt i = 0; i < nsubhalos; i++)
-      {
-        NewSubhalos[i].Energies.resize(vl[i].len);
-        memcpy(NewSubhalos[i].Energies.data(), vl[i].p, sizeof(float) * vl[i].len);
-      }
-      ReclaimVlenData(dset, H5T_FloatArr, vl.data());
-      H5Tclose(H5T_FloatArr);
-      H5Dclose(dset);
-    }
-#endif
-
     H5Tclose(H5T_HBTIntArr);
   }
 
@@ -391,7 +373,7 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
   vector<hvl_t> vl(Subhalos.size());
   hsize_t dim_sub[] = {Subhalos.size()};
   // now write the particle list for each subhalo
-  if (HBTConfig.SaveSubParticleProperties)
+  if (HBTConfig.SaveBoundParticleProperties)
   {
     hid_t H5T_ParticleInMem = H5Tcreate(H5T_COMPOUND, sizeof(Particle_t));
     hsize_t dim_xyz = 3;
@@ -442,16 +424,20 @@ void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsA
   H5LTset_attribute_string(file, "/NestedSubhalos", "Comment",
                            "List of the TrackIds of first-level sub-subhaloes within each subhalo.");
 
-#ifdef SAVE_BINDING_ENERGY
-  hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
-  for (HBTInt i = 0; i < vl.size(); i++)
+  if (HBTConfig.SaveBoundParticleBindingEnergies)
   {
-    vl[i].len = Subhalos[i].Nbound;
-    vl[i].p = Subhalos[i].Energies.data();
+    hid_t H5T_FloatArr = H5Tvlen_create(H5T_NATIVE_FLOAT);
+    for (HBTInt i = 0; i < vl.size(); i++)
+    {
+      vl[i].len = Subhalos[i].Nbound;
+      vl[i].p = Subhalos[i].ParticleBindingEnergies.data();
+
+      /* Clear the vector to reduce memory footprint and because it will be overwritten anyway. */
+      Subhalos[i].ParticleBindingEnergies.clear();
+    }
+    writeHDFmatrix(file, vl.data(), "BindingEnergies", ndim, dim_sub, H5T_FloatArr);
+    H5Tclose(H5T_FloatArr);
   }
-  writeHDFmatrix(file, vl.data(), "BindingEnergies", ndim, dim_sub, H5T_FloatArr);
-  H5Tclose(H5T_FloatArr);
-#endif
 
   vector<HBTInt> IdBuffer;
   {

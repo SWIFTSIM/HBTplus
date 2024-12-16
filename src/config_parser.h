@@ -51,11 +51,10 @@ public:
   bool PeriodicBoundaryOn;
   bool SnapshotHasIdBlock; // set to False when your snapshot is sorted according to particle id so that no id block is
                            // present.
-  //   bool SnapshotNoMassBlock;//to disable checking for presence of mass block, even if some header.mass==0.
-  bool ParticleIdRankStyle; // performance related; load particleId as id ranks. not implemented yet.
-  bool ParticleIdNeedHash;  // performance related; disabled if ParticleIdRankStyle is true
+  bool ParticleIdNeedHash;
   bool SnapshotIdUnsigned;
-  bool SaveSubParticleProperties;
+  bool SaveBoundParticleProperties;
+  bool SaveBoundParticleBindingEnergies;
   bool MergeTrappedSubhalos; // whether to MergeTrappedSubhalos, see code paper for more info.
   vector<int> SnapshotIdList;
   vector<int> TracerParticleTypes;
@@ -73,11 +72,14 @@ public:
   HBTInt ParticleNullGroupId;
 
   HBTInt MaxSampleSizeOfPotentialEstimate;
-  bool RefineMostboundParticle; // whether to further improve mostbound particle accuracy in case a
+  bool RefineMostBoundParticle; // whether to further improve mostbound particle accuracy in case a
                                 // MaxSampleSizeOfPotentialEstimate is used. this introduces some overhead if true, but
                                 // leads to more accuracy mostbound particle
+  float BoundFractionCenterRefinement; /* The fraction of most bound particles to use if the most bound particle will be
+                                          refined */
 
   int TracerParticleBitMask; /* Bitmask used to identify which particle type can be used as tracer */
+  int ParticlesSplit;        /* Whether baryonic particles are able to split. Relevant to swift simulations */
 
   /*derived parameters; do not require user input*/
   HBTReal TreeNodeOpenAngleSquare;
@@ -103,10 +105,10 @@ public:
     VelInKmS = 1.;
     PeriodicBoundaryOn = true;
     SnapshotHasIdBlock = true;
-    ParticleIdRankStyle = false; // to be removed
     ParticleIdNeedHash = true;
     SnapshotIdUnsigned = false;
-    SaveSubParticleProperties = false;
+    SaveBoundParticleProperties = false;
+    SaveBoundParticleBindingEnergies = false;
 #ifdef NO_STRIPPING
     MergeTrappedSubhalos = false;
 #else
@@ -121,7 +123,8 @@ public:
     TreeNodeOpenAngle = 0.45;
     TreeMinNumOfCells = 10;
     MaxSampleSizeOfPotentialEstimate = 1000; // set to 0 to disable sampling
-    RefineMostboundParticle = true;
+    RefineMostBoundParticle = true;
+    BoundFractionCenterRefinement = 0.1; /* Default values chosen based on tests */
     GroupLoadedFullParticle = false;
     MaxPhysicalSofteningHalo = -1; // Indicates no max. physical softening is used.
 
@@ -132,6 +135,11 @@ public:
     TracerParticleBitMask = 0;
     for (int i : TracerParticleTypes)
       TracerParticleBitMask += 1 << i;
+
+    /* The value is negative to indicate whether the parameter has been set in the. If not,
+     * we will default to a value of 1 if this is a swift HYDRO run. This way we reminder the
+     * user to pre-process snapshots (toolbox/swiftsim/generate_splitting_information.py) */
+    ParticlesSplit = -1;
   }
   void ReadSnapshotNameList();
   void ParseConfigFile(const char *param_file);

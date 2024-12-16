@@ -199,8 +199,18 @@ void SubhaloSnapshot_t::BuildMPIDataType()
   MPI_Type_create_resized(MPI_HBT_SubhaloShell_t, (MPI_Aint)0, extent, &MPI_HBT_SubhaloShell_t);
   MPI_Type_commit(&MPI_HBT_SubhaloShell_t);
 }
+
 void SubhaloSnapshot_t::UpdateParticles(MpiWorker_t &world, const ParticleSnapshot_t &snapshot)
 {
+  /* We need to split particles here, since ExchangeSubHalos updates the particle information of
+   * subhaloes based on the Particle IDs present in the Particle vector when it is called.*/
+#ifndef DM_ONLY
+  if (HBTConfig.ParticlesSplit)
+  {
+    UpdateSplitParticles(snapshot);
+  }
+#endif
+
   Cosmology = snapshot.Cosmology;
   SubhaloList_t LocalSubhalos;
   ExchangeSubHalos(world, Subhalos, LocalSubhalos, MPI_HBT_SubhaloShell_t, snapshot);
@@ -209,33 +219,29 @@ void SubhaloSnapshot_t::UpdateParticles(MpiWorker_t &world, const ParticleSnapsh
   for (HBTInt i = 0; i < Subhalos.size(); i++)
     Subhalos[i].CountParticles();
 }
-/*
-void SubhaloSnapshot_t::ParticleIdToIndex(const ParticleSnapshot_t& snapshot)
-{//also bind to snapshot
-#pragma omp single
-  SnapshotPointer=&snapshot;
-#pragma omp for
-    for(HBTInt subid=0;subid<Subhalos.size();subid++)
-    {
-      Subhalo_t::ParticleList_t & Particles=Subhalos[subid].Particles;
-      HBTInt nP=Particles.size();
-      for(HBTInt pid=0;pid<nP;pid++)
-        Particles[pid]=snapshot.GetIndex(Particles[pid]);
-    }
-}
-void SubhaloSnapshot_t::ParticleIndexToId()
+
+#ifndef DM_ONLY
+/* This function iterates over all local subhaloes, and adds newly spawned particles
+ * to the respective Particle vector */
+void SubhaloSnapshot_t::UpdateSplitParticles(const ParticleSnapshot_t &snapshot)
 {
-#pragma omp parallel for
-  for(HBTInt subid=0;subid<Subhalos.size();subid++)
+  for (std::size_t sub_number = 0; sub_number < Subhalos.size(); ++sub_number)
   {
-    Subhalo_t::ParticleList_t & Particles=Subhalos[subid].Particles;
-    HBTInt nP=Particles.size();
-    for(HBTInt pid=0;pid<nP;pid++)
-      Particles[pid]=SnapshotPointer->GetId(Particles[pid]);
+    for (std::size_t particle_number = 0; particle_number < Subhalos[sub_number].Particles.size(); ++particle_number)
+    {
+      if (snapshot.ParticleSplitMap.count(Subhalos[sub_number].Particles[particle_number].Id) == 1)
+      {
+        const HBTInt new_id = snapshot.ParticleSplitMap.at(Subhalos[sub_number].Particles[particle_number].Id);
+
+        Particle_t new_particle;
+        new_particle.Id = new_id;
+
+        Subhalos[sub_number].Particles.push_back(new_particle);
+      }
+    }
   }
-  SnapshotPointer=nullptr;
 }
-*/
+#endif
 
 void Subhalo_t::AverageCoordinates()
 {

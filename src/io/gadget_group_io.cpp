@@ -271,15 +271,7 @@ void GroupFileReader_t::ReadV2V3(int read_level, HBTInt start_particle, HBTInt e
   }
   fclose(fd);
 
-  if (HBTConfig.ParticleIdRankStyle)
-  {
-    cerr << "ParticleIdRankStyle not implemented for group files\n";
-    exit(1);
-  }
-  else
-  {
-    Particles.assign(PIDs.begin(), PIDs.end());
-  }
+  Particles.assign(PIDs.begin(), PIDs.end());
 }
 void GroupFileReader_t::Read(int ifile, int read_level, HBTInt start_particle, HBTInt end_particle)
 {

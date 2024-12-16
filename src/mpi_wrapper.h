@@ -129,7 +129,7 @@ void VectorAllToAll(MpiWorker_t &world, vector<vector<T>> &SendVecs, vector<vect
 template <class Particle_T, class InParticleIterator_T, class OutParticleIterator_T>
 void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleIterator,
                 const vector<HBTInt> &InParticleCount, vector<OutParticleIterator_T> OutParticleIterator,
-                MPI_Datatype MPI_Particle_T, const HBTInt chunksize=1024*1024)
+                MPI_Datatype MPI_Particle_T, const HBTInt chunksize = 1024 * 1024)
 /*break the task into smaller pieces to avoid message size overflow
  * allocate a temporary buffer of type Particle_T to copy from InParticleIterator, send around, and copy out to
  OutParticleIterator. InParticleIterator should point to data directly assignable to Particle_T. OutParticleIterator
@@ -139,9 +139,10 @@ void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleItera
   // determine loops
   HBTInt InParticleSum = accumulate(InParticleCount.begin(), InParticleCount.end(), (HBTInt)0);
   HBTInt Nloop = InParticleSum / chunksize;
-  if((InParticleSum % chunksize) != 0)Nloop += 1;
-  assert(Nloop*chunksize >= InParticleSum);
-  assert(Nloop*chunksize < InParticleSum+chunksize);
+  if ((InParticleSum % chunksize) != 0)
+    Nloop += 1;
+  assert(Nloop * chunksize >= InParticleSum);
+  assert(Nloop * chunksize < InParticleSum + chunksize);
   MPI_Allreduce(MPI_IN_PLACE, &Nloop, 1, MPI_HBT_INT, MPI_MAX, world.Communicator);
   if (0 == Nloop)
     return;
@@ -168,14 +169,12 @@ void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleItera
     }
 
     // Compute counts to receive and offsets into send and receive buffers
-    ExchangeCounts(SendParticleCounts, SendParticleDisps,
-                   RecvParticleCounts, RecvParticleDisps,
-                   world.Communicator);
+    ExchangeCounts(SendParticleCounts, SendParticleDisps, RecvParticleCounts, RecvParticleDisps, world.Communicator);
 
     // Allocate receive buffer
-    HBTInt RecvCountTotal = std::accumulate(RecvParticleCounts.begin(), RecvParticleCounts.end(), (HBTInt) 0);    
+    HBTInt RecvCountTotal = std::accumulate(RecvParticleCounts.begin(), RecvParticleCounts.end(), (HBTInt)0);
     RecvBuffer.resize(RecvCountTotal);
-    
+
     // pack
     for (int rank = 0; rank < world.size(); rank++)
     {
@@ -189,9 +188,8 @@ void MyAllToAll(MpiWorker_t &world, vector<InParticleIterator_T> InParticleItera
       }
     }
     // send
-    Pairwise_Alltoallv(SendBuffer, SendParticleCounts, SendParticleDisps, MPI_Particle_T,
-                       RecvBuffer, RecvParticleCounts, RecvParticleDisps, MPI_Particle_T,
-                       world.Communicator);
+    Pairwise_Alltoallv(SendBuffer, SendParticleCounts, SendParticleDisps, MPI_Particle_T, RecvBuffer,
+                       RecvParticleCounts, RecvParticleDisps, MPI_Particle_T, world.Communicator);
     // unpack
     for (int rank = 0; rank < world.size(); rank++)
     {

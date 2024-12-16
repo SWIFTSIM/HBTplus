@@ -1,0 +1,29 @@
+[Compulsary Params]
+SnapshotPath SIMULATION_PATH/SNAPSHOT_DIRECTORY
+HaloPath SIMULATION_PATH/SNAPSHOT_DIRECTORY
+SubhaloPath OUTPUT_PATH
+
+SnapshotDirBase SNAPSHOT_BASEDIR
+SnapshotFileBase SNAPSHOT_BASEFILE
+BoxSize -1
+SofteningHalo -1
+ 
+[Reader]
+SnapshotFormat swiftsim
+GroupFileFormat swiftsim_particle_index
+MinSnapshotIndex 0
+MaxSnapshotIndex MAXIMUM_SNAPSHOT
+MaxConcurrentIO 512
+
+[Units]
+MassInMsunh -1
+LengthInMpch -1
+VelInKmS -1
+
+[Subhalo Tracking & Unbinding]
+MinNumPartOfSub 20
+TracerParticleTypes 1 4
+MinNumTracerPartOfSub 10
+
+[Additional information]
+SaveBoundParticleBindingEnergies 1
