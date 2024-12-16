@@ -263,8 +263,8 @@ private:
 
   /* I/O methods */
   void ReadFile(int iFile, const SubReaderDepth_t depth);
-  void WriteBoundFiles(MpiWorker_t &world, const int &number_ranks_writing);
-  void WriteSourceFiles(MpiWorker_t &world, const int &number_ranks_writing);
+  void WriteBoundFiles(MpiWorker_t &world);
+  void WriteSourceFiles(MpiWorker_t &world);
   void WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsAll);
   void WriteSourceSubfile(int iFile, int nfiles);
 
