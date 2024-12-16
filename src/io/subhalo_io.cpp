@@ -8,6 +8,8 @@
 #include "../snapshot_number.h"
 #include "../subhalo.h"
 #include "../config_parser.h"
+#include "../task_limited_section.h"
+
 #include "git_version_info.h"
 
 void SubhaloSnapshot_t::BuildHDFDataType()
@@ -276,20 +278,14 @@ void SubhaloSnapshot_t::Save(MpiWorker_t &world)
   string subdir = GetSubDir();
   mkdir(subdir.c_str(), 0755);
 
-  /* Decide how many ranks per node write simultaneously */
-  int nr_nodes = (world.size() / world.MaxNodeSize);
-  int nr_writing = HBTConfig.MaxConcurrentIO / nr_nodes;
-  if (nr_writing < 1)
-    nr_writing = 1; // Always at least one per node
-
   /* Subhalo properties and bound particle lists. */
-  WriteBoundFiles(world, nr_writing);
+  WriteBoundFiles(world);
 
   /* Particles associated to each subhalo. Used for debugging and restarting. */
-  WriteSourceFiles(world, nr_writing);
+  WriteSourceFiles(world);
 }
 
-void SubhaloSnapshot_t::WriteBoundFiles(MpiWorker_t &world, const int &number_ranks_writing)
+void SubhaloSnapshot_t::WriteBoundFiles(MpiWorker_t &world)
 {
   /* Number of total subhalo entries */
   HBTInt NumSubsAll = 0, NumSubs = Subhalos.size();
@@ -299,39 +295,19 @@ void SubhaloSnapshot_t::WriteBoundFiles(MpiWorker_t &world, const int &number_ra
     cout << "saving " << NumSubsAll << " subhalos to " << GetSubDir() << endl;
 
   /* Allow a limited number of ranks per node to write simultaneously */
-  int writes_done = 0;
-  for (int rank_within_node = 0; rank_within_node < world.MaxNodeSize; rank_within_node += 1)
-  {
-    if (rank_within_node == world.NodeRank)
-    {
-      WriteBoundSubfile(world.rank(), world.size(), NumSubsAll);
-      writes_done += 1;
-    }
-    if (rank_within_node % number_ranks_writing == number_ranks_writing - 1)
-      MPI_Barrier(world.Communicator);
-  }
-
-  /* Every rank should have executed the writing code exactly once */
-  assert(writes_done == 1);
+  TaskLimitedSection section(MPI_COMM_WORLD, HBTConfig.MaxConcurrentIO);
+  section.start();
+  WriteBoundSubfile(world.rank(), world.size(), NumSubsAll);
+  section.end();
 }
 
-void SubhaloSnapshot_t::WriteSourceFiles(MpiWorker_t &world, const int &number_ranks_writing)
+void SubhaloSnapshot_t::WriteSourceFiles(MpiWorker_t &world)
 {
   /* Allow a limited number of ranks per node to write simultaneously */
-  int writes_done = 0;
-  for (int rank_within_node = 0; rank_within_node < world.MaxNodeSize; rank_within_node += 1)
-  {
-    if (rank_within_node == world.NodeRank)
-    {
-      WriteSourceSubfile(world.rank(), world.size());
-      writes_done += 1;
-    }
-    if (rank_within_node % number_ranks_writing == number_ranks_writing - 1)
-      MPI_Barrier(world.Communicator);
-  }
-
-  /* Every rank should have executed the writing code exactly once */
-  assert(writes_done == 1);
+  TaskLimitedSection section(MPI_COMM_WORLD, HBTConfig.MaxConcurrentIO);
+  section.start();
+  WriteSourceSubfile(world.rank(), world.size());
+  section.end();
 }
 
 void SubhaloSnapshot_t::WriteBoundSubfile(int iFile, int nfiles, HBTInt NumSubsAll)
